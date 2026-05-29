@@ -83,33 +83,33 @@ const LoginPage = ({ onLogin }) => {
                 <div style={{ ...styles.mockupIcon, background: '#E2E8F0', width: 20, height: 20 }} />
                 <div style={styles.mockupTitle} />
               </div>
-              <div style={[styles.mockupRow, { marginTop: 10 }]}>
-                <div style={[styles.mockupCell, styles.mockupCellSmall, { background: '#CBD5E1' }]} />
-                <div style={[styles.mockupCell, { background: '#CBD5E1' }]} />
-                <div style={[styles.mockupCell, { background: '#CBD5E1' }]} />
+              <div style={{ ...styles.mockupRow, marginTop: 10 }}>
+                <div style={{ ...styles.mockupCell, ...styles.mockupCellSmall, background: '#CBD5E1' }} />
+                <div style={{ ...styles.mockupCell, background: '#CBD5E1' }} />
+                <div style={{ ...styles.mockupCell, background: '#CBD5E1' }} />
               </div>
               <div style={styles.mockupRow}>
-                <div style={[styles.mockupCell, styles.mockupCellSmall]} />
-                <div style={styles.mockupCell} />
-                <div style={styles.mockupCell} />
-              </div>
-              <div style={styles.mockupRow}>
-                <div style={[styles.mockupCell, styles.mockupCellSmall]} />
+                <div style={{ ...styles.mockupCell, ...styles.mockupCellSmall }} />
                 <div style={styles.mockupCell} />
                 <div style={styles.mockupCell} />
               </div>
               <div style={styles.mockupRow}>
-                <div style={[styles.mockupCell, styles.mockupCellSmall]} />
+                <div style={{ ...styles.mockupCell, ...styles.mockupCellSmall }} />
                 <div style={styles.mockupCell} />
                 <div style={styles.mockupCell} />
               </div>
               <div style={styles.mockupRow}>
-                <div style={[styles.mockupCell, styles.mockupCellSmall]} />
+                <div style={{ ...styles.mockupCell, ...styles.mockupCellSmall }} />
                 <div style={styles.mockupCell} />
                 <div style={styles.mockupCell} />
               </div>
               <div style={styles.mockupRow}>
-                <div style={[styles.mockupCell, styles.mockupCellSmall]} />
+                <div style={{ ...styles.mockupCell, ...styles.mockupCellSmall }} />
+                <div style={styles.mockupCell} />
+                <div style={styles.mockupCell} />
+              </div>
+              <div style={styles.mockupRow}>
+                <div style={{ ...styles.mockupCell, ...styles.mockupCellSmall }} />
                 <div style={styles.mockupCell} />
                 <div style={styles.mockupCell} />
               </div>
