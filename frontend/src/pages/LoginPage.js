@@ -7,10 +7,10 @@ const LoginPage = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusField, setFocusField] = useState(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 900);
 
   React.useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    const onResize = () => setIsMobile(window.innerWidth <= 900);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
@@ -48,24 +48,24 @@ const LoginPage = ({ onLogin }) => {
     <div style={styles.page}>
       <div style={{
         ...styles.container,
-        ...(isMobile ? { flexDirection: 'column', height: 'auto', maxWidth: 480 } : {}),
+        ...(isMobile ? { flexDirection: 'column', height: 'auto' } : {}),
       }}>
 
         {/* ======== LEFT: Branding Section ======== */}
         <div style={{
           ...styles.brandingSection,
-          ...(isMobile ? { padding: '2.5rem 2rem', minHeight: 280 } : {}),
+          ...(isMobile ? { padding: '3rem 2rem', minHeight: 350 } : {}),
         }}>
           {/* Logo */}
-          <div style={{ ...styles.logoContainer, marginBottom: isMobile ? '2rem' : '6rem' }}>
+          <div style={styles.logoContainer}>
             <div style={styles.logoIcon} />
           </div>
 
           {/* Hero Text */}
           <div style={styles.heroContent}>
-            <h1 style={styles.heroTitle}>Manage Your Team Effortlessly</h1>
+            <h1 style={styles.heroTitle}>Designed for Individuals</h1>
             <p style={styles.heroText}>
-              Streamline HR operations, track attendance, and grow your workforce — all in one place.
+              See the analytics and grow your data remotely, from anywhere.
             </p>
             <div style={styles.heroLine} />
           </div>
@@ -120,17 +120,19 @@ const LoginPage = ({ onLogin }) => {
           <img
             src="https://i.pravatar.cc/100?img=5" alt="Avatar"
             style={{ ...styles.avatar, top: '45%', right: '5%', display: isMobile ? 'none' : 'block' }}
+            className="avatar-1"
           />
           <img
             src="https://i.pravatar.cc/100?img=11" alt="Avatar"
             style={{ ...styles.avatar, bottom: '10%', left: '20%', display: isMobile ? 'none' : 'block' }}
+            className="avatar-2"
           />
         </div>
 
         {/* ======== RIGHT: Login Form ======== */}
         <div style={{
           ...styles.loginSection,
-          ...(isMobile ? { padding: '2.5rem 2rem' } : {}),
+          ...(isMobile ? { padding: '3rem 2rem' } : {}),
         }}>
           <div style={styles.loginWrapper}>
             <h2 style={styles.loginHeading}>Login</h2>
@@ -155,10 +157,7 @@ const LoginPage = ({ onLogin }) => {
 
               {/* Password */}
               <div style={styles.formGroup}>
-                <div style={styles.labelRow}>
-                  <label style={styles.label}>Password</label>
-                  <a href="#!" style={styles.resetLink}>Reset Password</a>
-                </div>
+                <label style={styles.label}>Password</label>
                 <input
                   type="password"
                   style={inputStyle('password')}
@@ -187,11 +186,6 @@ const LoginPage = ({ onLogin }) => {
             <div style={styles.formFooter}>
               Don't have an account? <a href="#!" style={styles.footerLink}>Sign up</a>
             </div>
-
-            {/* Demo hint */}
-            <p style={styles.demoHint}>
-              Demo: admin@hrms.com / john@hrms.com (any password)
-            </p>
           </div>
         </div>
 
@@ -225,7 +219,7 @@ const styles = {
     borderRadius: 16,
     boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
     overflow: 'hidden',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif",
   },
 
   /* ---- Branding Left ---- */
@@ -391,12 +385,6 @@ const styles = {
     marginBottom: '1.5rem',
     position: 'relative',
   },
-  labelRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '0.5rem',
-  },
   label: {
     display: 'block',
     fontSize: '0.8rem',
@@ -404,6 +392,7 @@ const styles = {
     fontWeight: 500,
     marginBottom: '0.5rem',
   },
+
   /* Checkbox */
   checkboxGroup: {
     display: 'flex',
@@ -435,6 +424,7 @@ const styles = {
     fontWeight: 500,
     cursor: 'pointer',
     fontFamily: 'inherit',
+    transition: 'background 0.2s',
   },
 
   /* Footer */
@@ -442,27 +432,11 @@ const styles = {
     marginTop: '1.5rem',
     fontSize: '0.85rem',
     color: '#718096',
-    textAlign: 'center',
   },
   footerLink: {
     color: BLUE,
     textDecoration: 'none',
     fontWeight: 500,
-  },
-  resetLink: {
-    fontSize: '0.8rem',
-    color: BLUE,
-    textDecoration: 'none',
-    fontWeight: 500,
-    position: 'absolute',
-    top: 0,
-    right: 0,
-  },
-  demoHint: {
-    textAlign: 'center',
-    marginTop: 16,
-    color: '#A0AEC0',
-    fontSize: '0.78rem',
   },
 };
 
