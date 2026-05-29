@@ -108,13 +108,13 @@ const AdminDashboard = ({ user }) => {
   ];
 
   return (
-    <div style={{ display: 'flex' }}>
+    <div>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       {/* ---------- Sidebar ---------- */}
       <aside className="sidebar">
         <div className="sidebar-logo">HRMS<span>Admin Portal</span></div>
-        <div style={{ padding: '0 24px 16px', color: '#718096', fontSize: '0.75rem' }}>
+        <div style={{ padding: '0 24px 24px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
           {user?.firstName} {user?.lastName}
         </div>
         <nav className="sidebar-nav">
@@ -133,7 +133,7 @@ const AdminDashboard = ({ user }) => {
           ))}
         </nav>
         <div style={{ padding: 24 }}>
-          <button className="btn btn-outline" style={{ width: '100%', color: '#fff', borderColor: '#444' }}
+          <button className="btn btn-outline" style={{ width: '100%' }}
             onClick={() => { localStorage.removeItem('hrms_token'); window.location.reload(); }}>
             Logout
           </button>
@@ -157,20 +157,20 @@ const AdminDashboard = ({ user }) => {
             <>
               <h1 className="page-title">Overview</h1>
               <div className="stats-grid">
-                <div className="card stat-card">
-                  <div className="stat-icon teal">&#128101;</div>
+                <div className="stat-card" style={{ background: 'var(--stat-pink)' }}>
+                  <div className="stat-icon">&#128101;</div>
                   <div className="stat-info"><h3>{stats.totalEmployees}</h3><p>Total Employees</p></div>
                 </div>
-                <div className="card stat-card">
-                  <div className="stat-icon green">&#10003;</div>
+                <div className="stat-card" style={{ background: 'var(--stat-blue)' }}>
+                  <div className="stat-icon">&#10003;</div>
                   <div className="stat-info"><h3>{stats.attendanceRate}%</h3><p>Attendance Rate</p></div>
                 </div>
-                <div className="card stat-card">
-                  <div className="stat-icon orange">&#9983;</div>
+                <div className="stat-card" style={{ background: 'var(--stat-orange)' }}>
+                  <div className="stat-icon">&#9983;</div>
                   <div className="stat-info"><h3>{stats.pendingLeaves}</h3><p>Pending Leaves</p></div>
                 </div>
-                <div className="card stat-card">
-                  <div className="stat-icon red">&#128176;</div>
+                <div className="stat-card" style={{ background: 'var(--stat-purple)' }}>
+                  <div className="stat-icon">&#128176;</div>
                   <div className="stat-info"><h3>${stats.totalPayroll}</h3><p>Monthly Payroll</p></div>
                 </div>
               </div>

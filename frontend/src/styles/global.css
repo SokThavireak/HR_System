@@ -1,21 +1,23 @@
 /* ================================================
-   HRMS — Global Design System
-   Palette: Teal primary (#4ECDC4), Dark (#2C3E50),
-            Success #27AE60, Danger #E74C3C, Warning #F39C12
-   Font: system sans-serif stack
+   HRMS — Global Design System (Job Dashboard UI)
+   Primary: #7A6BFF (purple)
+   Background: #E8EAF6 → #F4F5F9
+   Card radius: 16px | Pill buttons: 20px radius
+   Font: Segoe UI system stack
    ================================================ */
 
 :root {
-  --primary: #4ECDC4;
-  --primary-dark: #38B2AC;
-  --primary-light: #E6FFFA;
+  --primary: #7A6BFF;
+  --primary-dark: #6556E0;
+  --primary-light: #EEECFF;
   --dark: #2C3E50;
-  --sidebar-bg: #1A252F;
-  --bg: #F7F9FC;
+  --sidebar-bg: #FFFFFF;
+  --bg: #F4F5F9;
+  --outer-bg: #E8EAF6;
   --white: #FFFFFF;
-  --border: #E2E8F0;
-  --text: #2D3748;
-  --text-muted: #718096;
+  --border: #E8EBF0;
+  --text: #333333;
+  --text-muted: #888888;
   --success: #27AE60;
   --success-bg: #C6F6D5;
   --danger: #E74C3C;
@@ -24,24 +26,37 @@
   --warning-bg: #FEEBC8;
   --info: #3182CE;
   --info-bg: #BEE3F8;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
-  --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
-  --radius: 8px;
+
+  /* Stat card palette */
+  --stat-pink: #FF8FB3;
+  --stat-blue: #61D4F8;
+  --stat-orange: #FF9B8A;
+  --stat-purple: #C293FF;
+
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 15px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.08);
+  --radius: 12px;
   --radius-lg: 16px;
+  --radius-xl: 24px;
+  --pill: 20px;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html, body, #root {
+  min-height: 100vh;
+  background: var(--outer-bg);
+}
+
 body {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: var(--bg);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: var(--text);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
-a { color: var(--primary-dark); text-decoration: none; }
+a { color: var(--primary); text-decoration: none; }
 button { cursor: pointer; font-family: inherit; }
 input, select, textarea { font-family: inherit; }
 
@@ -49,6 +64,7 @@ input, select, textarea { font-family: inherit; }
 .loading-screen {
   display: flex; align-items: center; justify-content: center;
   height: 100vh; font-size: 1.2rem; color: var(--text-muted);
+  background: var(--bg);
 }
 
 /* ---------- Toast Notifications ---------- */
@@ -72,8 +88,8 @@ input, select, textarea { font-family: inherit; }
 
 /* ---------- Status Badges ---------- */
 .badge {
-  display: inline-block; padding: 3px 10px; border-radius: 20px;
-  font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+  display: inline-block; padding: 4px 14px; border-radius: var(--pill);
+  font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
 }
 .badge-success  { background: var(--success-bg); color: var(--success); }
 .badge-danger   { background: var(--danger-bg); color: var(--danger); }
@@ -81,91 +97,200 @@ input, select, textarea { font-family: inherit; }
 .badge-info     { background: var(--info-bg); color: var(--info); }
 
 /* ---------- Data Table ---------- */
-.table-wrapper { overflow-x: auto; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); }
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-.data-table th { background: var(--bg); padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap; }
-.data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.table-wrapper {
+  overflow-x: auto;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.data-table th {
+  background: var(--bg); padding: 14px 18px; text-align: left;
+  font-weight: 600; color: var(--text-muted);
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.data-table td { padding: 14px 18px; border-bottom: 1px solid var(--border); }
 .data-table tr:hover td { background: var(--primary-light); }
 
 /* ---------- Forms ---------- */
-.form-group { margin-bottom: 16px; }
-.form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--dark); }
-.form-control {
-  width: 100%; padding: 10px 14px; border: 1.5px solid var(--border);
-  border-radius: var(--radius); font-size: 0.95rem; transition: border 0.2s;
-  background: var(--white);
+.form-group { margin-bottom: 18px; }
+.form-group label {
+  display: block; font-size: 0.85rem; font-weight: 600;
+  margin-bottom: 6px; color: var(--dark);
 }
-.form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.15); }
+.form-control {
+  width: 100%; padding: 10px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius); font-size: 0.92rem;
+  transition: border 0.2s; background: var(--white);
+}
+.form-control:focus {
+  outline: none; border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(122, 107, 255, 0.12);
+}
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-/* ---------- Buttons ---------- */
+/* ---------- Buttons (Pill Shape from Job Dashboard) ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 10px 22px; border: none; border-radius: var(--radius);
-  font-size: 0.9rem; font-weight: 600; transition: all 0.2s;
+  padding: 10px 24px; border: none; border-radius: var(--pill);
+  font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
 }
 .btn-primary   { background: var(--primary); color: #fff; }
 .btn-primary:hover { background: var(--primary-dark); }
 .btn-success   { background: var(--success); color: #fff; }
 .btn-danger    { background: var(--danger); color: #fff; }
-.btn-outline   { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+.btn-outline   { background: var(--bg); border: 1.5px solid var(--border); color: var(--text-muted); }
 .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
-.btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+.btn-sm { padding: 6px 16px; font-size: 0.78rem; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ---------- Cards ---------- */
-.card { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 24px; }
-.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.card-title { font-size: 1.1rem; font-weight: 700; color: var(--dark); }
-
-/* ---------- Sidebar ---------- */
-.sidebar {
-  width: 260px; background: var(--sidebar-bg); color: #fff;
-  min-height: 100vh; padding: 24px 0; position: fixed; top: 0; left: 0;
-  display: flex; flex-direction: column; z-index: 100;
+.card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 24px;
 }
-.sidebar-logo { padding: 0 24px 32px; font-size: 1.3rem; font-weight: 700; color: var(--primary); }
-.sidebar-logo span { display: block; font-size: 0.7rem; color: var(--text-muted); font-weight: 400; }
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.card-title { font-size: 1.05rem; font-weight: 700; color: var(--dark); }
+
+/* ---------- Sidebar (White, Filter-style from Job Dashboard) ---------- */
+.sidebar {
+  width: 260px;
+  background: var(--sidebar-bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 32px 0;
+  position: fixed; top: 0; left: 0;
+  display: flex; flex-direction: column; z-index: 100;
+  border-right: 1px solid var(--border);
+}
+.sidebar-logo {
+  padding: 0 24px 32px;
+  font-size: 1.25rem; font-weight: 700; color: var(--primary);
+}
+.sidebar-logo span {
+  display: block; font-size: 0.7rem;
+  color: var(--text-muted); font-weight: 400; margin-top: 2px;
+}
 .sidebar-nav { flex: 1; }
 .sidebar-link {
-  display: flex; align-items: center; gap: 12px; padding: 12px 24px;
-  color: rgba(255,255,255,0.65); font-size: 0.9rem; transition: all 0.2s;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 24px;
+  color: var(--text-muted); font-size: 0.88rem;
+  transition: all 0.2s;
   border-left: 3px solid transparent;
+  cursor: pointer;
 }
 .sidebar-link:hover, .sidebar-link.active {
-  color: #fff; background: rgba(78, 205, 196, 0.1); border-left-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+  border-left-color: var(--primary);
 }
 
 /* ---------- Main Layout ---------- */
-.main-wrapper { margin-left: 260px; min-height: 100vh; }
+.main-wrapper { margin-left: 260px; min-height: 100vh; background: var(--bg); }
 .topbar {
-  height: 64px; background: var(--white); border-bottom: 1px solid var(--border);
+  height: 70px;
+  background: var(--primary);
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 32px; position: sticky; top: 0; z-index: 50;
+  color: #fff;
 }
+.topbar a, .topbar span { color: rgba(255,255,255,0.85); }
+.topbar .page-title { color: #fff; margin-bottom: 0; }
 .page-content { padding: 32px; }
-.page-title { font-size: 1.5rem; font-weight: 700; color: var(--dark); margin-bottom: 24px; }
-
-/* ---------- Stats Grid ---------- */
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 32px; }
-.stat-card { display: flex; align-items: center; gap: 16px; }
-.stat-icon {
-  width: 52px; height: 52px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.4rem; flex-shrink: 0;
+.page-title {
+  font-size: 1.25rem; font-weight: 600;
+  color: var(--dark); margin-bottom: 24px;
 }
-.stat-icon.teal   { background: rgba(78, 205, 196, 0.15); color: var(--primary-dark); }
-.stat-icon.green  { background: var(--success-bg); color: var(--success); }
-.stat-icon.red    { background: var(--danger-bg); color: var(--danger); }
-.stat-icon.orange { background: var(--warning-bg); color: var(--warning); }
-.stat-info h3 { font-size: 1.6rem; font-weight: 700; }
-.stat-info p  { font-size: 0.85rem; color: var(--text-muted); }
+
+/* ---------- Stats Grid (Colorful Cards from Job Dashboard) ---------- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px; margin-bottom: 32px;
+}
+.stat-card {
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  display: flex; align-items: center; gap: 16px;
+  color: #fff;
+  box-shadow: none;
+}
+.stat-card .stat-icon {
+  width: 44px; height: 44px;
+  background-color: rgba(255,255,255,0.2);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; flex-shrink: 0;
+}
+.stat-card .stat-info h3 { font-size: 1.4rem; font-weight: 700; color: #fff; }
+.stat-card .stat-info p { font-size: 0.75rem; color: rgba(255,255,255,0.85); margin-top: 2px; }
+
+/* Purple tint for misc stat-card usage (employee dashboard keeps old icons) */
+.stat-card .stat-icon { background: rgba(255,255,255,0.2); color: #fff; }
+/* Override: employee stat cards on bg should use colored bg */
+.stat-card { background: var(--primary); }
+.stat-card:has(.stat-icon.green) { background: var(--success); }
+.stat-card:has(.stat-icon.teal) { background: var(--primary); }
+.stat-card:has(.stat-icon.orange) { background: var(--warning); }
+.stat-card:has(.stat-icon.red) { background: var(--danger); }
 
 /* ================================================
-   MOBILE — Employee Dashboard Overrides
+   RESPONSIVE — Tablet (≤1024px)
+   ================================================ */
+@media (max-width: 1024px) {
+  .sidebar { width: 220px; }
+  .main-wrapper { margin-left: 220px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ================================================
+   RESPONSIVE — Small Tablet (≤900px)
+   ================================================ */
+@media (max-width: 900px) {
+  .sidebar { width: 200px; padding: 24px 0; }
+  .main-wrapper { margin-left: 200px; }
+  .page-content { padding: 24px; }
+  .topbar { padding: 0 20px; }
+  .data-table th, .data-table td { padding: 10px 12px; font-size: 0.82rem; }
+}
+
+/* ================================================
+   RESPONSIVE — Mobile (≤768px)
    ================================================ */
 @media (max-width: 768px) {
+  html { font-size: 15px; }
+
   .sidebar { display: none; }
+  .main-wrapper { margin-left: 0; padding-bottom: 60px; }
+
+  .topbar { padding: 0 16px; height: 60px; }
+  .page-content { padding: 16px; }
+  .page-title { font-size: 1.1rem; margin-bottom: 16px; }
+  .card { padding: 18px; border-radius: var(--radius); }
+
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .stat-card { padding: 14px; }
+  .stat-card .stat-icon { width: 36px; height: 36px; font-size: 1rem; }
+  .stat-card .stat-info h3 { font-size: 1.15rem; }
+
+  .form-row { grid-template-columns: 1fr; }
+  .data-table { font-size: 0.8rem; }
+  .data-table th, .data-table td { padding: 8px 10px; }
+
+  .btn { padding: 9px 18px; font-size: 0.82rem; }
+  .btn-sm { padding: 5px 12px; font-size: 0.75rem; }
+
+  .clock-card { padding: 28px 16px; }
+  .clock-card .clock-time { font-size: 2rem; }
+  .clock-btn { width: 110px; height: 110px; font-size: 0.9rem; }
+
   .mobile-nav {
     position: fixed; bottom: 0; left: 0; right: 0;
     background: var(--white); border-top: 1px solid var(--border);
@@ -175,20 +300,62 @@ input, select, textarea { font-family: inherit; }
   .mobile-nav a {
     display: flex; flex-direction: column; align-items: center;
     font-size: 0.7rem; color: var(--text-muted); padding: 4px 12px;
+    cursor: pointer;
   }
-  .mobile-nav a.active { color: var(--primary-dark); }
-  .main-wrapper { margin-left: 0; padding-bottom: 60px; }
-  .page-content { padding: 16px; }
-  .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-  .form-row { grid-template-columns: 1fr; }
-  .topbar { padding: 0 16px; }
+  .mobile-nav a.active { color: var(--primary); }
+}
+
+/* ================================================
+   RESPONSIVE — Small Phone (≤480px)
+   ================================================ */
+@media (max-width: 480px) {
+  html { font-size: 14px; }
+
+  .page-content { padding: 12px; }
+  .card { padding: 14px; }
+
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-card { padding: 12px; gap: 10px; }
+  .stat-card .stat-icon { width: 32px; height: 32px; font-size: 0.9rem; border-radius: 8px; }
+  .stat-card .stat-info h3 { font-size: 1rem; }
+  .stat-card .stat-info p { font-size: 0.68rem; }
+
+  .clock-card { padding: 20px 12px; }
+  .clock-card .clock-time { font-size: 1.6rem; }
+  .clock-btn { width: 90px; height: 90px; font-size: 0.8rem; }
+  .clock-btn:hover { transform: none; }
+
+  .topbar { padding: 0 12px; height: 56px; }
+  .btn { padding: 8px 14px; font-size: 0.8rem; }
+  .btn-sm { padding: 4px 10px; font-size: 0.72rem; }
+
+  .table-wrapper { border-radius: var(--radius); }
+  .data-table th, .data-table td { padding: 6px 8px; font-size: 0.75rem; }
+
+  .form-control { padding: 8px 12px; font-size: 0.88rem; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { font-size: 0.82rem; }
+
+  .card-header { flex-wrap: wrap; gap: 8px; }
+  .badge { padding: 3px 10px; font-size: 0.68rem; }
+
+  .payslip-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+/* ================================================
+   RESPONSIVE — Extra Small (≤360px)
+   ================================================ */
+@media (max-width: 360px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .btn { padding: 8px 12px; }
+  .card { padding: 12px; }
 }
 
 /* ---------- Mobile Clock-In Big Button ---------- */
 .clock-card {
   text-align: center; padding: 40px 24px;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  border-radius: var(--radius-lg); color: #fff; margin-bottom: 24px;
+  border-radius: var(--radius-xl); color: #fff; margin-bottom: 24px;
   box-shadow: var(--shadow-lg);
 }
 .clock-card h3 { font-size: 1.1rem; margin-bottom: 8px; opacity: 0.9; }
@@ -199,6 +366,7 @@ input, select, textarea { font-family: inherit; }
   font-size: 1rem; font-weight: 700; transition: all 0.3s;
   display: inline-flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 4px;
+  cursor: pointer;
 }
 .clock-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
 .clock-btn.clocked-out { border-color: #E74C3C; background: rgba(231,76,60,0.3); }
@@ -221,5 +389,12 @@ input, select, textarea { font-family: inherit; }
 .leave-item.pending::before { background: var(--warning); border-color: var(--warning); }
 
 /* ---------- Payslip Card ---------- */
-.payslip-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-.payslip-card:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+.payslip-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  transition: all 0.2s;
+}
+.payslip-card:hover { border-color: var(--primary); box-shadow: var(--shadow-md); }

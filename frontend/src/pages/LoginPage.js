@@ -25,13 +25,13 @@ const LoginPage = ({ onLogin }) => {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', background: 'linear-gradient(135deg, #4ECDC4 0%, #38B2AC 100%)'
+      justifyContent: 'center', background: 'linear-gradient(135deg, #7A6BFF 0%, #6556E0 100%)'
     }}>
       <div className="card" style={{ width: '100%', maxWidth: 400, padding: 36 }}>
-        <h2 style={{ textAlign: 'center', fontSize: '1.6rem', color: '#2C3E50', marginBottom: 8 }}>
+        <h2 style={{ textAlign: 'center', fontSize: '1.6rem', color: '#333333', marginBottom: 8 }}>
           HRMS Portal
         </h2>
-        <p style={{ textAlign: 'center', color: '#718096', marginBottom: 28, fontSize: '0.9rem' }}>
+        <p style={{ textAlign: 'center', color: '#888888', marginBottom: 28, fontSize: '0.9rem' }}>
           Sign in to your HR dashboard
         </p>
 
@@ -63,7 +63,7 @@ const LoginPage = ({ onLogin }) => {
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: 20, color: '#718096', fontSize: '0.82rem' }}>
+        <p style={{ textAlign: 'center', marginTop: 20, color: '#888888', fontSize: '0.82rem' }}>
           Demo: admin@hrms.com / emp@hrms.com (any password)
         </p>
       </div>

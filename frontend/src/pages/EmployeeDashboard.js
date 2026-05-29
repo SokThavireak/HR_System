@@ -137,29 +137,29 @@ const EmployeeDashboard = ({ user }) => {
 
             {/* Stats */}
             <div className="stats-grid">
-              <div className="card stat-card">
-                <div className="stat-icon green">&#10003;</div>
+              <div className="stat-card" style={{ background: 'var(--stat-pink)' }}>
+                <div className="stat-icon">&#10003;</div>
                 <div className="stat-info">
                   <h3>{summary?.presentDays || 0}</h3>
                   <p>Present Days (Month)</p>
                 </div>
               </div>
-              <div className="card stat-card">
-                <div className="stat-icon teal">&#9200;</div>
+              <div className="stat-card" style={{ background: 'var(--stat-blue)' }}>
+                <div className="stat-icon">&#9200;</div>
                 <div className="stat-info">
                   <h3>{summary?.overtimeHours || 0}h</h3>
                   <p>Overtime (Accumulated)</p>
                 </div>
               </div>
-              <div className="card stat-card">
-                <div className="stat-icon orange">&#9983;</div>
+              <div className="stat-card" style={{ background: 'var(--stat-orange)' }}>
+                <div className="stat-icon">&#9983;</div>
                 <div className="stat-info">
                   <h3>{summary?.pendingLeaves || 0}</h3>
                   <p>Pending Leaves</p>
                 </div>
               </div>
-              <div className="card stat-card">
-                <div className="stat-icon red">&#128176;</div>
+              <div className="stat-card" style={{ background: 'var(--stat-purple)' }}>
+                <div className="stat-icon">&#128176;</div>
                 <div className="stat-info">
                   <h3>${summary?.lastPaySlip || 0}</h3>
                   <p>Last Payslip</p>
