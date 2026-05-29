@@ -1,0 +1,12 @@
+{
+  "name": "hr-system",
+  "version": "1.0.0",
+  "description": "- **Frontend:** React (JavaScript) + vanilla CSS design system - **Backend:** Java / Spring Boot + Spring Security + JWT + JPA/Hibernate - **Database:** Any SQL (MySQL / PostgreSQL) — entities ready for schema generation",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

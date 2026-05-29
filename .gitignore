@@ -1,0 +1,11 @@
+# Ignore React dependencies and builds
+frontend/node_modules/
+frontend/build/
+frontend/.env.local
+
+# Ignore Java build files and IDE settings
+backend/target/
+backend/.mvn/
+.claude/
+.vscode/
+*.class

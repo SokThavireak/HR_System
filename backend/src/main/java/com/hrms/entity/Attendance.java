@@ -1,0 +1,39 @@
+package com.hrms.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "attendance")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Attendance {
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @Column(nullable = false)
+    private LocalDate date;
+
+    private LocalDateTime clockInTime;
+    private LocalDateTime clockOutTime;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private AttendanceStatus status = AttendanceStatus.PRESENT;
+
+    private Double hoursWorked;
+    private Double overtimeHours;
+    private String clockInNote;
+    private String clockOutNote;
+
+    public enum AttendanceStatus {
+        PRESENT, ABSENT, LATE, HALF_DAY, ON_LEAVE
+    }
+}
