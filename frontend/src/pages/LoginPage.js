@@ -414,9 +414,8 @@ const styles = {
   checkbox: {
     width: 16,
     height: 16,
-    accentColor: BLUE,
     cursor: 'pointer',
-  } as any,
+  },
   checkboxLabel: {
     fontSize: '0.85rem',
     color: '#4A5568',
