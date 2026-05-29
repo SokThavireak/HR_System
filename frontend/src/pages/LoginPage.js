@@ -172,7 +172,7 @@ const LoginPage = ({ onLogin }) => {
 
               {/* Remember Me */}
               <div style={styles.checkboxGroup}>
-                <input type="checkbox" id="remember" style={styles.checkbox} />
+                <input type="checkbox" id="remember" style={{ ...styles.checkbox, marginRight: '0.5rem' }} />
                 <label htmlFor="remember" style={styles.checkboxLabel}>Remember Password</label>
               </div>
 
@@ -347,7 +347,6 @@ const styles = {
     border: '3px solid #fff',
     boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
     zIndex: 4,
-    objectFit: 'cover',
   },
 
   /* ---- Login Right ---- */
@@ -397,7 +396,6 @@ const styles = {
   checkboxGroup: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.5rem',
     marginBottom: '2rem',
   },
   checkbox: {
