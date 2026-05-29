@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { adminService } from '../services/adminService';
 import ToastContainer from '../components/common/ToastContainer';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { useToast } from '../hooks\useToast';
+import { useToast } from '../hooks/useToast';
 
 const AdminDashboard = ({ user }) => {
   const [section, setSection] = useState('dashboard');
@@ -493,7 +493,7 @@ const AdminDashboard = ({ user }) => {
                             <td>{rw.reviewPeriodStart} &mdash; {rw.reviewPeriodEnd}</td>
                             <td>{rw.qualityScore}/5</td>
                             <td>{rw.productivityScore}/5</td>
-                            <td><strong>{rw.overallScore}/5</td>
+                            <td><strong>{rw.overallScore}/5</strong></td>
                             <td style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rw.goals}</td>
                           </tr>
                         ))}
