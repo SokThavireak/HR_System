@@ -63,7 +63,7 @@ const LoginPage = ({ onLogin }) => {
 
           {/* Hero Text */}
           <div style={styles.heroContent}>
-            <h1 style={styles.heroTitle}>Designed for Individuals</h1>
+            <h1 style={styles.heroTitle}>Every Where Every Time i'll be here for you</h1>
             <p style={styles.heroText}>
               See the analytics and grow your data remotely, from anywhere.
             </p>
@@ -146,7 +146,7 @@ const LoginPage = ({ onLogin }) => {
                 <input
                   type="email"
                   style={inputStyle('email')}
-                  placeholder="name@mail.com"
+                  placeholder="your_name@mail.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -184,7 +184,6 @@ const LoginPage = ({ onLogin }) => {
 
             {/* Footer */}
             <div style={styles.formFooter}>
-              Don't have an account? <a href="#!" style={styles.footerLink}>Sign up</a>
             </div>
           </div>
         </div>

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { employeeService } from '../services/employeeService';
+import AttendancePage from './AttendancePage';
 import ToastContainer from '../components/common/ToastContainer';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useToast } from '../hooks/useToast';
 
 /* ================================================================
-   EmployeeDashboard — Mobile-first self-service portal
-   Tabs: Dashboard | Attendance | Leaves | Profile
+   EmployeeDashboard — Bolder, bigger icons & fonts
+   Tabs: Dashboard | Attendance | Leaves | Reports | Profile
    ================================================================ */
 const EmployeeDashboard = ({ user }) => {
   const [tab, setTab] = useState('dashboard');
@@ -43,7 +44,6 @@ const EmployeeDashboard = ({ user }) => {
 
   const handleClock = async () => {
     if (!todayRecord || !todayRecord.clockOutTime) {
-      // Clock in
       try {
         const { data } = await employeeService.clockIn({});
         setTodayRecord(data);
@@ -52,7 +52,6 @@ const EmployeeDashboard = ({ user }) => {
         showToast(err.message || 'Clock in failed', 'error');
       }
     } else if (todayRecord.clockInTime && !todayRecord.clockOutTime) {
-      // Clock out
       try {
         const { data } = await employeeService.clockOut({});
         setTodayRecord(data);
@@ -82,29 +81,45 @@ const EmployeeDashboard = ({ user }) => {
     }
   };
 
-  const getCurrentTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const getCurrentTime = () =>
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
   const isClockedIn = todayRecord?.clockInTime && !todayRecord?.clockOutTime;
   const isDoneToday = todayRecord?.clockInTime && todayRecord?.clockOutTime;
 
   if (loading) return <LoadingSpinner text="Loading your dashboard..." />;
 
   return (
-    <div style={{ fontFamily: 'inherit' }}>
+    <div>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       {/* ---------- Top Bar ---------- */}
       <div className="topbar">
-        <div>
-          <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>HRMS</span>
-          <span style={{ marginLeft: 12, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            Employee Portal
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: '1.8rem' }}>🏢</span>
+          <div>
+            <span style={{ fontWeight: 900, fontSize: '1.35rem', letterSpacing: '-0.01em', lineHeight: 1 }}>HRMS</span>
+            <span style={{
+              marginLeft: 14, fontSize: '1rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600,
+            }}>
+              Employee Portal
+            </span>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ fontSize: '0.9rem' }}>{user?.firstName} {user?.lastName}</span>
-          <button className="btn btn-outline btn-sm" onClick={() => {
-            localStorage.removeItem('hrms_token'); window.location.reload();
-          }}>Logout</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <span style={{
+            fontSize: '1.05rem', fontWeight: 700,
+            background: 'rgba(255,255,255,0.18)',
+            padding: '8px 18px', borderRadius: 999,
+          }}>
+            👤 {user?.firstName} {user?.lastName}
+          </span>
+          <button className="btn btn-sm btn-outline" style={{
+            background: 'rgba(255,255,255,0.18)', borderColor: 'rgba(255,255,255,0.3)',
+            color: '#fff', fontSize: '0.95rem', fontWeight: 700,
+          }} onClick={() => { localStorage.removeItem('hrms_token'); window.location.reload(); }}>
+            🚪 Logout
+          </button>
         </div>
       </div>
 
@@ -112,25 +127,44 @@ const EmployeeDashboard = ({ user }) => {
         {/* ========= TAB: DASHBOARD ========= */}
         {tab === 'dashboard' && (
           <>
-            <h1 className="page-title">Welcome, {user?.firstName}</h1>
+            <h1 className="page-title" style={{ fontSize: '1.8rem' }}>
+              👋 Welcome, {user?.firstName}
+            </h1>
 
-            {/* Today's Clock Card */}
-            <div className="clock-card">
-              <h3>Today's Attendance</h3>
-              <div className="clock-time">{getCurrentTime()}</div>
+            {/* Today's Clock Card — bigger */}
+            <div className="clock-card" style={{
+              padding: '56px 28px',
+              borderRadius: 28,
+              position: 'relative',
+            }}>
+              <h3 style={{ fontSize: '1.25rem', marginBottom: 10 }}>🕐 Today's Attendance</h3>
+              <div className="clock-time" style={{
+                fontSize: '3.4rem', fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 24,
+              }}>
+                {getCurrentTime()}
+              </div>
               <button
                 className={`clock-btn ${isClockedIn ? 'clocked-out' : ''}`}
                 onClick={handleClock}
                 disabled={isDoneToday}
+                style={{
+                  width: 180, height: 180, fontSize: '1.3rem',
+                  border: `6px solid ${isClockedIn ? '#FCA5A5' : 'rgba(255,255,255,0.5)'}`,
+                }}
               >
-                {isClockedIn ? 'Clock Out' : isDoneToday ? 'Done' : 'Clock In'}
+                <span style={{ fontSize: '2.2rem', display: 'block' }}>
+                  {isClockedIn ? '⏹' : isDoneToday ? '✅' : '▶'}
+                </span>
+                <span style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {isClockedIn ? 'Clock Out' : isDoneToday ? 'Done' : 'Clock In'}
+                </span>
               </button>
-              <div className="clock-status">
+              <div className="clock-status" style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: 18 }}>
                 {todayRecord?.clockInTime
-                  ? `Clocked in at ${new Date(todayRecord.clockInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                  : 'Not clocked in yet'}
+                  ? `⏰ Clocked in at ${new Date(todayRecord.clockInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  : '⏳ Not clocked in yet'}
                 {todayRecord?.clockOutTime
-                  ? ` | Clocked out at ${new Date(todayRecord.clockOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  ? ` · 🌙 Clocked out at ${new Date(todayRecord.clockOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                   : ''}
               </div>
             </div>
@@ -138,32 +172,20 @@ const EmployeeDashboard = ({ user }) => {
             {/* Stats */}
             <div className="stats-grid">
               <div className="stat-card" style={{ background: 'var(--stat-pink)' }}>
-                <div className="stat-icon">&#10003;</div>
-                <div className="stat-info">
-                  <h3>{summary?.presentDays || 0}</h3>
-                  <p>Present Days (Month)</p>
-                </div>
+                <div className="stat-icon">✅</div>
+                <div className="stat-info"><h3>{summary?.presentDays || 0}</h3><p>Present Days (Month)</p></div>
               </div>
               <div className="stat-card" style={{ background: 'var(--stat-blue)' }}>
-                <div className="stat-icon">&#9200;</div>
-                <div className="stat-info">
-                  <h3>{summary?.overtimeHours || 0}h</h3>
-                  <p>Overtime (Accumulated)</p>
-                </div>
+                <div className="stat-icon">⏳</div>
+                <div className="stat-info"><h3>{summary?.overtimeHours || 0}h</h3><p>Overtime (Accumulated)</p></div>
               </div>
               <div className="stat-card" style={{ background: 'var(--stat-orange)' }}>
-                <div className="stat-icon">&#9983;</div>
-                <div className="stat-info">
-                  <h3>{summary?.pendingLeaves || 0}</h3>
-                  <p>Pending Leaves</p>
-                </div>
+                <div className="stat-icon">🌴</div>
+                <div className="stat-info"><h3>{summary?.pendingLeaves || 0}</h3><p>Pending Leaves</p></div>
               </div>
               <div className="stat-card" style={{ background: 'var(--stat-purple)' }}>
-                <div className="stat-icon">&#128176;</div>
-                <div className="stat-info">
-                  <h3>${summary?.lastPaySlip || 0}</h3>
-                  <p>Last Payslip</p>
-                </div>
+                <div className="stat-icon">💵</div>
+                <div className="stat-info"><h3>${summary?.lastPaySlip || 0}</h3><p>Last Payslip</p></div>
               </div>
             </div>
 
@@ -174,7 +196,9 @@ const EmployeeDashboard = ({ user }) => {
                 <button className="btn btn-sm btn-outline" onClick={() => setTab('leaves')}>View All</button>
               </div>
               {leaves.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', padding: '16px 0' }}>No leave requests yet.</p>
+                <p style={{ color: 'var(--text-muted)', padding: '16px 0' }}>
+                  No leave requests yet.
+                </p>
               ) : (
                 <div className="leave-tracker">
                   {leaves.slice(0, 3).map((lv) => (
@@ -192,12 +216,16 @@ const EmployeeDashboard = ({ user }) => {
           </>
         )}
 
+        {/* ========= TAB: ATTENDANCE ========= */}
+        {tab === 'attendance' && (
+          <AttendancePage showSidebar={false} />
+        )}
+
         {/* ========= TAB: LEAVES ========= */}
         {tab === 'leaves' && (
           <>
-            <h1 className="page-title">Leave Management</h1>
+            <h1 className="page-title">🌴 Leave Management</h1>
 
-            {/* Request Form */}
             <div className="card" style={{ marginBottom: 24 }}>
               <div className="card-header"><span className="card-title">Request Time Off</span></div>
               <form onSubmit={handleLeaveSubmit}>
@@ -232,7 +260,6 @@ const EmployeeDashboard = ({ user }) => {
               </form>
             </div>
 
-            {/* Leave History */}
             <div className="card">
               <div className="card-header"><span className="card-title">My Leave History</span></div>
               {leaves.length === 0 ? (
@@ -269,7 +296,7 @@ const EmployeeDashboard = ({ user }) => {
         {/* ========= TAB: PAYSLIPS / REPORTS ========= */}
         {tab === 'reports' && (
           <>
-            <h1 className="page-title">Reports &amp; PaySlips</h1>
+            <h1 className="page-title">📄 Reports &amp; PaySlips</h1>
 
             <div className="card">
               <div className="card-header"><span className="card-title">My Payslips</span></div>
@@ -284,13 +311,12 @@ const EmployeeDashboard = ({ user }) => {
                         Net Pay: <strong style={{ color: 'var(--success)' }}>${ps.netSalary}</strong> | Gross: ${ps.grossSalary}
                       </p>
                     </div>
-                    <button className="btn btn-sm btn-primary">&#128196; Download</button>
+                    <button className="btn btn-sm btn-primary">📥 Download</button>
                   </div>
                 ))
               )}
             </div>
 
-            {/* Performance Summary */}
             <div className="card" style={{ marginTop: 24 }}>
               <div className="card-header"><span className="card-title">Performance Reviews</span></div>
               {performance.length === 0 ? (
@@ -322,7 +348,7 @@ const EmployeeDashboard = ({ user }) => {
         {/* ========= TAB: PROFILE ========= */}
         {tab === 'profile' && (
           <>
-            <h1 className="page-title">My Profile</h1>
+            <h1 className="page-title">👤 My Profile</h1>
             <div className="card">
               <div className="form-row">
                 <div className="form-group">
@@ -363,16 +389,24 @@ const EmployeeDashboard = ({ user }) => {
       {/* ---------- Mobile Bottom Navigation ---------- */}
       <nav className="mobile-nav">
         <a className={tab === 'dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>
-          &#9776; Dashboard
+          <span style={{ fontSize: '1.6rem', display: 'block', lineHeight: 1 }}>🏠</span>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, marginTop: 2 }}>Home</span>
+        </a>
+        <a className={tab === 'attendance' ? 'active' : ''} onClick={() => setTab('attendance')}>
+          <span style={{ fontSize: '1.6rem', display: 'block', lineHeight: 1 }}>🕐</span>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, marginTop: 2 }}>Attendance</span>
         </a>
         <a className={tab === 'leaves' ? 'active' : ''} onClick={() => setTab('leaves')}>
-          &#9983; Leaves
+          <span style={{ fontSize: '1.6rem', display: 'block', lineHeight: 1 }}>🌴</span>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, marginTop: 2 }}>Leaves</span>
         </a>
         <a className={tab === 'reports' ? 'active' : ''} onClick={() => setTab('reports')}>
-          &#128196; Reports
+          <span style={{ fontSize: '1.6rem', display: 'block', lineHeight: 1 }}>📄</span>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, marginTop: 2 }}>Reports</span>
         </a>
         <a className={tab === 'profile' ? 'active' : ''} onClick={() => setTab('profile')}>
-          &#128100; Profile
+          <span style={{ fontSize: '1.6rem', display: 'block', lineHeight: 1 }}>👤</span>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, marginTop: 2 }}>Profile</span>
         </a>
       </nav>
     </div>

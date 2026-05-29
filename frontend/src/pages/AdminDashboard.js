@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../services/adminService';
+import AttendancePage from './AttendancePage';
 import ToastContainer from '../components/common/ToastContainer';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useToast } from '../hooks/useToast';
+
+const SIDEBAR_ICONS = {
+  dashboard: '📊',
+  users: '👥',
+  attendance: '🕐',
+  leaves: '🌴',
+  payroll: '💰',
+  performance: '⭐',
+};
 
 const AdminDashboard = ({ user }) => {
   const [section, setSection] = useState('dashboard');
@@ -27,7 +37,6 @@ const AdminDashboard = ({ user }) => {
 
   useEffect(() => { loadStats(); }, []);
 
-  /* ---------- Data Loaders ---------- */
   const loadUsers = async () => {
     setLoading(true);
     try { const { data } = await adminService.getUsers(search); setUsers(data.content || data); }
@@ -56,7 +65,6 @@ const AdminDashboard = ({ user }) => {
     setLoading(false);
   };
 
-  /* ---------- Actions ---------- */
   const handleApproveLeave = async (id) => {
     try { await adminService.approveLeave(id); showToast('Leave approved!'); }
     catch { showToast('Approval failed', 'error'); }
@@ -113,9 +121,16 @@ const AdminDashboard = ({ user }) => {
 
       {/* ---------- Sidebar ---------- */}
       <aside className="sidebar">
-        <div className="sidebar-logo">HRMS<span>Admin Portal</span></div>
-        <div style={{ padding: '0 24px 24px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-          {user?.firstName} {user?.lastName}
+        <div className="sidebar-logo">
+          <div style={{ fontSize: '1.1rem', letterSpacing: '-0.02em' }}>
+            HRMS
+          </div>
+          <span style={{ fontSize: '0.8rem' }}>Admin Portal</span>
+        </div>
+        <div style={{
+          padding: '0 22px 28px', fontSize: '1rem', fontWeight: 700, color: '#334155',
+        }}>
+          👤 {user?.firstName} {user?.lastName}
         </div>
         <nav className="sidebar-nav">
           {sidebarItems.map((item) => (
@@ -128,14 +143,15 @@ const AdminDashboard = ({ user }) => {
                  if (item.key === 'payroll') loadPayrolls();
                  if (item.key === 'performance') loadReviews();
                }}>
-              {item.label}
+              <span style={{ fontSize: '1.2rem' }}>{SIDEBAR_ICONS[item.key]}</span>
+              <span>{item.label}</span>
             </a>
           ))}
         </nav>
-        <div style={{ padding: 24 }}>
-          <button className="btn btn-outline" style={{ width: '100%' }}
+        <div style={{ padding: '22px', marginTop: 'auto' }}>
+          <button className="btn btn-outline" style={{ width: '100%', fontSize: '1rem', fontWeight: 700, padding: '12px' }}
             onClick={() => { localStorage.removeItem('hrms_token'); window.location.reload(); }}>
-            Logout
+            🚪 Logout
           </button>
         </div>
       </aside>
@@ -143,8 +159,18 @@ const AdminDashboard = ({ user }) => {
       {/* ---------- Main Content ---------- */}
       <div className="main-wrapper">
         <div className="topbar">
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{sidebarItems.find(s => s.key === section)?.label}</h2>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+          }}>
+            <span style={{
+              fontSize: '1.6rem', marginRight: 6,
+              fontWeight: 400,
+            }}>{SIDEBAR_ICONS[section] || '📊'}</span>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.01em', margin: 0 }}>
+              {sidebarItems.find(s => s.key === section)?.label}
+            </h2>
+          </div>
+          <span style={{ fontSize: '1.05rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </span>
         </div>
@@ -155,34 +181,40 @@ const AdminDashboard = ({ user }) => {
           {/* ======== DASHBOARD ======== */}
           {section === 'dashboard' && stats && (
             <>
-              <h1 className="page-title">Overview</h1>
+              <h1 className="page-title">
+                📊 Overview
+              </h1>
               <div className="stats-grid">
                 <div className="stat-card" style={{ background: 'var(--stat-pink)' }}>
-                  <div className="stat-icon">&#128101;</div>
+                  <div className="stat-icon">👥</div>
                   <div className="stat-info"><h3>{stats.totalEmployees}</h3><p>Total Employees</p></div>
                 </div>
                 <div className="stat-card" style={{ background: 'var(--stat-blue)' }}>
-                  <div className="stat-icon">&#10003;</div>
+                  <div className="stat-icon">✅</div>
                   <div className="stat-info"><h3>{stats.attendanceRate}%</h3><p>Attendance Rate</p></div>
                 </div>
                 <div className="stat-card" style={{ background: 'var(--stat-orange)' }}>
-                  <div className="stat-icon">&#9983;</div>
+                  <div className="stat-icon">🌴</div>
                   <div className="stat-info"><h3>{stats.pendingLeaves}</h3><p>Pending Leaves</p></div>
                 </div>
                 <div className="stat-card" style={{ background: 'var(--stat-purple)' }}>
-                  <div className="stat-icon">&#128176;</div>
+                  <div className="stat-icon">💰</div>
                   <div className="stat-info"><h3>${stats.totalPayroll}</h3><p>Monthly Payroll</p></div>
                 </div>
               </div>
             </>
           )}
 
+          {/* ======== ATTENDANCE (New Big Page) ======== */}
+          {section === 'attendance' && (
+            <AttendancePage />
+          )}
+
           {/* ======== USERS ======== */}
           {section === 'users' && (
             <>
-              <h1 className="page-title">User Management</h1>
+              <h1 className="page-title">👥 User Management</h1>
 
-              {/* Add Employee Form */}
               <div className="card" style={{ marginBottom: 24 }}>
                 <div className="card-header"><span className="card-title">Add New Employee</span></div>
                 <form onSubmit={handleCreateUser}>
@@ -253,7 +285,6 @@ const AdminDashboard = ({ user }) => {
                 </form>
               </div>
 
-              {/* Users Table */}
               <div className="card">
                 <div className="card-header">
                   <span className="card-title">Employees ({users.length})</span>
@@ -304,7 +335,7 @@ const AdminDashboard = ({ user }) => {
           {/* ======== LEAVES ======== */}
           {section === 'leaves' && (
             <>
-              <h1 className="page-title">Leave Approvals</h1>
+              <h1 className="page-title">🌴 Leave Approvals</h1>
               <div className="card">
                 <div className="card-header"><span className="card-title">Pending Requests ({leaves.length})</span></div>
                 {leaves.length === 0 ? (
@@ -329,8 +360,8 @@ const AdminDashboard = ({ user }) => {
                               {lv.reason}
                             </td>
                             <td>
-                              <button className="btn btn-sm btn-success" onClick={() => handleApproveLeave(lv.id)}>&#10003; Approve</button>&nbsp;
-                              <button className="btn btn-sm btn-danger" onClick={() => handleRejectLeave(lv.id)}>&#10007; Reject</button>
+                              <button className="btn btn-sm btn-success" onClick={() => handleApproveLeave(lv.id)}>✓ Approve</button>&nbsp;
+                              <button className="btn btn-sm btn-danger" onClick={() => handleRejectLeave(lv.id)}>✗ Reject</button>
                             </td>
                           </tr>
                         ))}
@@ -345,7 +376,7 @@ const AdminDashboard = ({ user }) => {
           {/* ======== PAYROLL ======== */}
           {section === 'payroll' && (
             <>
-              <h1 className="page-title">Payroll System</h1>
+              <h1 className="page-title">💰 Payroll System</h1>
               <div className="card" style={{ marginBottom: 24 }}>
                 <div className="card-header"><span className="card-title">Quick Actions</span></div>
                 <p style={{ marginBottom: 16, color: 'var(--text-muted)' }}>
@@ -368,7 +399,7 @@ const AdminDashboard = ({ user }) => {
                         {payrolls.map((pr) => (
                           <tr key={pr.id}>
                             <td>{pr.user?.firstName} {pr.user?.lastName}</td>
-                            <td>{pr.payPeriodStart} &mdash;<br />{pr.payPeriodEnd}</td>
+                            <td>{pr.payPeriodStart} —<br />{pr.payPeriodEnd}</td>
                             <td>${pr.baseSalary}</td>
                             <td>${pr.overtimePay || 0}</td>
                             <td>${pr.extraSalary || 0}</td>
@@ -405,9 +436,8 @@ const AdminDashboard = ({ user }) => {
           {/* ======== PERFORMANCE ======== */}
           {section === 'performance' && (
             <>
-              <h1 className="page-title">Performance Reviews</h1>
+              <h1 className="page-title">⭐ Performance Reviews</h1>
 
-              {/* Add Review Form */}
               <div className="card" style={{ marginBottom: 24 }}>
                 <div className="card-header"><span className="card-title">Submit Performance Review</span></div>
                 <form onSubmit={(e) => {
@@ -475,7 +505,6 @@ const AdminDashboard = ({ user }) => {
                 </form>
               </div>
 
-              {/* Reviews Table */}
               <div className="card">
                 <div className="card-header"><span className="card-title">All Reviews ({reviews.length})</span></div>
                 {reviews.length === 0 ? (
@@ -490,7 +519,7 @@ const AdminDashboard = ({ user }) => {
                         {reviews.map((rw) => (
                           <tr key={rw.id}>
                             <td><strong>{rw.employee?.firstName} {rw.employee?.lastName}</strong></td>
-                            <td>{rw.reviewPeriodStart} &mdash; {rw.reviewPeriodEnd}</td>
+                            <td>{rw.reviewPeriodStart} — {rw.reviewPeriodEnd}</td>
                             <td>{rw.qualityScore}/5</td>
                             <td>{rw.productivityScore}/5</td>
                             <td><strong>{rw.overallScore}/5</strong></td>
