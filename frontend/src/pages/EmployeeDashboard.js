@@ -3,6 +3,7 @@ import { employeeService } from '../services/employeeService';
 import AttendancePage from './AttendancePage';
 import ToastContainer from '../components/common/ToastContainer';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import Icon from '../components/common/Icons';
 import { useToast } from '../hooks/useToast';
 
 /* ================================================================
@@ -96,7 +97,7 @@ const EmployeeDashboard = ({ user }) => {
       {/* ---------- Top Bar ---------- */}
       <div className="topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ fontSize: '1.8rem' }}>🏢</span>
+          <Icon name="home" size={28} color="#fff" bold />
           <div>
             <span style={{ fontWeight: 900, fontSize: '1.35rem', letterSpacing: '-0.01em', lineHeight: 1 }}>HRMS</span>
             <span style={{
@@ -107,18 +108,24 @@ const EmployeeDashboard = ({ user }) => {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <span style={{
+          <button title={user?.email || ''} style={{
             fontSize: '1.05rem', fontWeight: 700,
             background: 'rgba(255,255,255,0.18)',
             padding: '8px 18px', borderRadius: 999,
+            color: '#fff', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            👤 {user?.firstName} {user?.lastName}
-          </span>
-          <button className="btn btn-sm btn-outline" style={{
-            background: 'rgba(255,255,255,0.18)', borderColor: 'rgba(255,255,255,0.3)',
+            <Icon name="user" size={18} color="#fff" bold />
+            {user?.firstName} {user?.lastName}
+          </button>
+          <button title="Logout" style={{
+            background: 'rgba(255,255,255,0.18)',
+            border: '1px solid rgba(255,255,255,0.3)',
             color: '#fff', fontSize: '0.95rem', fontWeight: 700,
+            padding: '8px 16px', borderRadius: 10,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
           }} onClick={() => { localStorage.removeItem('hrms_token'); window.location.reload(); }}>
-            🚪 Logout
+            <Icon name="logout" size={18} color="#fff" bold />
           </button>
         </div>
       </div>
@@ -128,7 +135,7 @@ const EmployeeDashboard = ({ user }) => {
         {tab === 'dashboard' && (
           <>
             <h1 className="page-title" style={{ fontSize: '1.8rem' }}>
-              👋 Welcome, {user?.firstName}
+              Welcome, {user?.firstName}
             </h1>
 
             {/* Today's Clock Card — bigger */}
@@ -137,7 +144,7 @@ const EmployeeDashboard = ({ user }) => {
               borderRadius: 28,
               position: 'relative',
             }}>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: 10 }}>🕐 Today's Attendance</h3>
+              <h3 style={{ fontSize: '1.25rem', marginBottom: 10 }}>Today's Attendance</h3>
               <div className="clock-time" style={{
                 fontSize: '3.4rem', fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 24,
               }}>
@@ -150,21 +157,25 @@ const EmployeeDashboard = ({ user }) => {
                 style={{
                   width: 180, height: 180, fontSize: '1.3rem',
                   border: `6px solid ${isClockedIn ? '#FCA5A5' : 'rgba(255,255,255,0.5)'}`,
+                  background: isDoneToday ? 'rgba(34,197,94,0.25)' : isClockedIn ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.15)',
+                  cursor: isDoneToday ? 'not-allowed' : 'pointer',
                 }}
               >
-                <span style={{ fontSize: '2.2rem', display: 'block' }}>
-                  {isClockedIn ? '⏹' : isDoneToday ? '✅' : '▶'}
-                </span>
-                <span style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {isDoneToday
+                  ? <Icon name="check" size={42} color="#fff" bold />
+                  : isClockedIn
+                    ? <Icon name="clock" size={42} color="#fff" bold />
+                    : <Icon name="clock" size={42} color="#fff" bold />}
+                <span style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 6 }}>
                   {isClockedIn ? 'Clock Out' : isDoneToday ? 'Done' : 'Clock In'}
                 </span>
               </button>
               <div className="clock-status" style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: 18 }}>
                 {todayRecord?.clockInTime
-                  ? `⏰ Clocked in at ${new Date(todayRecord.clockInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                  : '⏳ Not clocked in yet'}
+                  ? `Clocked in at ${new Date(todayRecord.clockInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  : 'Not clocked in yet'}
                 {todayRecord?.clockOutTime
-                  ? ` · 🌙 Clocked out at ${new Date(todayRecord.clockOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  ? `  ·  Clocked out at ${new Date(todayRecord.clockOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                   : ''}
               </div>
             </div>
@@ -172,19 +183,19 @@ const EmployeeDashboard = ({ user }) => {
             {/* Stats */}
             <div className="stats-grid">
               <div className="stat-card" style={{ background: 'var(--stat-pink)' }}>
-                <div className="stat-icon">✅</div>
+                <div className="stat-icon"><Icon name="check" size={28} color="#fff" /></div>
                 <div className="stat-info"><h3>{summary?.presentDays || 0}</h3><p>Present Days (Month)</p></div>
               </div>
               <div className="stat-card" style={{ background: 'var(--stat-blue)' }}>
-                <div className="stat-icon">⏳</div>
+                <div className="stat-icon"><Icon name="clock" size={28} color="#fff" /></div>
                 <div className="stat-info"><h3>{summary?.overtimeHours || 0}h</h3><p>Overtime (Accumulated)</p></div>
               </div>
               <div className="stat-card" style={{ background: 'var(--stat-orange)' }}>
-                <div className="stat-icon">🌴</div>
+                <div className="stat-icon"><Icon name="leaves" size={28} color="#fff" /></div>
                 <div className="stat-info"><h3>{summary?.pendingLeaves || 0}</h3><p>Pending Leaves</p></div>
               </div>
               <div className="stat-card" style={{ background: 'var(--stat-purple)' }}>
-                <div className="stat-icon">💵</div>
+                <div className="stat-icon"><Icon name="payroll" size={28} color="#fff" /></div>
                 <div className="stat-info"><h3>${summary?.lastPaySlip || 0}</h3><p>Last Payslip</p></div>
               </div>
             </div>
@@ -296,7 +307,7 @@ const EmployeeDashboard = ({ user }) => {
         {/* ========= TAB: PAYSLIPS / REPORTS ========= */}
         {tab === 'reports' && (
           <>
-            <h1 className="page-title">📄 Reports &amp; PaySlips</h1>
+            <h1 className="page-title">Reports &amp; PaySlips</h1>
 
             <div className="card">
               <div className="card-header"><span className="card-title">My Payslips</span></div>
@@ -311,7 +322,7 @@ const EmployeeDashboard = ({ user }) => {
                         Net Pay: <strong style={{ color: 'var(--success)' }}>${ps.netSalary}</strong> | Gross: ${ps.grossSalary}
                       </p>
                     </div>
-                    <button className="btn btn-sm btn-primary">📥 Download</button>
+                    <button className="btn btn-sm btn-primary"><Icon name="download" size={16} color="#fff" bold /> Download</button>
                   </div>
                 ))
               )}
@@ -348,7 +359,7 @@ const EmployeeDashboard = ({ user }) => {
         {/* ========= TAB: PROFILE ========= */}
         {tab === 'profile' && (
           <>
-            <h1 className="page-title">👤 My Profile</h1>
+            <h1 className="page-title">My Profile</h1>
             <div className="card">
               <div className="form-row">
                 <div className="form-group">
@@ -388,26 +399,28 @@ const EmployeeDashboard = ({ user }) => {
 
       {/* ---------- Mobile Bottom Navigation ---------- */}
       <nav className="mobile-nav">
-        <a className={tab === 'dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>
-          <span style={{ fontSize: '1.6rem', display: 'block', lineHeight: 1 }}>🏠</span>
-          <span style={{ fontSize: '0.72rem', fontWeight: 800, marginTop: 2 }}>Home</span>
-        </a>
-        <a className={tab === 'attendance' ? 'active' : ''} onClick={() => setTab('attendance')}>
-          <span style={{ fontSize: '1.6rem', display: 'block', lineHeight: 1 }}>🕐</span>
-          <span style={{ fontSize: '0.72rem', fontWeight: 800, marginTop: 2 }}>Attendance</span>
-        </a>
-        <a className={tab === 'leaves' ? 'active' : ''} onClick={() => setTab('leaves')}>
-          <span style={{ fontSize: '1.6rem', display: 'block', lineHeight: 1 }}>🌴</span>
-          <span style={{ fontSize: '0.72rem', fontWeight: 800, marginTop: 2 }}>Leaves</span>
-        </a>
-        <a className={tab === 'reports' ? 'active' : ''} onClick={() => setTab('reports')}>
-          <span style={{ fontSize: '1.6rem', display: 'block', lineHeight: 1 }}>📄</span>
-          <span style={{ fontSize: '0.72rem', fontWeight: 800, marginTop: 2 }}>Reports</span>
-        </a>
-        <a className={tab === 'profile' ? 'active' : ''} onClick={() => setTab('profile')}>
-          <span style={{ fontSize: '1.6rem', display: 'block', lineHeight: 1 }}>👤</span>
-          <span style={{ fontSize: '0.72rem', fontWeight: 800, marginTop: 2 }}>Profile</span>
-        </a>
+        {[
+          { key: 'dashboard',  icon: 'home',        label: 'Home'       },
+          { key: 'attendance', icon: 'clock',       label: 'Attendance' },
+          { key: 'leaves',     icon: 'leaves',      label: 'Leaves'     },
+          { key: 'reports',    icon: 'document',    label: 'Reports'    },
+          { key: 'profile',    icon: 'user',        label: 'Profile'    },
+        ].map((item) => (
+          <a
+            key={item.key}
+            className={tab === item.key ? 'active' : ''}
+            onClick={() => setTab(item.key)}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              padding: '8px 10px', cursor: 'pointer', textDecoration: 'none',
+              color: tab === item.key ? '#7A6BFF' : '#94A3B8',
+              transition: 'color 0.15s',
+            }}
+          >
+            <Icon name={item.icon} size={24} color={tab === item.key ? '#7A6BFF' : '#94A3B8'} bold />
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, marginTop: 3 }}>{item.label}</span>
+          </a>
+        ))}
       </nav>
     </div>
   );

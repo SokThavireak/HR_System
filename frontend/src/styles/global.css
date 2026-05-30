@@ -1,10 +1,23 @@
 /* ================================================
-   HRMS — Global Design System (Job Dashboard UI)
+   HRMS — Global Design System + Tailwind CSS 4
    Primary: #7A6BFF (purple)
    Background: #E8EAF6 → #F4F5F9
    Card radius: 16px | Pill buttons: 20px radius
    Font: Segoe UI system stack
    ================================================ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --destructive-foreground: oklch(1 0 0);
+  }
+  .dark {
+    --destructive-foreground: oklch(1 0 0);
+  }
+}
 
 :root {
   --primary: #7A6BFF;
@@ -40,6 +53,12 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
   --pill: 20px;
+
+  --destructive-foreground: oklch(1 0 0);
+}
+
+.dark {
+  --destructive-foreground: oklch(1 0 0);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -89,8 +108,9 @@ input, select, textarea { font-family: inherit; }
 
 /* ---------- Status Badges ---------- */
 .badge {
-  display: inline-block; padding: 4px 14px; border-radius: var(--pill);
-  font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+  display: inline-block; padding: 5px 16px; border-radius: var(--pill);
+  font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 .badge-success  { background: var(--success-bg); color: var(--success); }
 .badge-danger   { background: var(--danger-bg); color: var(--danger); }
@@ -104,38 +124,40 @@ input, select, textarea { font-family: inherit; }
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
 }
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 .data-table th {
-  background: var(--bg); padding: 14px 18px; text-align: left;
-  font-weight: 600; color: var(--text-muted);
+  background: var(--bg); padding: 16px 20px; text-align: left;
+  font-weight: 700; color: var(--text-muted);
   border-bottom: 1px solid var(--border); white-space: nowrap;
+  font-size: 0.9rem; letter-spacing: '0.02em';
 }
-.data-table td { padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.data-table td { padding: 16px 20px; border-bottom: 1px solid var(--border); }
 .data-table tr:hover td { background: var(--primary-light); }
 
 /* ---------- Forms ---------- */
-.form-group { margin-bottom: 18px; }
+.form-group { margin-bottom: 20px; }
 .form-group label {
-  display: block; font-size: 0.85rem; font-weight: 600;
-  margin-bottom: 6px; color: var(--dark);
+  display: block; font-size: 0.92rem; font-weight: 700;
+  margin-bottom: 8px; color: var(--dark);
 }
 .form-control {
-  width: 100%; padding: 10px 16px;
+  width: 100%; padding: 12px 18px;
   border: 1.5px solid var(--border);
-  border-radius: var(--radius); font-size: 0.92rem;
+  border-radius: var(--radius); font-size: 1rem;
+  font-weight: 500;
   transition: border 0.2s; background: var(--white);
 }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .form-control:focus {
   outline: none; border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(122, 107, 255, 0.12);
 }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-/* ---------- Buttons (Pill Shape from Job Dashboard) ---------- */
+/* ---------- Buttons (Pill Shape) ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 10px 24px; border: none; border-radius: var(--pill);
-  font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
+  padding: 12px 28px; border: none; border-radius: var(--pill);
+  font-size: 0.95rem; font-weight: 700; transition: all 0.2s;
 }
 .btn-primary   { background: var(--primary); color: #fff; }
 .btn-primary:hover { background: var(--primary-dark); }
@@ -157,9 +179,9 @@ input, select, textarea { font-family: inherit; }
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 18px;
 }
-.card-title { font-size: 1.05rem; font-weight: 700; color: var(--dark); }
+.card-title { font-size: 1.2rem; font-weight: 800; color: var(--dark); }
 
-/* ---------- Sidebar (White, Filter-style from Job Dashboard) ---------- */
+/* ---------- Sidebar ---------- */
 .sidebar {
   width: 290px;
   background: var(--sidebar-bg);
@@ -214,32 +236,30 @@ input, select, textarea { font-family: inherit; }
   letter-spacing: -0.01em;
 }
 
-/* ---------- Stats Grid (Colorful Cards from Job Dashboard) ---------- */
+/* ---------- Stats Grid ---------- */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 18px; margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 22px; margin-bottom: 32px;
 }
 .stat-card {
-  padding: 18px;
+  padding: 22px;
   border-radius: var(--radius-lg);
-  display: flex; align-items: center; gap: 16px;
+  display: flex; align-items: center; gap: 18px;
   color: #fff;
   box-shadow: none;
 }
 .stat-card .stat-icon {
-  width: 44px; height: 44px;
+  width: 52px; height: 52px;
   background-color: rgba(255,255,255,0.2);
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem; flex-shrink: 0;
+  font-size: 1.5rem; flex-shrink: 0;
 }
-.stat-card .stat-info h3 { font-size: 1.4rem; font-weight: 700; color: #fff; }
-.stat-card .stat-info p { font-size: 0.75rem; color: rgba(255,255,255,0.85); margin-top: 2px; }
+.stat-card .stat-info h3 { font-size: 1.6rem; font-weight: 900; color: #fff; }
+.stat-card .stat-info p { font-size: 0.82rem; color: rgba(255,255,255,0.85); margin-top: 2px; font-weight: 600; }
 
-/* Purple tint for misc stat-card usage (employee dashboard keeps old icons) */
 .stat-card .stat-icon { background: rgba(255,255,255,0.2); color: #fff; }
-/* Override: employee stat cards on bg should use colored bg */
 .stat-card { background: var(--primary); }
 .stat-card:has(.stat-icon.green) { background: var(--success); }
 .stat-card:has(.stat-icon.teal) { background: var(--primary); }
@@ -250,8 +270,8 @@ input, select, textarea { font-family: inherit; }
    RESPONSIVE — Tablet (≤1024px)
    ================================================ */
 @media (max-width: 1024px) {
-  .sidebar { width: 220px; }
-  .main-wrapper { margin-left: 220px; }
+  .sidebar { width: 240px; }
+  .main-wrapper { margin-left: 240px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -271,31 +291,24 @@ input, select, textarea { font-family: inherit; }
    ================================================ */
 @media (max-width: 768px) {
   html { font-size: 15px; }
-
   .sidebar { display: none; }
   .main-wrapper { margin-left: 0; padding-bottom: 60px; }
-
   .topbar { padding: 0 16px; height: 60px; }
   .page-content { padding: 16px; }
   .page-title { font-size: 1.1rem; margin-bottom: 16px; }
   .card { padding: 18px; border-radius: var(--radius); }
-
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
   .stat-card { padding: 14px; }
   .stat-card .stat-icon { width: 36px; height: 36px; font-size: 1rem; }
   .stat-card .stat-info h3 { font-size: 1.15rem; }
-
   .form-row { grid-template-columns: 1fr; }
   .data-table { font-size: 0.8rem; }
   .data-table th, .data-table td { padding: 8px 10px; }
-
   .btn { padding: 9px 18px; font-size: 0.82rem; }
   .btn-sm { padding: 5px 12px; font-size: 0.75rem; }
-
   .clock-card { padding: 28px 16px; }
   .clock-card .clock-time { font-size: 2rem; }
   .clock-btn { width: 110px; height: 110px; font-size: 0.9rem; }
-
   .mobile-nav {
     position: fixed; bottom: 0; left: 0; right: 0;
     background: var(--white); border-top: 1px solid var(--border);
@@ -315,35 +328,27 @@ input, select, textarea { font-family: inherit; }
    ================================================ */
 @media (max-width: 480px) {
   html { font-size: 14px; }
-
   .page-content { padding: 12px; }
   .card { padding: 14px; }
-
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .stat-card { padding: 12px; gap: 10px; }
   .stat-card .stat-icon { width: 32px; height: 32px; font-size: 0.9rem; border-radius: 8px; }
   .stat-card .stat-info h3 { font-size: 1rem; }
   .stat-card .stat-info p { font-size: 0.68rem; }
-
   .clock-card { padding: 20px 12px; }
   .clock-card .clock-time { font-size: 1.6rem; }
   .clock-btn { width: 90px; height: 90px; font-size: 0.8rem; }
   .clock-btn:hover { transform: none; }
-
   .topbar { padding: 0 12px; height: 56px; }
   .btn { padding: 8px 14px; font-size: 0.8rem; }
   .btn-sm { padding: 4px 10px; font-size: 0.72rem; }
-
   .table-wrapper { border-radius: var(--radius); }
   .data-table th, .data-table td { padding: 6px 8px; font-size: 0.75rem; }
-
   .form-control { padding: 8px 12px; font-size: 0.88rem; }
   .form-group { margin-bottom: 14px; }
   .form-group label { font-size: 0.82rem; }
-
   .card-header { flex-wrap: wrap; gap: 8px; }
   .badge { padding: 3px 10px; font-size: 0.68rem; }
-
   .payslip-card { flex-direction: column; align-items: flex-start; gap: 10px; }
 }
 

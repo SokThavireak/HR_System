@@ -86,7 +86,6 @@ const AttendancePage = ({ showSidebar = true }) => {
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleManual = async (e) => {
