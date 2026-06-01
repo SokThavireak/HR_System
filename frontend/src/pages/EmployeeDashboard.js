@@ -38,7 +38,20 @@ const EmployeeDashboard = ({ user }) => {
   const [paySlips, setPaySlips] = useState([]);
   const [performance, setPerformance] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [navVisible, setNavVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   const { toasts, showToast, removeToast } = useToast();
+
+  // Hide header on scroll down, show on scroll up
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      setNavVisible(y <= 60 || y < lastScrollY);
+      setLastScrollY(y);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [lastScrollY]);
 
   const loadData = useCallback(async () => {
     try {
@@ -104,16 +117,39 @@ const EmployeeDashboard = ({ user }) => {
   const isDoneToday = todayRecord?.clockInTime && todayRecord?.clockOutTime;
 
   if (loading) return (
-    <div className="min-h-screen p-6 space-y-6" style={{ background: "transparent" }}>
-      <div className="h-8 w-64 loading-shimmer rounded-lg" />
-      <div className="h-4 w-48 loading-shimmer rounded-lg" />
-      <div className="h-40 rounded-2xl loading-shimmer" />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-xl loading-shimmer" />)}
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center" style={{ background: "#efe6dd" }}>
+      {/* Floating orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 h-64 w-64 rounded-full opacity-20 animate-floating-orb-1" style={{ background: "radial-gradient(circle, rgba(154,0,2,0.4), transparent 70%)" }} />
+        <div className="absolute bottom-1/3 right-1/4 h-48 w-48 rounded-full opacity-15 animate-floating-orb-2" style={{ background: "radial-gradient(circle, rgba(154,0,2,0.3), transparent 70%)" }} />
+        <div className="absolute top-1/2 left-1/2 h-32 w-32 rounded-full opacity-10 animate-floating-orb-3" style={{ background: "radial-gradient(circle, rgba(154,0,2,0.5), transparent 70%)" }} />
       </div>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="h-64 rounded-xl loading-shimmer" />
-        <div className="h-64 rounded-xl loading-shimmer" />
+      {/* Logo */}
+      <div className="relative flex flex-col items-center gap-6 animate-fade-slide">
+        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 animate-logo-breathe">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9a0002" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        <div className="text-center">
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: "#9a0002" }}>HRMS</h1>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Employee Portal</p>
+        </div>
+        {/* Animated spinner bars */}
+        <div className="flex items-end gap-1.5 h-8 mt-2">
+          {[0, 1, 2, 3, 4].map(i => (
+            <div
+              key={i}
+              className="w-1.5 rounded-full"
+              style={{
+                background: "#9a0002",
+                animation: `loadingBar 1.2s ease-in-out ${i * 0.12}s infinite`,
+              }}
+            />
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground animate-pulse mt-1">Loading your dashboard…</p>
       </div>
     </div>
   );
@@ -129,7 +165,7 @@ const EmployeeDashboard = ({ user }) => {
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       {/* ─── TOP BAR ─── */}
-      <header className="sticky top-0 z-50 flex h-32 items-center justify-between px-8 border-b border-gray-200/50 animate-header-slide backdrop-blur-md" style={{ background: "rgba(239, 230, 221, 0.85)" }}>
+      <header className="sticky top-0 z-50 flex h-32 items-center justify-between px-8 border-b border-gray-200/50 backdrop-blur-md bg-transparent transition-transform duration-300 ease-in-out" style={{ background: "transparent", transform: navVisible ? "translateY(0)" : "translateY(-100%)" }}>
         <div className="flex items-center gap-4 animate-header-title">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 animate-header-logo">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>

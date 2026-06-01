@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { adminService } from "../services/adminService";
 import AttendancePage from "./AttendancePage";
 import { ShaderAnimation } from "../components/ui/shader-animation";
@@ -73,6 +73,39 @@ function StatCard({ bg, value, label, iconName }) {
 
 export default function AdminDashboard({ user }) {
   const [section, setSection] = useState("dashboard");
+  const [navVisible, setNavVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [activeNavY, setActiveNavY] = useState(4);
+  const navItemRefs = React.useRef([]);
+  const navRef = React.useRef(null);
+
+  // Calculate sliding indicator position
+  const updateActiveNavY = React.useCallback(() => {
+    const idx = SIDEBAR_ITEMS.findIndex((s) => s.key === section);
+    const el = navItemRefs.current[idx];
+    const nav = navRef.current;
+    if (el && nav) {
+      setActiveNavY(el.offsetTop);
+    }
+  }, [section]);
+
+  // Update indicator on section change & mount
+  useEffect(() => {
+    // Small delay so DOM is ready
+    const t = setTimeout(updateActiveNavY, 50);
+    return () => clearTimeout(t);
+  }, [updateActiveNavY]);
+
+  // Hide header on scroll down, show on scroll up
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      setNavVisible(y <= 60 || y < lastScrollY);
+      setLastScrollY(y);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [lastScrollY]);
 
   return (
     <div className="min-h-screen" style={{ background: "#efe6dd" }}>
@@ -101,24 +134,49 @@ export default function AdminDashboard({ user }) {
           </div>
 
           {/* Nav items */}
-          <nav className="flex flex-1 flex-col gap-1 px-3">
+          <nav ref={navRef} className="relative flex flex-1 flex-col gap-1.5 px-3 pt-1">
+            {/* Sliding active indicator pill */}
+            <div
+              className="absolute left-3 right-3 rounded-xl pointer-events-none"
+              style={{
+                height: 44,
+                top: activeNavY,
+                background: "rgba(255,255,255,0.18)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08)",
+                transition: "top 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              }}
+            />
+            {/* Active bar accent on left edge */}
+            <div
+              className="absolute left-3 w-[3px] rounded-r-full pointer-events-none"
+              style={{
+                height: 44,
+                top: activeNavY,
+                background: "rgba(255,255,255,0.9)",
+                boxShadow: "0 0 12px 2px rgba(255,255,255,0.4)",
+                transition: "top 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              }}
+            />
             {SIDEBAR_ITEMS.map((item, idx) => {
               const isActive = section === item.key;
               return (
                 <button
                   key={item.key}
-                  onClick={() => setSection(item.key)}
-                  className={`animate-sidebar-item flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium cursor-pointer transition-all duration-200 hover:scale-[1.03] hover:shadow-md active:scale-[0.97] ${
+                  ref={el => { navItemRefs.current[idx] = el; }}
+                  onClick={() => { updateActiveNavY(); setSection(item.key); }}
+                  className={`animate-sidebar-item relative z-10 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium cursor-pointer transition-all duration-300 ${
                     isActive
-                      ? "text-white shadow-lg"
-                      : "text-white/60 hover:text-white hover:bg-white/10"
+                      ? "text-white font-bold"
+                      : "text-white/60 hover:text-white"
                   }`}
                   style={{
                     animationDelay: `${0.15 + idx * 0.06}s`,
-                    ...(isActive ? { background: "rgba(255,255,255,0.15)" } : {})
                   }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
                 >
-                  <span className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-300 ${isActive ? "bg-white/20 scale-110" : "group-hover:bg-white/10"}`}>
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-300 ${isActive ? "bg-white/20 scale-110" : ""}`}>
                     <Icon name={item.icon} size={18} />
                   </span>
                   <span className="flex-1 text-left">{item.label}</span>
@@ -156,7 +214,7 @@ export default function AdminDashboard({ user }) {
       <div className="relative z-10 ml-[260px] flex flex-1 flex-col" style={{ background: "transparent" }}>
 
         {/* Top Bar */}
-        <header className="sticky top-0 z-50 flex h-32 items-center justify-between px-8 border-b border-gray-200/50 animate-header-slide backdrop-blur-md" style={{ background: "rgba(239, 230, 221, 0.85)" }}>
+        <header className="sticky top-0 z-50 flex h-32 items-center justify-between px-8 border-b border-gray-200/50 backdrop-blur-md transition-transform duration-300 ease-in-out" style={{ background: "transparent", transform: navVisible ? "translateY(0)" : "translateY(-100%)" }}>
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "rgba(154, 0, 2, 0.1)" }}>
               <Icon name={SIDEBAR_ITEMS.find((s) => s.key === section)?.icon || "home"} size={24} />
@@ -469,17 +527,18 @@ function MiniBar({ value, max, color, label }) {
    DONUT CHART (SVG)
    ═══════════════════════════════════════════ */
 function DonutChart({ segments, size = 120 }) {
-  const radius = 42;
+  const strokeWidth = Math.round(size * 0.18);
+  const radius = (size - strokeWidth) / 2;
   const cx = size / 2;
   const cy = size / 2;
   const total = segments.reduce((s, seg) => s + seg.value, 0);
   let cumAngle = -90;
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-col items-center gap-4">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {total === 0 ? (
-          <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#e5e7eb" strokeWidth={14} />
+          <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#e5e7eb" strokeWidth={strokeWidth} />
         ) : segments.map((seg, i) => {
           const angle = (seg.value / total) * 360;
           const startAngle = cumAngle;
@@ -497,19 +556,19 @@ function DonutChart({ segments, size = 120 }) {
               d={`M ${cx} ${cy} L ${sx} ${sy} A ${r} ${r} 0 ${largeArc} 1 ${ex} ${ey} Z`}
               fill={seg.color}
               stroke="white"
-              strokeWidth={2}
+              strokeWidth={3}
             />
           );
         })}
-        <text x={cx} y={cy} textAnchor="middle" dy="-2" className="text-lg font-bold" fill="#111">{total}</text>
-        <text x={cx} y={cy} textAnchor="middle" dy="12" className="text-[9px]" fill="#888">Total</text>
+        <text x={cx} y={cy} textAnchor="middle" dy="-4" className="font-bold" fill="#111" fontSize={size * 0.18}>{total}</text>
+        <text x={cx} y={cy} textAnchor="middle" dy={size * 0.1} fill="#888" fontSize={size * 0.09}>Total</text>
       </svg>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5">
         {segments.map((seg, i) => (
-          <div key={i} className="flex items-center gap-2">
+          <div key={i} className="flex items-center gap-1.5">
             <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: seg.color }} />
             <span className="text-xs text-muted-foreground">{seg.label}</span>
-            <span className="text-xs font-bold ml-auto">{seg.value}</span>
+            <span className="text-xs font-bold">{seg.value}</span>
           </div>
         ))}
       </div>
@@ -544,15 +603,39 @@ function DashboardView({ user }) {
   ];
 
   if (loading) return (
-    <div className="space-y-6">
-      <div className="h-8 w-48 loading-shimmer rounded-lg" />
-      <div className="h-4 w-72 loading-shimmer rounded-lg" />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-xl loading-shimmer" />)}
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center" style={{ background: "#efe6dd" }}>
+      {/* Floating orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 h-64 w-64 rounded-full opacity-20 animate-floating-orb-1" style={{ background: "radial-gradient(circle, rgba(154,0,2,0.4), transparent 70%)" }} />
+        <div className="absolute bottom-1/3 right-1/4 h-48 w-48 rounded-full opacity-15 animate-floating-orb-2" style={{ background: "radial-gradient(circle, rgba(154,0,2,0.3), transparent 70%)" }} />
+        <div className="absolute top-1/2 left-1/2 h-32 w-32 rounded-full opacity-10 animate-floating-orb-3" style={{ background: "radial-gradient(circle, rgba(154,0,2,0.5), transparent 70%)" }} />
       </div>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="h-64 rounded-xl loading-shimmer" />
-        <div className="h-64 rounded-xl loading-shimmer" />
+      {/* Logo */}
+      <div className="relative flex flex-col items-center gap-6 animate-fade-slide">
+        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 animate-logo-breathe">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9a0002" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        <div className="text-center">
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: "#9a0002" }}>HRMS</h1>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Admin Portal</p>
+        </div>
+        {/* Animated spinner bars */}
+        <div className="flex items-end gap-1.5 h-8 mt-2">
+          {[0, 1, 2, 3, 4].map(i => (
+            <div
+              key={i}
+              className="w-1.5 rounded-full"
+              style={{
+                background: "#9a0002",
+                animation: `loadingBar 1.2s ease-in-out ${i * 0.12}s infinite`,
+              }}
+            />
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground animate-pulse mt-1">Loading your dashboard…</p>
       </div>
     </div>
   );
@@ -628,55 +711,143 @@ function DashboardView({ user }) {
         </div>
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Department Distribution */}
-        <Card className="animate-fade-slide" style={{ animationDelay: '0.25s' }}>
-          <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Icon name="folder" size={16} /> Employees by Department</CardTitle></CardHeader>
-          <CardContent>
-            <DonutChart segments={deptData} />
-          </CardContent>
-        </Card>
+      {/* ── Employees by Department — Full Width ── */}
+      <Card className="animate-fade-slide" style={{ animationDelay: '0.25s' }}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2"><Icon name="folder" size={16} /> Employees by Department</CardTitle>
+            <span className="text-xs text-muted-foreground">{stats.totalEmployees} total employees</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+            {/* Donut — takes 2 columns */}
+            <div className="flex items-center justify-center lg:col-span-2">
+              <DonutChart segments={deptData} size={200} />
+            </div>
+            {/* Department Breakdown Table — takes 3 columns */}
+            <div className="lg:col-span-3">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Employees</TableHead>
+                    <TableHead>% of Total</TableHead>
+                    <TableHead className="w-[40%]">Distribution</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {deptData.map((dept, i) => {
+                    const pct = stats.totalEmployees > 0 ? Math.round((dept.value / stats.totalEmployees) * 100) : 0;
+                    return (
+                      <TableRow key={dept.label} className="animate-fade-slide" style={{ animationDelay: `${0.3 + i * 0.05}s` }}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="h-3 w-3 rounded-full shrink-0" style={{ background: dept.color }} />
+                            <span className="font-medium">{dept.label}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-bold">{dept.value}</TableCell>
+                        <TableCell>
+                          <span className="text-sm font-semibold" style={{ color: dept.color }}>{pct}%</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="h-3 w-full rounded-full bg-gray-100 overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-1000 ease-out"
+                              style={{ width: `${pct}%`, background: dept.color }}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  <TableRow style={{ background: "rgba(0,0,0,0.02)" }}>
+                    <TableCell className="font-bold">Total</TableCell>
+                    <TableCell className="font-bold">{stats.totalEmployees}</TableCell>
+                    <TableCell className="font-bold">100%</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Recent Activity */}
-        <Card className="animate-fade-slide" style={{ animationDelay: '0.3s' }}>
-          <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Icon name="check" size={16} /> Recent Activity</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { text: "New employee John Doe added to Engineering", time: "2 min ago", bg: "#7A6BFF" },
-                { text: "Leave request from Jane Smith approved", time: "15 min ago", bg: "#22c55e" },
-                { text: "Payroll for March processed", time: "1 hour ago", bg: "#f59e0b" },
-                { text: "Performance review submitted for Alice Johnson", time: "3 hours ago", bg: "#3b82f6" },
-                { text: "Bob Kim marked attendance for today", time: "5 hours ago", bg: "#ec4899" },
-                { text: "New leave request from John Smith", time: "1 day ago", bg: "#f59e0b" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3 animate-fade-slide" style={{ animationDelay: `${0.35 + i * 0.05}s` }}>
-                  <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.bg }} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{item.text}</p>
-                    <p className="text-xs text-muted-foreground">{item.time}</p>
+      {/* ── Weekly Attendance Trend — Full Width Prostrate ── */}
+      <Card className="animate-fade-slide" style={{ animationDelay: '0.35s' }}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2"><Icon name="chart" size={16} /> Weekly Attendance Trend</CardTitle>
+            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" /> ≥90% Excellent</span>
+              <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500" /> 60-89% Average</span>
+              <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" /> &lt;60% Low</span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* Horizontal bar chart — prostrate/landscape layout */}
+          <div className="space-y-3">
+            {[
+              { label: "Monday",    val: 95, count: Math.ceil(stats.totalEmployees * 0.95), total: stats.totalEmployees },
+              { label: "Tuesday",   val: 88, count: Math.ceil(stats.totalEmployees * 0.88), total: stats.totalEmployees },
+              { label: "Wednesday", val: 92, count: Math.ceil(stats.totalEmployees * 0.92), total: stats.totalEmployees },
+              { label: "Thursday",  val: 97, count: Math.ceil(stats.totalEmployees * 0.97), total: stats.totalEmployees },
+              { label: "Friday",    val: 85, count: Math.ceil(stats.totalEmployees * 0.85), total: stats.totalEmployees },
+              { label: "Saturday",  val: 45, count: Math.ceil(stats.totalEmployees * 0.45), total: stats.totalEmployees },
+              { label: "Sunday",    val: 12, count: Math.ceil(stats.totalEmployees * 0.12), total: stats.totalEmployees },
+            ].map((d, i) => (
+              <div key={d.label} className="flex items-center gap-4 animate-fade-slide" style={{ animationDelay: `${0.4 + i * 0.04}s` }}>
+                <span className="w-20 text-right text-xs font-medium text-muted-foreground shrink-0">{d.label}</span>
+                <div className="flex-1 h-8 rounded-lg bg-gray-100 overflow-hidden relative">
+                  <div
+                    className="h-full rounded-lg transition-all duration-1000 ease-out flex items-center justify-end pr-3"
+                    style={{
+                      width: `${d.val}%`,
+                      background: d.val > 90 ? "linear-gradient(90deg, #22c55e, #16a34a)" : d.val > 60 ? "linear-gradient(90deg, #f59e0b, #d97706)" : "linear-gradient(90deg, #ef4444, #dc2626)",
+                    }}
+                  >
+                    <span className="text-[11px] font-bold text-white drop-shadow-sm">{d.val}%</span>
                   </div>
                 </div>
-              ))}
+                <span className="w-24 text-xs text-muted-foreground shrink-0">{d.count}/{d.total} present</span>
+              </div>
+            ))}
+          </div>
+          {/* Summary row */}
+          <div className="mt-4 flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2.5">
+            <span className="text-xs font-medium text-muted-foreground">Weekly Average</span>
+            <div className="flex items-center gap-3">
+              <span className="text-lg font-bold text-emerald-600">
+                {Math.round((95 + 88 + 92 + 97 + 85 + 45 + 12) / 7)}%
+              </span>
+              <span className="text-[10px] text-muted-foreground">73 of {stats.totalEmployees} avg/day</span>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Attendance Trend */}
-      <Card className="animate-fade-slide" style={{ animationDelay: '0.4s' }}>
-        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Icon name="chart" size={16} /> Weekly Attendance Trend</CardTitle></CardHeader>
+      {/* ── Recent Activity ── */}
+      <Card className="animate-fade-slide" style={{ animationDelay: '0.45s' }}>
+        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Icon name="check" size={16} /> Recent Activity</CardTitle></CardHeader>
         <CardContent>
-          <div className="flex items-end gap-3 h-40 px-4">
+          <div className="space-y-4">
             {[
-              { label: "Mon", val: 95 }, { label: "Tue", val: 88 }, { label: "Wed", val: 92 },
-              { label: "Thu", val: 97 }, { label: "Fri", val: 85 }, { label: "Sat", val: 45 }, { label: "Sun", val: 12 },
-            ].map((d, i) => (
-              <div key={d.label} className="flex-1 flex flex-col items-center gap-1 animate-fade-slide" style={{ animationDelay: `${0.45 + i * 0.05}s` }}>
-                <span className="text-[11px] font-semibold">{d.val}%</span>
-                <div className="w-full rounded-t-md transition-all duration-700 ease-out" style={{ height: `${d.val}%`, background: d.val > 90 ? "#22c55e" : d.val > 60 ? "#f59e0b" : "#ef4444" }} />
-                <span className="text-[10px] text-muted-foreground">{d.label}</span>
+              { text: "New employee John Doe added to Engineering", time: "2 min ago", bg: "#7A6BFF" },
+              { text: "Leave request from Jane Smith approved", time: "15 min ago", bg: "#22c55e" },
+              { text: "Payroll for March processed", time: "1 hour ago", bg: "#f59e0b" },
+              { text: "Performance review submitted for Alice Johnson", time: "3 hours ago", bg: "#3b82f6" },
+              { text: "Bob Kim marked attendance for today", time: "5 hours ago", bg: "#ec4899" },
+              { text: "New leave request from John Smith", time: "1 day ago", bg: "#f59e0b" },
+            ].map((item, i) => (
+              <div key={i} className="flex items-start gap-3 animate-fade-slide" style={{ animationDelay: `${0.5 + i * 0.05}s` }}>
+                <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.bg }} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{item.text}</p>
+                  <p className="text-xs text-muted-foreground">{item.time}</p>
+                </div>
               </div>
             ))}
           </div>
