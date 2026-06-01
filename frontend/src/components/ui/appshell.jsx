@@ -13,17 +13,21 @@ export function AppShell({ children, currentPage }) {
   const current = navItems.find((n) => n.key === currentPage?.key) || navItems[0];
 
   return (
-    <div className="flex min-h-screen" style={{ background: "#F4F5F9" }}>
-      {/* Sidebar */}
+    <div className="flex min-h-screen" style={{ background: "#efe6dd" }}>
+      {/* Sidebar — Cherry Cola #9a0002 */}
       <aside
-        className="fixed left-0 top-0 z-50 flex h-screen w-[290px] flex-col border-r border-[#E8EBF0] bg-white"
+        className="fixed left-0 top-0 z-50 flex h-screen w-[290px] flex-col"
+        style={{ background: "#9a0002" }}
       >
-        <div className="px-6 pt-7 pb-8">
-          <div className="text-2xl font-black leading-none tracking-tight text-[#7A6BFF]">
-            HRMS
-          </div>
-          <div className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Admin Portal
+        <div className="px-3 pb-8 pt-8">
+          <div className="flex items-center gap-3 rounded-xl px-3 py-3">
+            <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-lg" style={{ background: "rgba(255,255,255,0.2)" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <div className="min-w-0">
+              <span className="text-2xl font-black leading-none tracking-tight text-white">HRMS</span>
+              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-white/50">Admin Portal</p>
+            </div>
           </div>
         </div>
 
@@ -33,22 +37,24 @@ export function AppShell({ children, currentPage }) {
               key={item.key}
               className={`mb-1 flex w-full items-center gap-3.5 rounded-xl px-4 py-3 text-left text-sm font-semibold transition-all ${
                 current.key === item.key
-                  ? "bg-[#EEECFF] text-[#7A6BFF]"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                  ? "text-white shadow-lg"
+                  : "text-white/60 hover:text-white hover:bg-white/10"
               }`}
+              style={current.key === item.key ? { background: "rgba(255,255,255,0.15)" } : {}}
             >
               <span>{item.label}</span>
             </button>
           ))}
         </nav>
 
-        <div className="border-t border-[#F1F5F9] p-5">
+        <div className="border-t border-white/10 p-5">
           <button
             onClick={() => {
               localStorage.removeItem("hrms_token");
               window.location.reload();
             }}
-            className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition-colors hover:bg-red-100"
+            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors"
+            style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)" }}
           >
             <LogOut className="h-4 w-4" />
             Sign Out
@@ -57,15 +63,15 @@ export function AppShell({ children, currentPage }) {
       </aside>
 
       {/* Main Content */}
-      <div className="ml-[290px] flex flex-1 flex-col" style={{ background: "#F4F5F9" }}>
-        {/* Top Bar */}
-        <header className="sticky top-0 z-40 flex h-[84px] items-center justify-between bg-[#7A6BFF] px-9 text-white">
+      <div className="ml-[290px] flex flex-1 flex-col" style={{ background: "transparent" }}>
+        {/* Top Bar — no background */}
+        <header className="sticky top-0 z-40 flex h-[84px] items-center justify-between px-9 border-b border-gray-200/50" style={{ background: "transparent" }}>
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-extrabold tracking-tight">
+            <h1 className="text-xl font-extrabold tracking-tight text-foreground">
               {current.title}
             </h1>
           </div>
-          <time className="text-sm font-semibold text-white/85">
+          <time className="text-sm font-semibold text-muted-foreground">
             {new Date().toLocaleDateString("en-US", {
               weekday: "long",
               year: "numeric",

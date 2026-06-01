@@ -1,291 +1,296 @@
-import React, { useState } from 'react';
-import { authService } from '../services/authService';
-import Icon from '../components/common/Icons';
+import React, { useState } from "react";
+import { authService } from "../services/authService";
+import { Button, Input, Label } from "../components/ui";
+import { ShaderAnimation } from "../components/ui/shader-animation";
 
-const LoginPage = ({ onLogin }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+/* ─── Icons ─── */
+const icons = {
+  eye: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  eyeOff: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
+  home: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  homeSm: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  shield: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  zap: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  heart: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>,
+  sparkle: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>,
+  sparkleLg: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>,
+  quote: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0 text-white/30"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>,
+};
+
+/* ─── Testimonial Data ─── */
+const TESTIMONIALS = [
+  {
+    id: 1,
+    name: "Sarah Chen",
+    role: "HR Director @ TechCorp",
+    avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+    quote: "This HRMS transformed how we manage our 500+ employee workforce. The attendance tracking is seamless.",
+    rating: 5,
+  },
+  {
+    id: 2,
+    name: "Marcus Johnson",
+    role: "Engineering Manager",
+    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+    quote: "Clocking in has never been easier. The UI is clean and the payroll features save us hours every month.",
+    rating: 5,
+  },
+  {
+    id: 3,
+    name: "Emily Rodriguez",
+    role: "Operations Lead",
+    avatar: "https://randomuser.me/api/portraits/women/65.jpg",
+    quote: "Best HR tool we've used. The leave management and performance review modules are game-changers.",
+    rating: 5,
+  },
+];
+
+/* ─── Feature Pills ─── */
+const FEATURES = [
+  { icon: icons.shield, label: "Enterprise Security" },
+  { icon: icons.zap, label: "Instant Sync" },
+  { icon: icons.sparkle, label: "Smart Automation" },
+  { icon: icons.heart, label: "Employee First" },
+];
+
+export default function LoginPage({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [focusField, setFocusField] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 900);
-
-  React.useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth <= 900);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
-  const inputStyle = (field) => ({
-    width: '100%',
-    padding: '12px 16px',
-    paddingLeft: field === 'email' || field === 'password' ? 44 : 16,
-    border: `2px solid ${focusField === field ? '#7A6BFF' : '#E8EBF0'}`,
-    borderRadius: 12,
-    fontSize: '1rem',
-    fontWeight: 500,
-    color: '#1E293B',
-    boxSizing: 'border-box',
-    fontFamily: 'inherit',
-    outline: 'none',
-    boxShadow: focusField === field ? '0 0 0 4px rgba(122,107,255,0.12)' : 'none',
-    transition: 'all 0.2s',
-  });
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
     try {
       const { data } = await authService.login(email, password);
-      localStorage.setItem('hrms_token', data.token);
+      localStorage.setItem("hrms_token", data.token);
       onLogin(data);
     } catch (err) {
-      setError(err.message || 'Invalid credentials');
+      setError(err.message || "Invalid credentials. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Auto-cycle testimonials every 5 seconds
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const t = TESTIMONIALS[currentTestimonial];
+
   return (
-    <div style={styles.page}>
-      <div style={{
-        ...styles.container,
-        ...(isMobile ? { flexDirection: 'column', height: 'auto' } : {}),
-      }}>
+    <div className="flex h-[100dvh] w-[100dvw] overflow-hidden">
+      {/* ═══════════ LEFT: Hero / Shader Background ═══════════ */}
+      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden md:flex">
+        <ShaderAnimation theme="dark" />
+        <div className="absolute inset-0 bg-[#9a0002]/80 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-red-900/30 via-transparent to-red-950/50 pointer-events-none" />
 
-        {/* ======== LEFT: Branding Section ======== */}
-        <div style={{
-          ...styles.brandingSection,
-          ...(isMobile ? { padding: '3rem 2rem', minHeight: 350 } : {}),
-        }}>
-          <div style={styles.logoContainer}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 12,
-              background: '#fff', display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Icon name="home" size={24} color="#7A6BFF" bold />
-            </div>
-          </div>
+        {/* Content layer */}
+        <div className="relative z-10 flex flex-1 flex-col justify-between p-10 lg:p-14 text-white">
+          {/* Decorative circles */}
+          <div className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-white/5" />
+          <div className="pointer-events-none absolute -bottom-16 -left-16 h-60 w-60 rounded-full bg-white/5" />
 
-          <div style={styles.heroContent}>
-            <h1 style={styles.heroTitle}>Every Where Every Time<br />I'll Be Here For You</h1>
-            <p style={styles.heroText}>
-              See the analytics and grow your data remotely, from anywhere.
-            </p>
-            <div style={styles.heroLine} />
-          </div>
-
-          <div style={{ ...styles.uiMockup, display: isMobile ? 'none' : 'flex' }}>
-            <div style={styles.mockupSidebar}>
-              <div style={{ ...styles.mockupIcon, ...styles.mockupIconActive }} />
-              <div style={styles.mockupIcon} />
-              <div style={styles.mockupIcon} />
-              <div style={styles.mockupIcon} />
-            </div>
-            <div style={styles.mockupContent}>
-              <div style={styles.mockupHeader}>
-                <div style={{ ...styles.mockupIcon, background: '#E2E8F0', width: 20, height: 20 }} />
-                <div style={styles.mockupTitle} />
+          {/* Logo */}
+          <div className="relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                {icons.home}
               </div>
-              {[1,2,3,4,5,6].map((i) => (
-                <div key={i} style={styles.mockupRow}>
-                  <div style={{ ...styles.mockupCell, ...styles.mockupCellSmall, background: i === 1 ? '#CBD5E1' : '#F1F5F9' }} />
-                  <div style={{ ...styles.mockupCell, background: i === 1 ? '#CBD5E1' : '#F1F5F9' }} />
-                  <div style={{ ...styles.mockupCell, background: i === 1 ? '#CBD5E1' : '#F1F5F9' }} />
+              <div>
+                <span className="text-xl font-bold tracking-tight">HRMS</span>
+                <p className="text-[11px] font-medium text-white/50">Human Resource Management</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Hero Copy */}
+          <div className="relative z-10 -mt-8">
+            <h1 className="mb-4 text-[2.5rem] font-extrabold leading-[1.1] tracking-tight lg:text-5xl">
+              Manage Your
+              <br />
+              <span className="inline-flex items-center gap-2">
+                Team <span className="text-yellow-300">{icons.sparkleLg}</span> Better
+              </span>
+            </h1>
+            <p className="max-w-sm text-base leading-relaxed text-white/65">
+              A modern, intuitive platform for attendance, payroll, leaves, and performance — all in one place.
+            </p>
+
+            {/* Feature pills */}
+            <div className="mt-8 flex flex-wrap gap-2">
+              {FEATURES.map((f) => (
+                <div
+                  key={f.label}
+                  className="flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold backdrop-blur-sm"
+                >
+                  {f.icon}
+                  {f.label}
                 </div>
               ))}
             </div>
           </div>
 
-          <img src="https://i.pravatar.cc/100?img=5" alt=""
-            style={{ ...styles.avatar, top: '45%', right: '5%', display: isMobile ? 'none' : 'block' }} />
-          <img src="https://i.pravatar.cc/100?img=11" alt=""
-            style={{ ...styles.avatar, bottom: '10%', left: '20%', display: isMobile ? 'none' : 'block' }} />
+          {/* Testimonial Card */}
+          <div className="relative z-10">
+            <div key={t.id} className="max-w-md rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm animate-testimonial">
+              <div className="mb-3 flex items-center gap-1">
+                {Array.from({ length: t.rating }).map((_, i) => (
+                  <span key={i} className="text-yellow-300">{icons.sparkle}</span>
+                ))}
+              </div>
+              <div className="mb-4 flex items-start gap-2">
+                {icons.quote}
+                <p className="text-sm leading-relaxed text-white/80">{t.quote}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <img
+                  src={t.avatar}
+                  alt={t.name}
+                  className="h-9 w-9 rounded-full border-2 border-white/20 object-cover"
+                />
+                <div>
+                  <p className="text-sm font-semibold">{t.name}</p>
+                  <p className="text-xs text-white/50">{t.role}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Testimonial Dots */}
+            <div className="mt-4 flex gap-2">
+              {TESTIMONIALS.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentTestimonial(i)}
+                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                    i === currentTestimonial
+                      ? "w-6 bg-white"
+                      : "w-1.5 bg-white/30 hover:bg-white/50"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
         </div>
+      </div>
 
-        {/* ======== RIGHT: Login Form ======== */}
-        <div style={{
-          ...styles.loginSection,
-          ...(isMobile ? { padding: '3rem 2rem' } : {}),
-        }}>
-          <div style={styles.loginWrapper}>
-            <h2 style={styles.loginHeading}>Login</h2>
+      {/* ═══════════ RIGHT: Sign-In Form ═══════════ */}
+      <div className="flex flex-1 flex-col items-center justify-center p-6 lg:p-10" style={{ background: "#efe6dd" }}>
+        <div className="w-full max-w-[400px] animate-element">
+          {/* Mobile Logo */}
+          <div className="mb-8 flex items-center justify-center gap-2 md:hidden">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              {icons.homeSm}
+            </div>
+            <span className="text-xl font-bold tracking-tight">HRMS</span>
+          </div>
 
-            {error && <div style={styles.errorBanner}>{error}</div>}
+          {/* Header */}
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl font-bold tracking-tight lg:text-3xl">
+              Welcome back
+            </h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Sign in to access your dashboard
+            </p>
+          </div>
 
-            <form onSubmit={handleSubmit}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Email address</label>
-                <div style={{ position: 'relative' }}>
-                  <Icon name="mail" size={18} color="#9AA3B5"
-                    style={{ position: 'absolute', left: 14, top: 12 }} />
-                  <input
-                    type="email"
-                    style={inputStyle('email')}
-                    placeholder="your_name@mail.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onFocus={() => setFocusField('email')}
-                    onBlur={() => setFocusField(null)}
-                  />
-                </div>
+          {/* Error */}
+          {error && (
+            <div className="mb-5 flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive">
+              <span>⚠️</span>
+              {error}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                placeholder="you@company.com"
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  placeholder="••••••••"
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((p) => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  {showPassword ? icons.eyeOff : icons.eye}
+                </button>
               </div>
+            </div>
 
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Password</label>
-                <div style={{ position: 'relative' }}>
-                  <Icon name="eye" size={18} color="#9AA3B5"
-                    style={{ position: 'absolute', left: 14, top: 12,
-                      transform: showPassword ? 'none' : 'scaleX(1)',
-                      opacity: 0.5,
-                    }} />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    style={inputStyle('password')}
-                    placeholder="••••••••"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onFocus={() => setFocusField('password')}
-                    onBlur={() => setFocusField(null)}
-                  />
-                  <button type="button"
-                    onClick={() => setShowPassword((p) => !p)}
-                    style={{
-                      position: 'absolute', right: 12, top: 10,
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      padding: 4, display: 'flex',
-                    }}
-                  >
-                    <Icon name={showPassword ? 'eye' : 'eyeOff'} size={18} color="#7A6BFF" />
-                  </button>
-                </div>
-              </div>
-
-              <div style={styles.checkboxGroup}>
-                <input type="checkbox" id="remember" style={{ ...styles.checkbox, marginRight: '0.6rem' }} />
-                <label htmlFor="remember" style={styles.checkboxLabel}>Remember Password</label>
-              </div>
-
-              <button type="submit" style={styles.submitBtn} disabled={loading}>
-                {loading ? 'Signing in…' : (
-                  <><Icon name="login" size={18} color="#fff" bold /> Login</>
-                )}
+            <div className="flex items-center justify-between">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                <span className="text-sm text-muted-foreground">Remember me</span>
+              </label>
+              <button
+                type="button"
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Forgot password?
               </button>
-            </form>
+            </div>
+
+            <Button type="submit" className="w-full" loading={loading}>
+              {loading ? "Signing in…" : "Sign in"}
+            </Button>
+          </form>
+
+          {/* Footer */}
+          <p className="mt-8 text-center text-xs text-muted-foreground">
+            🔐 Your data is protected with enterprise-grade security
+          </p>
+
+          {/* Stats Row */}
+          <div className="mt-6 flex justify-center gap-6">
+            {[
+              { value: "500+", label: "Teams" },
+              { value: "50K+", label: "Users" },
+              { value: "99.9%", label: "Uptime" },
+            ].map((s) => (
+              <div key={s.label} className="text-center">
+                <p className="text-lg font-bold text-foreground">{s.value}</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  {s.label}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     </div>
   );
-};
-
-const BLUE_BG  = 'linear-gradient(135deg,#7A6BFF 0%,#6556E0 100%)';
-const WHITE    = '#fff';
-
-const styles = {
-  page: {
-    backgroundColor: '#E8EAF6',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    padding: '2rem',
-  },
-  container: {
-    display: 'flex',
-    width: '100%',
-    maxWidth: 1100,
-    height: 700,
-    background: WHITE,
-    borderRadius: 20,
-    boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
-    overflow: 'hidden',
-    fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif",
-  },
-
-  /* ---- Branding Left ---- */
-  brandingSection: {
-    flex: 1.1,
-    background: BLUE_BG,
-    position: 'relative',
-    padding: '3.5rem',
-    color: WHITE,
-    overflow: 'hidden',
-  },
-  logoContainer: { position: 'relative', zIndex: 2, marginBottom: '6rem' },
-  heroContent: { position: 'relative', zIndex: 2, maxWidth: 340 },
-  heroTitle: { fontSize: '1.9rem', fontWeight: 800, marginBottom: '1rem', lineHeight: 1.2, color: WHITE },
-  heroText: { fontSize: '1rem', color: 'rgba(255,255,255,0.78)', lineHeight: 1.5, margin: 0 },
-  heroLine: { width: 36, height: 3, background: 'rgba(255,255,255,0.4)', marginTop: '1.5rem', borderRadius: 3 },
-
-  /* UI Mockup */
-  uiMockup: {
-    position: 'absolute', bottom: -30, right: -60,
-    width: 480, height: 320, background: WHITE,
-    borderRadius: 16, boxShadow: '-15px 15px 40px rgba(0,0,0,0.15)',
-    zIndex: 3, display: 'flex', overflow: 'hidden',
-  },
-  mockupSidebar: {
-    width: 64, background: '#1E3A8A', padding: '1rem 0',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
-  },
-  mockupIcon: { width: 24, height: 24, background: 'rgba(255,255,255,0.2)', borderRadius: 6 },
-  mockupIconActive: { background: WHITE, borderRadius: 8 },
-  mockupContent: { flex: 1, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: 10 },
-  mockupHeader: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 },
-  mockupTitle: { width: 120, height: 16, background: '#E2E8F0', borderRadius: 4 },
-  mockupRow: { display: 'flex', gap: 10 },
-  mockupCell: { height: 22, background: '#F1F5F9', borderRadius: 4, flex: 1 },
-  mockupCellSmall: { flex: 0.3 },
-
-  avatar: {
-    position: 'absolute', width: 44, height: 44,
-    borderRadius: '50%', border: '3px solid #fff',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.1)', zIndex: 4,
-  },
-
-  /* ---- Login Right ---- */
-  loginSection: {
-    flex: 0.9,
-    display: 'flex', justifyContent: 'center', alignItems: 'center',
-    padding: '3rem',
-    background: WHITE,
-  },
-  loginWrapper: { width: '100%', maxWidth: 380 },
-  loginHeading: {
-    fontSize: '1.9rem', color: '#1E293B',
-    fontWeight: 900, marginBottom: '2.5rem', letterSpacing: '-0.02em',
-  },
-
-  errorBanner: {
-    background: '#FEE2E2', color: '#DC2626',
-    padding: '12px 16px', borderRadius: 10,
-    fontSize: '0.95rem', fontWeight: 600, marginBottom: 18,
-  },
-
-  formGroup: { marginBottom: '1.6rem' },
-  label: {
-    display: 'block', fontSize: '0.92rem',
-    fontWeight: 700, color: '#334155', marginBottom: '0.5rem',
-  },
-
-  checkboxGroup: { display: 'flex', alignItems: 'center', marginBottom: '2rem' },
-  checkbox: { width: 18, height: 18, cursor: 'pointer' },
-  checkboxLabel: { fontSize: '0.9rem', color: '#555E6D', cursor: 'pointer', fontWeight: 600 },
-
-  submitBtn: {
-    width: '100%', background: BLUE_BG, color: WHITE,
-    border: 'none', padding: '14px', borderRadius: 12,
-    fontSize: '1.05rem', fontWeight: 800,
-    cursor: 'pointer', fontFamily: 'inherit',
-    transition: 'opacity 0.2s',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-  },
-};
-
-export default LoginPage;
+}
