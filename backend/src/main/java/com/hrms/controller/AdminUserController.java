@@ -21,7 +21,7 @@ public class AdminUserController {
     private final PasswordEncoder encoder;
 
     @GetMapping
-    public ResponseEntity<Page<User>> getUsers(@RequestParam(defaultValue) String search, Pageable page) {
+    public ResponseEntity<Page<User>> getUsers(@RequestParam(required = false) String search, Pageable page) {
         if (search == null || search.isBlank())
             return ResponseEntity.ok(userRepo.findAll(page));
         return ResponseEntity.ok(userRepo

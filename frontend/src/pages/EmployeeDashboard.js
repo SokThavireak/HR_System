@@ -104,25 +104,32 @@ const EmployeeDashboard = ({ user }) => {
   const isDoneToday = todayRecord?.clockInTime && todayRecord?.clockOutTime;
 
   if (loading) return (
-    <div className="min-h-screen bg-white p-6 space-y-6">
-      <div className="h-7 w-64 loading-shimmer rounded-lg" />
-      <LoadingSkeleton variant="card" count={4} />
-      <LoadingSkeleton variant="table" rows={3} />
+    <div className="min-h-screen p-6 space-y-6" style={{ background: "transparent" }}>
+      <div className="h-8 w-64 loading-shimmer rounded-lg" />
+      <div className="h-4 w-48 loading-shimmer rounded-lg" />
+      <div className="h-40 rounded-2xl loading-shimmer" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-xl loading-shimmer" />)}
+      </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="h-64 rounded-xl loading-shimmer" />
+        <div className="h-64 rounded-xl loading-shimmer" />
+      </div>
     </div>
   );
 
   return (
     <div className="min-h-screen" style={{ background: "#efe6dd" }}>
 
-      {/* ═══ SHADER BACKGROUND — body only ═══ */}
+      {/* ═══ SHADER BACKGROUND ═══ */}
       <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }}>
         <ShaderAnimation theme="light" />
       </div>
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      {/* ─── TOP BAR ─── no background ─── */}
-      <header className="sticky top-0 z-50 flex h-32 items-center justify-between px-8 border-b border-gray-200/50 animate-header-slide" style={{ background: "transparent" }}>
+      {/* ─── TOP BAR ─── */}
+      <header className="sticky top-0 z-50 flex h-32 items-center justify-between px-8 border-b border-gray-200/50 animate-header-slide backdrop-blur-md" style={{ background: "rgba(239, 230, 221, 0.85)" }}>
         <div className="flex items-center gap-4 animate-header-title">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 animate-header-logo">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -153,14 +160,14 @@ const EmployeeDashboard = ({ user }) => {
       <div className="p-6 pb-24 min-h-[calc(100vh-8rem)]" style={{ background: "transparent" }}>
         {/* ── DASHBOARD TAB ── */}
         {tab === "dashboard" && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-slide">
             <div>
               <h1 className="text-2xl font-bold">Welcome, {user?.firstName}</h1>
               <p className="text-sm text-muted-foreground">Here's your dashboard overview.</p>
             </div>
 
             {/* Clock Card */}
-            <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary to-primary-dark text-primary-foreground">
+            <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary to-primary-dark text-primary-foreground animate-bounce-in">
               <CardContent className="p-8 text-center">
                 <p className="mb-2 text-sm font-medium text-white/70">Today's Attendance</p>
                 <p className="mb-6 text-5xl font-bold tracking-tight">{getCurrentTime()}</p>
@@ -200,8 +207,8 @@ const EmployeeDashboard = ({ user }) => {
                 { bg: "#3b82f6", value: `${summary?.overtimeHours || 0}h`, label: "Overtime", icon: "clock" },
                 { bg: "#f59e0b", value: summary?.pendingLeaves || 0, label: "Pending Leaves", icon: "calendar" },
                 { bg: "#22c55e", value: `$${summary?.lastPaySlip || 0}`, label: "Last Payslip", icon: "dollar" },
-              ].map((s) => (
-                <div key={s.label} className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm">
+              ].map((s, i) => (
+                <div key={s.label} className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm animate-fade-slide hover:shadow-md transition-shadow" style={{ animationDelay: `${0.1 + i * 0.05}s` }}>
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: s.bg }}>
                     {s.icon === "check" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                     {s.icon === "clock" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
@@ -216,8 +223,50 @@ const EmployeeDashboard = ({ user }) => {
               ))}
             </div>
 
+            {/* Attendance Rate + Quick Stats */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Card className="animate-fade-slide" style={{ animationDelay: '0.3s' }}>
+                <CardContent className="p-5">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Attendance Rate</p>
+                  <div className="flex items-end gap-2">
+                    <span className="text-3xl font-bold">{summary?.attendanceRate || 0}%</span>
+                  </div>
+                  <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${summary?.attendanceRate || 0}%`, background: (summary?.attendanceRate || 0) > 80 ? "#22c55e" : "#f59e0b" }} />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="animate-fade-slide" style={{ animationDelay: '0.35s' }}>
+                <CardContent className="p-5">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Total Leaves</p>
+                  <div className="flex items-end gap-2">
+                    <span className="text-3xl font-bold">{leaves.length}</span>
+                    <span className="text-xs text-muted-foreground mb-1">requests</span>
+                  </div>
+                  <div className="mt-3 flex gap-1">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">{leaves.filter(l => l.status === 'APPROVED').length} approved</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium">{leaves.filter(l => l.status === 'PENDING').length} pending</span>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="animate-fade-slide" style={{ animationDelay: '0.4s' }}>
+                <CardContent className="p-5">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Performance</p>
+                  <div className="flex items-end gap-2">
+                    <span className="text-3xl font-bold">{performance.length > 0 ? performance[0]?.overallScore?.toFixed(1) : '—'}</span>
+                    <span className="text-xs text-muted-foreground mb-1">/ 5.0</span>
+                  </div>
+                  <div className="mt-3 flex gap-0.5">
+                    {[1,2,3,4,5].map(s => (
+                      <div key={s} className="h-2 flex-1 rounded-full" style={{ background: s <= Math.round(performance[0]?.overallScore || 0) ? "#9a0002" : "#e5e7eb" }} />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Recent Leaves */}
-            <Card>
+            <Card className="animate-fade-slide" style={{ animationDelay: '0.45s' }}>
               <CardHeader className="pb-3 flex-row items-center justify-between">
                 <CardTitle className="text-base">Recent Leave Requests</CardTitle>
                 <Button variant="ghost" size="sm" onClick={() => setTab("leaves")}>View All</Button>
