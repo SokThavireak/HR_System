@@ -6,8 +6,9 @@ import {
   Button, Input, Select, Textarea,
   Card, CardHeader, CardTitle, CardContent,
   Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-  LoadingSkeleton,
+  LoadingSkeleton, LoadingScreen, PageTransition,
 } from "../components/ui";
+import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
 
 const SIDEBAR_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: "home" },
@@ -75,17 +76,20 @@ export default function AdminDashboard({ user }) {
   const [section, setSection] = useState("dashboard");
   const [navVisible, setNavVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [activeNavY, setActiveNavY] = useState(4);
+  const [activeNavY, setActiveNavY] = useState(0);
+  const [activeNavH, setActiveNavH] = useState(44);
   const navItemRefs = React.useRef([]);
   const navRef = React.useRef(null);
 
-  // Calculate sliding indicator position
+  // Calculate sliding indicator position & height to match active nav item exactly
   const updateActiveNavY = React.useCallback(() => {
     const idx = SIDEBAR_ITEMS.findIndex((s) => s.key === section);
     const el = navItemRefs.current[idx];
     const nav = navRef.current;
     if (el && nav) {
+      // offsetTop is relative to the nav container since it's position:relative
       setActiveNavY(el.offsetTop);
+      setActiveNavH(el.offsetHeight);
     }
   }, [section]);
 
@@ -134,30 +138,27 @@ export default function AdminDashboard({ user }) {
           </div>
 
           {/* Nav items */}
-          <nav ref={navRef} className="relative flex flex-1 flex-col gap-1.5 px-3 pt-1">
-            {/* Sliding active indicator pill */}
+          <nav ref={navRef} className="relative flex flex-1 flex-col px-3">
+            {/* Sliding active indicator pill — matches nav item height exactly */}
             <div
-              className="absolute left-3 right-3 rounded-xl pointer-events-none"
+              className="absolute left-3 right-3 rounded-xl pointer-events-none overflow-hidden"
               style={{
-                height: 44,
+                height: activeNavH,
                 top: activeNavY,
                 background: "rgba(255,255,255,0.18)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08)",
-                transition: "top 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 0 0 1px rgba(255,255,255,0.08)",
+                transition: "top 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.3s ease",
               }}
-            />
-            {/* Active bar accent on left edge */}
-            <div
-              className="absolute left-3 w-[3px] rounded-r-full pointer-events-none"
-              style={{
-                height: 44,
-                top: activeNavY,
-                background: "rgba(255,255,255,0.9)",
-                boxShadow: "0 0 12px 2px rgba(255,255,255,0.4)",
-                transition: "top 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)",
-              }}
-            />
+            >
+              {/* Accent bar inside the pill — clipped by overflow-hidden */}
+              <div
+                className="absolute left-0 top-0 bottom-0 w-[3px]"
+                style={{
+                  background: "rgba(255,255,255,0.9)",
+                  boxShadow: "0 0 12px 2px rgba(255,255,255,0.4)",
+                }}
+              />
+            </div>
             {SIDEBAR_ITEMS.map((item, idx) => {
               const isActive = section === item.key;
               return (
@@ -165,22 +166,25 @@ export default function AdminDashboard({ user }) {
                   key={item.key}
                   ref={el => { navItemRefs.current[idx] = el; }}
                   onClick={() => { updateActiveNavY(); setSection(item.key); }}
-                  className={`animate-sidebar-item relative z-10 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium cursor-pointer transition-all duration-300 ${
+                  className={`animate-sidebar-item relative z-10 flex w-full items-center gap-3 rounded-xl px-3 text-sm font-medium cursor-pointer transition-all duration-300 ${
                     isActive
                       ? "text-white font-bold"
                       : "text-white/60 hover:text-white"
                   }`}
                   style={{
+                    paddingTop: "10px",
+                    paddingBottom: "10px",
+                    minHeight: "44px",
                     animationDelay: `${0.15 + idx * 0.06}s`,
                   }}
                   onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
                   onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
                 >
-                  <span className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-300 ${isActive ? "bg-white/20 scale-110" : ""}`}>
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-300 ${isActive ? "bg-white/20 scale-110" : ""}`}>
                     <Icon name={item.icon} size={18} />
                   </span>
                   <span className="flex-1 text-left">{item.label}</span>
-                  {isActive && <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />}
+                  {isActive && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white animate-pulse" />}
                 </button>
               );
             })}
@@ -233,14 +237,16 @@ export default function AdminDashboard({ user }) {
           </div>
         </header>
 
-        <main className="flex-1 p-6" style={{ background: "transparent" }}>
-          {section === "dashboard" && <DashboardView user={user} />}
-          {section === "users" && <UserManagementView />}
-          {section === "categories" && <CategoryView />}
-          {section === "attendance" && <AttendancePage />}
-          {section === "leaves" && <LeaveApprovalsView />}
-          {section === "payroll" && <PayrollView />}
-          {section === "performance" && <PerformanceView />}
+        <main className="relative flex-1 p-6" style={{ background: "transparent" }}>
+          <PageTransition variant="fadeUp" keyProp={section}>
+            {section === "dashboard" && <DashboardView user={user} />}
+            {section === "users" && <UserManagementView />}
+            {section === "categories" && <CategoryView />}
+            {section === "attendance" && <AttendancePage />}
+            {section === "leaves" && <LeaveApprovalsView />}
+            {section === "payroll" && <PayrollView />}
+            {section === "performance" && <PerformanceView />}
+          </PageTransition>
         </main>
       </div>
     </div>
@@ -310,33 +316,44 @@ function CategoryView() {
     setPosForm({ title: pos.title, description: pos.description, department: pos.department });
   };
 
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 400); return () => clearTimeout(t); }, []);
+
+  if (loading) return <LoadingScreen variant="admin" message="Loading departments…" />;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Department & Position</h2>
-        <p className="text-sm text-muted-foreground">Manage departments and job positions across the organization.</p>
-      </div>
+      <ScrollReveal variant="fadeUp" stagger={0}>
+        <div>
+          <h2 className="text-2xl font-bold">Department & Position</h2>
+          <p className="text-sm text-muted-foreground">Manage departments and job positions across the organization.</p>
+        </div>
+      </ScrollReveal>
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: "#9a0002" }}>
-            <Icon name="folder" size={20} />
+        <StaggerItem>
+          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: "#9a0002" }}>
+              <Icon name="folder" size={20} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold leading-none">{departments.length}</p>
+              <p className="mt-0.5 text-xs font-medium text-muted-foreground">Total Departments</p>
+            </div>
           </div>
-          <div>
-            <p className="text-2xl font-bold leading-none">{departments.length}</p>
-            <p className="mt-0.5 text-xs font-medium text-muted-foreground">Total Departments</p>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: "#3b82f6" }}>
+              <Icon name="briefcase" size={20} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold leading-none">{positions.length}</p>
+              <p className="mt-0.5 text-xs font-medium text-muted-foreground">Total Positions</p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: "#3b82f6" }}>
-            <Icon name="briefcase" size={20} />
-          </div>
-          <div>
-            <p className="text-2xl font-bold leading-none">{positions.length}</p>
-            <p className="mt-0.5 text-xs font-medium text-muted-foreground">Total Positions</p>
-          </div>
-        </div>
+        </StaggerItem>
       </div>
 
       {/* Tabs */}
@@ -602,257 +619,220 @@ function DashboardView({ user }) {
     { color: "#8b5cf6", label: "Operations", value: stats ? Math.ceil(stats.totalEmployees * 0.15) : 0 },
   ];
 
-  if (loading) return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center" style={{ background: "#efe6dd" }}>
-      {/* Floating orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 h-64 w-64 rounded-full opacity-20 animate-floating-orb-1" style={{ background: "radial-gradient(circle, rgba(154,0,2,0.4), transparent 70%)" }} />
-        <div className="absolute bottom-1/3 right-1/4 h-48 w-48 rounded-full opacity-15 animate-floating-orb-2" style={{ background: "radial-gradient(circle, rgba(154,0,2,0.3), transparent 70%)" }} />
-        <div className="absolute top-1/2 left-1/2 h-32 w-32 rounded-full opacity-10 animate-floating-orb-3" style={{ background: "radial-gradient(circle, rgba(154,0,2,0.5), transparent 70%)" }} />
-      </div>
-      {/* Logo */}
-      <div className="relative flex flex-col items-center gap-6 animate-fade-slide">
-        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 animate-logo-breathe">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9a0002" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-            <polyline points="9 22 9 12 15 12 15 22"/>
-          </svg>
-        </div>
-        <div className="text-center">
-          <h1 className="text-3xl font-black tracking-tight" style={{ color: "#9a0002" }}>HRMS</h1>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Admin Portal</p>
-        </div>
-        {/* Animated spinner bars */}
-        <div className="flex items-end gap-1.5 h-8 mt-2">
-          {[0, 1, 2, 3, 4].map(i => (
-            <div
-              key={i}
-              className="w-1.5 rounded-full"
-              style={{
-                background: "#9a0002",
-                animation: `loadingBar 1.2s ease-in-out ${i * 0.12}s infinite`,
-              }}
-            />
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground animate-pulse mt-1">Loading your dashboard…</p>
-      </div>
-    </div>
-  );
+  if (loading) return <LoadingScreen variant="admin" />;
 
   return (
-    <div className="space-y-6 animate-fade-slide">
-      <div>
-        <h2 className="text-2xl font-bold">Overview</h2>
-        <p className="text-sm text-muted-foreground">Welcome back, {user?.firstName || "Admin"}! Here's your dashboard summary.</p>
-      </div>
+    <div className="space-y-6">
+      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
+        <div>
+          <h2 className="text-2xl font-bold">Overview</h2>
+          <p className="text-sm text-muted-foreground">Welcome back, {user?.firstName || "Admin"}! Here's your dashboard summary.</p>
+        </div>
+      </ScrollReveal>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="animate-fade-slide" style={{ animationDelay: '0.05s' }}>
-          <StatCard bg="#9a0002" value={stats.totalEmployees} label="Total Employees" iconName="users" />
-        </div>
-        <div className="animate-fade-slide" style={{ animationDelay: '0.1s' }}>
-          <StatCard bg="#22c55e" value={`${stats.attendanceRate}%`} label="Attendance Rate" iconName="check" />
-        </div>
-        <div className="animate-fade-slide" style={{ animationDelay: '0.15s' }}>
-          <StatCard bg="#f59e0b" value={stats.pendingLeaves} label="Pending Leaves" iconName="clock" />
-        </div>
-        <div className="animate-fade-slide" style={{ animationDelay: '0.2s' }}>
-          <StatCard bg="#ef4444" value={`$${stats.totalPayroll}`} label="Monthly Payroll" iconName="dollar" />
-        </div>
+        <StaggerItem><StatCard bg="#9a0002" value={stats.totalEmployees} label="Total Employees" iconName="users" /></StaggerItem>
+        <StaggerItem><StatCard bg="#22c55e" value={`${stats.attendanceRate}%`} label="Attendance Rate" iconName="check" /></StaggerItem>
+        <StaggerItem><StatCard bg="#f59e0b" value={stats.pendingLeaves} label="Pending Leaves" iconName="clock" /></StaggerItem>
+        <StaggerItem><StatCard bg="#ef4444" value={`$${stats.totalPayroll}`} label="Monthly Payroll" iconName="dollar" /></StaggerItem>
       </div>
 
-      {/* Payroll Breakdown Card */}
+      {/* Payroll Breakdown Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="animate-fade-slide animate-bounce-in rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#6366f1" }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#6366f1" }}>
-              <Icon name="dollar" size={18} />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Avg. Salary</p>
-              <p className="text-lg font-bold">${stats.totalEmployees > 0 ? Math.round(stats.totalPayroll / stats.totalEmployees) : 0}</p>
-            </div>
-          </div>
-        </div>
-        <div className="animate-fade-slide animate-bounce-in rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#14b8a6", animationDelay: '0.1s' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#14b8a6" }}>
-              <Icon name="clock" size={18} />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">On-time Rate</p>
-              <p className="text-lg font-bold">{stats.attendanceRate}%</p>
+        <StaggerItem>
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#6366f1" }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#6366f1" }}>
+                <Icon name="dollar" size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Avg. Salary</p>
+                <p className="text-lg font-bold">${stats.totalEmployees > 0 ? Math.round(stats.totalPayroll / stats.totalEmployees) : 0}</p>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="animate-fade-slide animate-bounce-in rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#ec4899", animationDelay: '0.15s' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#ec4899" }}>
-              <Icon name="trending" size={18} />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Performance Avg</p>
-              <p className="text-lg font-bold">4.2/5</p>
-            </div>
-          </div>
-        </div>
-        <div className="animate-fade-slide animate-bounce-in rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#f97316", animationDelay: '0.2s' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#f97316" }}>
-              <Icon name="calendar" size={18} />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Approved Leaves</p>
-              <p className="text-lg font-bold">{Math.max(0, (stats.pendingLeaves || 0) - 1)}</p>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#14b8a6" }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#14b8a6" }}>
+                <Icon name="clock" size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">On-time Rate</p>
+                <p className="text-lg font-bold">{stats.attendanceRate}%</p>
+              </div>
             </div>
           </div>
-        </div>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#ec4899" }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#ec4899" }}>
+                <Icon name="trending" size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Performance Avg</p>
+                <p className="text-lg font-bold">4.2/5</p>
+              </div>
+            </div>
+          </div>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#f97316" }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#f97316" }}>
+                <Icon name="calendar" size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Approved Leaves</p>
+                <p className="text-lg font-bold">{Math.max(0, (stats.pendingLeaves || 0) - 1)}</p>
+              </div>
+            </div>
+          </div>
+        </StaggerItem>
       </div>
 
-      {/* ── Employees by Department — Full Width ── */}
-      <Card className="animate-fade-slide" style={{ animationDelay: '0.25s' }}>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2"><Icon name="folder" size={16} /> Employees by Department</CardTitle>
-            <span className="text-xs text-muted-foreground">{stats.totalEmployees} total employees</span>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-            {/* Donut — takes 2 columns */}
-            <div className="flex items-center justify-center lg:col-span-2">
-              <DonutChart segments={deptData} size={200} />
+      {/* ── Employees by Department ── */}
+      <ScrollReveal variant="fadeUp" stagger={0.08}>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2"><Icon name="folder" size={16} /> Employees by Department</CardTitle>
+              <span className="text-xs text-muted-foreground">{stats.totalEmployees} total employees</span>
             </div>
-            {/* Department Breakdown Table — takes 3 columns */}
-            <div className="lg:col-span-3">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Employees</TableHead>
-                    <TableHead>% of Total</TableHead>
-                    <TableHead className="w-[40%]">Distribution</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {deptData.map((dept, i) => {
-                    const pct = stats.totalEmployees > 0 ? Math.round((dept.value / stats.totalEmployees) * 100) : 0;
-                    return (
-                      <TableRow key={dept.label} className="animate-fade-slide" style={{ animationDelay: `${0.3 + i * 0.05}s` }}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="h-3 w-3 rounded-full shrink-0" style={{ background: dept.color }} />
-                            <span className="font-medium">{dept.label}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-bold">{dept.value}</TableCell>
-                        <TableCell>
-                          <span className="text-sm font-semibold" style={{ color: dept.color }}>{pct}%</span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="h-3 w-full rounded-full bg-gray-100 overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-1000 ease-out"
-                              style={{ width: `${pct}%`, background: dept.color }}
-                            />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  <TableRow style={{ background: "rgba(0,0,0,0.02)" }}>
-                    <TableCell className="font-bold">Total</TableCell>
-                    <TableCell className="font-bold">{stats.totalEmployees}</TableCell>
-                    <TableCell className="font-bold">100%</TableCell>
-                    <TableCell />
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── Weekly Attendance Trend — Full Width Prostrate ── */}
-      <Card className="animate-fade-slide" style={{ animationDelay: '0.35s' }}>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2"><Icon name="chart" size={16} /> Weekly Attendance Trend</CardTitle>
-            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" /> ≥90% Excellent</span>
-              <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500" /> 60-89% Average</span>
-              <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" /> &lt;60% Low</span>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Horizontal bar chart — prostrate/landscape layout */}
-          <div className="space-y-3">
-            {[
-              { label: "Monday",    val: 95, count: Math.ceil(stats.totalEmployees * 0.95), total: stats.totalEmployees },
-              { label: "Tuesday",   val: 88, count: Math.ceil(stats.totalEmployees * 0.88), total: stats.totalEmployees },
-              { label: "Wednesday", val: 92, count: Math.ceil(stats.totalEmployees * 0.92), total: stats.totalEmployees },
-              { label: "Thursday",  val: 97, count: Math.ceil(stats.totalEmployees * 0.97), total: stats.totalEmployees },
-              { label: "Friday",    val: 85, count: Math.ceil(stats.totalEmployees * 0.85), total: stats.totalEmployees },
-              { label: "Saturday",  val: 45, count: Math.ceil(stats.totalEmployees * 0.45), total: stats.totalEmployees },
-              { label: "Sunday",    val: 12, count: Math.ceil(stats.totalEmployees * 0.12), total: stats.totalEmployees },
-            ].map((d, i) => (
-              <div key={d.label} className="flex items-center gap-4 animate-fade-slide" style={{ animationDelay: `${0.4 + i * 0.04}s` }}>
-                <span className="w-20 text-right text-xs font-medium text-muted-foreground shrink-0">{d.label}</span>
-                <div className="flex-1 h-8 rounded-lg bg-gray-100 overflow-hidden relative">
-                  <div
-                    className="h-full rounded-lg transition-all duration-1000 ease-out flex items-center justify-end pr-3"
-                    style={{
-                      width: `${d.val}%`,
-                      background: d.val > 90 ? "linear-gradient(90deg, #22c55e, #16a34a)" : d.val > 60 ? "linear-gradient(90deg, #f59e0b, #d97706)" : "linear-gradient(90deg, #ef4444, #dc2626)",
-                    }}
-                  >
-                    <span className="text-[11px] font-bold text-white drop-shadow-sm">{d.val}%</span>
-                  </div>
-                </div>
-                <span className="w-24 text-xs text-muted-foreground shrink-0">{d.count}/{d.total} present</span>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+              <div className="flex items-center justify-center lg:col-span-2">
+                <DonutChart segments={deptData} size={200} />
               </div>
-            ))}
-          </div>
-          {/* Summary row */}
-          <div className="mt-4 flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2.5">
-            <span className="text-xs font-medium text-muted-foreground">Weekly Average</span>
-            <div className="flex items-center gap-3">
-              <span className="text-lg font-bold text-emerald-600">
-                {Math.round((95 + 88 + 92 + 97 + 85 + 45 + 12) / 7)}%
-              </span>
-              <span className="text-[10px] text-muted-foreground">73 of {stats.totalEmployees} avg/day</span>
+              <div className="lg:col-span-3">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Employees</TableHead>
+                      <TableHead>% of Total</TableHead>
+                      <TableHead className="w-[40%]">Distribution</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {deptData.map((dept, i) => {
+                      const pct = stats.totalEmployees > 0 ? Math.round((dept.value / stats.totalEmployees) * 100) : 0;
+                      return (
+                        <TableRow key={dept.label}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="h-3 w-3 rounded-full shrink-0" style={{ background: dept.color }} />
+                              <span className="font-medium">{dept.label}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-bold">{dept.value}</TableCell>
+                          <TableCell>
+                            <span className="text-sm font-semibold" style={{ color: dept.color }}>{pct}%</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="h-3 w-full rounded-full bg-gray-100 overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${pct}%`, background: dept.color }} />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    <TableRow style={{ background: "rgba(0,0,0,0.02)" }}>
+                      <TableCell className="font-bold">Total</TableCell>
+                      <TableCell className="font-bold">{stats.totalEmployees}</TableCell>
+                      <TableCell className="font-bold">100%</TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </ScrollReveal>
+
+      {/* ── Weekly Attendance Trend ── */}
+      <ScrollReveal variant="fadeUp" stagger={0.08}>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2"><Icon name="chart" size={16} /> Weekly Attendance Trend</CardTitle>
+              <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+                <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" /> ≥90% Excellent</span>
+                <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500" /> 60-89% Average</span>
+                <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" /> &lt;60% Low</span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {[
+                { label: "Monday",    val: 95, count: Math.ceil(stats.totalEmployees * 0.95), total: stats.totalEmployees },
+                { label: "Tuesday",   val: 88, count: Math.ceil(stats.totalEmployees * 0.88), total: stats.totalEmployees },
+                { label: "Wednesday", val: 92, count: Math.ceil(stats.totalEmployees * 0.92), total: stats.totalEmployees },
+                { label: "Thursday",  val: 97, count: Math.ceil(stats.totalEmployees * 0.97), total: stats.totalEmployees },
+                { label: "Friday",    val: 85, count: Math.ceil(stats.totalEmployees * 0.85), total: stats.totalEmployees },
+                { label: "Saturday",  val: 45, count: Math.ceil(stats.totalEmployees * 0.45), total: stats.totalEmployees },
+                { label: "Sunday",    val: 12, count: Math.ceil(stats.totalEmployees * 0.12), total: stats.totalEmployees },
+              ].map((d) => (
+                <div key={d.label} className="flex items-center gap-4">
+                  <span className="w-20 text-right text-xs font-medium text-muted-foreground shrink-0">{d.label}</span>
+                  <div className="flex-1 h-8 rounded-lg bg-gray-100 overflow-hidden relative">
+                    <div
+                      className="h-full rounded-lg transition-all duration-1000 ease-out flex items-center justify-end pr-3"
+                      style={{
+                        width: `${d.val}%`,
+                        background: d.val > 90 ? "linear-gradient(90deg, #22c55e, #16a34a)" : d.val > 60 ? "linear-gradient(90deg, #f59e0b, #d97706)" : "linear-gradient(90deg, #ef4444, #dc2626)",
+                      }}
+                    >
+                      <span className="text-[11px] font-bold text-white drop-shadow-sm">{d.val}%</span>
+                    </div>
+                  </div>
+                  <span className="w-24 text-xs text-muted-foreground shrink-0">{d.count}/{d.total} present</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2.5">
+              <span className="text-xs font-medium text-muted-foreground">Weekly Average</span>
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-bold text-emerald-600">{Math.round((95 + 88 + 92 + 97 + 85 + 45 + 12) / 7)}%</span>
+                <span className="text-[10px] text-muted-foreground">73 of {stats.totalEmployees} avg/day</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </ScrollReveal>
 
       {/* ── Recent Activity ── */}
-      <Card className="animate-fade-slide" style={{ animationDelay: '0.45s' }}>
-        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Icon name="check" size={16} /> Recent Activity</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[
-              { text: "New employee John Doe added to Engineering", time: "2 min ago", bg: "#7A6BFF" },
-              { text: "Leave request from Jane Smith approved", time: "15 min ago", bg: "#22c55e" },
-              { text: "Payroll for March processed", time: "1 hour ago", bg: "#f59e0b" },
-              { text: "Performance review submitted for Alice Johnson", time: "3 hours ago", bg: "#3b82f6" },
-              { text: "Bob Kim marked attendance for today", time: "5 hours ago", bg: "#ec4899" },
-              { text: "New leave request from John Smith", time: "1 day ago", bg: "#f59e0b" },
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-3 animate-fade-slide" style={{ animationDelay: `${0.5 + i * 0.05}s` }}>
-                <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.bg }} />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{item.text}</p>
-                  <p className="text-xs text-muted-foreground">{item.time}</p>
+      <ScrollReveal variant="fadeUp" stagger={0.1}>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Icon name="check" size={16} /> Recent Activity</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[
+                { text: "New employee John Doe added to Engineering", time: "2 min ago", bg: "#7A6BFF" },
+                { text: "Leave request from Jane Smith approved", time: "15 min ago", bg: "#22c55e" },
+                { text: "Payroll for March processed", time: "1 hour ago", bg: "#f59e0b" },
+                { text: "Performance review submitted for Alice Johnson", time: "3 hours ago", bg: "#3b82f6" },
+                { text: "Bob Kim marked attendance for today", time: "5 hours ago", bg: "#ec4899" },
+                { text: "New leave request from John Smith", time: "1 day ago", bg: "#f59e0b" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.bg }} />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{item.text}</p>
+                    <p className="text-xs text-muted-foreground">{item.time}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </ScrollReveal>
     </div>
   );
 }
@@ -926,31 +906,43 @@ function UserManagementView() {
     { k: "hireDate", l: "Hire Date", type: "date" },
   ];
 
+  if (loading) return <LoadingScreen variant="admin" message="Loading users…" />;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">User Management</h2>
-        <p className="text-sm text-muted-foreground">Manage employees, assign departments & positions.</p>
-      </div>
+      <ScrollReveal variant="fadeUp" stagger={0}>
+        <div>
+          <h2 className="text-2xl font-bold">User Management</h2>
+          <p className="text-sm text-muted-foreground">Manage employees, assign departments & positions.</p>
+        </div>
+      </ScrollReveal>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
-          <p className="text-2xl font-bold">{users.length}</p>
-          <p className="text-xs font-medium text-muted-foreground">Total Users</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#10b981" }}>
-          <p className="text-2xl font-bold">{users.filter((u) => u.active).length}</p>
-          <p className="text-xs font-medium text-muted-foreground">Active</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#6b7280" }}>
-          <p className="text-2xl font-bold">{users.filter((u) => !u.active).length}</p>
-          <p className="text-xs font-medium text-muted-foreground">Inactive</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
-          <p className="text-2xl font-bold">{departments.length}</p>
-          <p className="text-xs font-medium text-muted-foreground">Departments</p>
-        </div>
+        <StaggerItem>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
+            <p className="text-2xl font-bold">{users.length}</p>
+            <p className="text-xs font-medium text-muted-foreground">Total Users</p>
+          </div>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#10b981" }}>
+            <p className="text-2xl font-bold">{users.filter((u) => u.active).length}</p>
+            <p className="text-xs font-medium text-muted-foreground">Active</p>
+          </div>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#6b7280" }}>
+            <p className="text-2xl font-bold">{users.filter((u) => !u.active).length}</p>
+            <p className="text-xs font-medium text-muted-foreground">Inactive</p>
+          </div>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
+            <p className="text-2xl font-bold">{departments.length}</p>
+            <p className="text-xs font-medium text-muted-foreground">Departments</p>
+          </div>
+        </StaggerItem>
       </div>
 
       {/* Add / Edit Form */}
@@ -1103,43 +1095,50 @@ function UserManagementView() {
    ═══════════════════════════════════════════ */
 function LeaveApprovalsView() {
   const [leaves, setLeaves] = useLocalState("al-leaves", []);
-  const load = () => adminService.getLeaves("PENDING").then((r) => setLeaves(r.data.content || r.data)).catch(() => {});
+  const [loading, setLoading] = useState(true);
+  const load = () => { setLoading(true); adminService.getLeaves("PENDING").then((r) => setLeaves(r.data.content || r.data)).catch(() => {}).finally(() => setLoading(false)); };
   useEffect(() => { load(); }, []);
   const approve = (id) => adminService.approveLeave(id).then(load);
   const reject = (id) => { const r = prompt("Reason:"); if (r) adminService.rejectLeave(id, r).then(load); };
 
+  if (loading) return <LoadingScreen variant="admin" message="Loading leave requests…" />;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Leave Approvals</h2>
-        <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
-      </div>
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Pending Requests ({leaves.length})</CardTitle></CardHeader>
-        <CardContent>
-          {!leaves.length ? <p className="py-8 text-center text-muted-foreground">No pending requests.</p> : (
-            <Table>
-              <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Type</TableHead><TableHead>From</TableHead><TableHead>To</TableHead><TableHead>Days</TableHead><TableHead>Reason</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {leaves.map((lv) => (
-                  <TableRow key={lv.id}>
-                    <TableCell className="font-medium">{(lv.user || {}).firstName} {(lv.user || {}).lastName}</TableCell>
-                    <TableCell>{lv.leaveType}</TableCell><TableCell>{lv.startDate}</TableCell><TableCell>{lv.endDate}</TableCell><TableCell>{lv.totalDays}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{lv.reason}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <button onClick={() => approve(lv.id)} title="Approve" className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer"><Icon name="check" size={14} /></button>
-                        <button onClick={() => reject(lv.id)} title="Reject" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="x" size={14} /></button>
-                        <button onClick={() => adminService.getLeave(lv.id).then((r) => alert(JSON.stringify(r.data, null, 2)))} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Leave Approvals</h2>
+          <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
+        </div>
+      </ScrollReveal>
+      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.05}>
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Pending Requests ({leaves.length})</CardTitle></CardHeader>
+          <CardContent>
+            {!leaves.length ? <p className="py-8 text-center text-muted-foreground">No pending requests.</p> : (
+              <Table>
+                <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Type</TableHead><TableHead>From</TableHead><TableHead>To</TableHead><TableHead>Days</TableHead><TableHead>Reason</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {leaves.map((lv) => (
+                    <TableRow key={lv.id}>
+                      <TableCell className="font-medium">{(lv.user || {}).firstName} {(lv.user || {}).lastName}</TableCell>
+                      <TableCell>{lv.leaveType}</TableCell><TableCell>{lv.startDate}</TableCell><TableCell>{lv.endDate}</TableCell><TableCell>{lv.totalDays}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{lv.reason}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <button onClick={() => approve(lv.id)} title="Approve" className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer"><Icon name="check" size={14} /></button>
+                          <button onClick={() => reject(lv.id)} title="Reject" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="x" size={14} /></button>
+                          <button onClick={() => adminService.getLeave(lv.id).then((r) => alert(JSON.stringify(r.data, null, 2)))} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </ScrollReveal>
     </div>
   );
 }
@@ -1149,7 +1148,8 @@ function LeaveApprovalsView() {
    ═══════════════════════════════════════════ */
 function PayrollView() {
   const [payrolls, setPayrolls] = useLocalState("ap-payrolls", []);
-  const load = () => adminService.getPayrolls().then((r) => setPayrolls(r.data.content || r.data)).catch(() => {});
+  const [loading, setLoading] = useState(true);
+  const load = () => { setLoading(true); adminService.getPayrolls().then((r) => setPayrolls(r.data.content || r.data)).catch(() => {}).finally(() => setLoading(false)); };
   useEffect(() => { load(); }, []);
   const processRec = (id) => adminService.processPayroll(id).then(load);
   const payRec = (id) => adminService.payPayroll(id).then(load);
@@ -1163,16 +1163,21 @@ function PayrollView() {
     adminService.calculatePayroll({ userId: Number(uid), baseSalary: Number(base), extraSalary: Number(extra), overtimeHours: Number(otHours), overtimeRate: Number(otRate), taxDeduction: Number(tax), insuranceDeduction: Number(ins), otherDeductions: Number(oth) }).then(load);
   };
 
+  if (loading) return <LoadingScreen variant="admin" message="Loading payroll…" />;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Payroll System</h2>
-        <div className="flex gap-2">
-          <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
-          <Button onClick={calculate} size="sm"><Icon name="plus" size={14} /> Calculate</Button>
-          <Button onClick={() => adminService.bulkProcess().then(load)} variant="outline" size="sm"><Icon name="clock" size={14} /> Bulk Process</Button>
+      <ScrollReveal variant="fadeUp" stagger={0.08}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Payroll System</h2>
+          <div className="flex gap-2">
+            <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
+            <Button onClick={calculate} size="sm"><Icon name="plus" size={14} /> Calculate</Button>
+            <Button onClick={() => adminService.bulkProcess().then(load)} variant="outline" size="sm"><Icon name="clock" size={14} /> Bulk Process</Button>
+          </div>
         </div>
-      </div>
+      </ScrollReveal>
+      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.05}>
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Payroll Records ({payrolls.length})</CardTitle></CardHeader>
         <CardContent>
@@ -1202,6 +1207,7 @@ function PayrollView() {
           )}
         </CardContent>
       </Card>
+      </ScrollReveal>
     </div>
   );
 }
@@ -1211,13 +1217,19 @@ function PayrollView() {
    ═══════════════════════════════════════════ */
 function PerformanceView() {
   const [reviews, setReviews] = useLocalState("apr-reviews", []);
-  const load = () => adminService.getReviews().then((r) => setReviews(r.data.content || r.data)).catch(() => {});
+  const [loading, setLoading] = useState(true);
+  const load = () => { setLoading(true); adminService.getReviews().then((r) => setReviews(r.data.content || r.data)).catch(() => {}).finally(() => setLoading(false)); };
   useEffect(() => { load(); }, []);
   const del = (id) => { if (confirm("Delete review?")) adminService.deleteReview(id).then(load); };
 
+  if (loading) return <LoadingScreen variant="admin" message="Loading performance reviews…" />;
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Performance Reviews</h2>
+      <ScrollReveal variant="fadeUp" stagger={0}>
+        <h2 className="text-2xl font-bold">Performance Reviews</h2>
+      </ScrollReveal>
+      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.05}>
       <Card>
         <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Icon name="plus" size={16} className="text-primary" /> Submit Review</CardTitle></CardHeader>
         <CardContent>
@@ -1237,10 +1249,14 @@ function PerformanceView() {
           </form>
         </CardContent>
       </Card>
-      <div className="flex gap-2">
-        <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
-        <Button onClick={() => { const id = prompt("Employee ID:"); if (id) adminService.getEmployeePerformance(Number(id)).then((r) => alert(JSON.stringify(r.data, null, 2))); }} variant="outline" size="sm"><Icon name="users" size={14} /> Employee Performance</Button>
-      </div>
+      </ScrollReveal>
+      <ScrollReveal variant="fadeUp" stagger={0.08} delay={0.1}>
+        <div className="flex gap-2">
+          <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
+          <Button onClick={() => { const id = prompt("Employee ID:"); if (id) adminService.getEmployeePerformance(Number(id)).then((r) => alert(JSON.stringify(r.data, null, 2))); }} variant="outline" size="sm"><Icon name="users" size={14} /> Employee Performance</Button>
+        </div>
+      </ScrollReveal>
+      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">All Reviews ({reviews.length})</CardTitle></CardHeader>
         <CardContent>
@@ -1268,6 +1284,7 @@ function PerformanceView() {
           )}
         </CardContent>
       </Card>
+      </ScrollReveal>
     </div>
   );
 }

@@ -1,4 +1,14 @@
-import { LogOut } from "lucide-react";
+import React, { useState } from "react";
+import { LogOut, BarChart3, Users, Clock, ClipboardCheck, DollarSign, TrendingUp } from "lucide-react";
+
+const NAV_ICONS = {
+  dashboard: BarChart3,
+  users: Users,
+  attendance: Clock,
+  leaves: ClipboardCheck,
+  payroll: DollarSign,
+  performance: TrendingUp,
+};
 
 export function AppShell({ children, currentPage }) {
   const navItems = [
@@ -11,10 +21,10 @@ export function AppShell({ children, currentPage }) {
   ];
 
   const current = navItems.find((n) => n.key === currentPage?.key) || navItems[0];
+  const [hoveredKey, setHoveredKey] = useState(null);
 
   return (
     <div className="flex min-h-screen" style={{ background: "#efe6dd" }}>
-      {/* Sidebar — Cherry Cola #9a0002 */}
       <aside
         className="fixed left-0 top-0 z-50 flex h-screen w-[290px] flex-col"
         style={{ background: "#9a0002" }}
@@ -32,19 +42,48 @@ export function AppShell({ children, currentPage }) {
         </div>
 
         <nav className="flex-1 px-3">
-          {navItems.map((item) => (
-            <button
-              key={item.key}
-              className={`mb-1 flex w-full items-center gap-3.5 rounded-xl px-4 py-3 text-left text-sm font-semibold transition-all ${
-                current.key === item.key
-                  ? "text-white shadow-lg"
-                  : "text-white/60 hover:text-white hover:bg-white/10"
-              }`}
-              style={current.key === item.key ? { background: "rgba(255,255,255,0.15)" } : {}}
-            >
-              <span>{item.label}</span>
-            </button>
-          ))}
+          {navItems.map((item) => {
+            const isActive = current.key === item.key;
+            const isHovered = hoveredKey === item.key;
+            const Icon = NAV_ICONS[item.key];
+            return (
+              <button
+                key={item.key}
+                onMouseEnter={() => setHoveredKey(item.key)}
+                onMouseLeave={() => setHoveredKey(null)}
+                className={`sidebar-nav-btn mb-1 flex w-full items-center gap-3 rounded-xl text-left font-bold tracking-wide transition-colors duration-200 ${
+                  isActive
+                    ? "sidebar-nav-active text-white"
+                    : "text-white/60"
+                }`}
+                style={{
+                  background: isActive
+                    ? "linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.12) 100%)"
+                    : isHovered
+                    ? "rgba(255,255,255,0.06)"
+                    : "transparent",
+                  boxShadow: isActive
+                    ? "0 6px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1)"
+                    : "none",
+                  minHeight: "52px",
+                  padding: "12px 12px 12px 16px",
+                  position: "relative",
+                }}
+              >
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                  style={{
+                    background: isActive
+                      ? "rgba(255,255,255,0.18)"
+                      : "transparent",
+                  }}
+                >
+                  {Icon && <Icon size={18} />}
+                </span>
+                <span className="relative">{item.label}</span>
+              </button>
+            );
+          })}
         </nav>
 
         <div className="border-t border-white/10 p-5">
@@ -62,9 +101,30 @@ export function AppShell({ children, currentPage }) {
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* pill indicator on sidebar edge for active item */}
+      <style>{`
+        @keyframes navPopup {
+          0%   { transform: scale(0.85) translateX(-12px); opacity: 0; }
+          60%  { transform: scale(1.04) translateX(0); opacity: 1; }
+          100% { transform: scale(1) translateX(0); opacity: 1; }
+        }
+        .sidebar-nav-btn {
+          animation: navPopup 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        .sidebar-nav-active::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 58%;
+          border-radius: 0 4px 4px 0;
+          background: #fff;
+        }
+      `}</style>
+
       <div className="ml-[290px] flex flex-1 flex-col" style={{ background: "transparent" }}>
-        {/* Top Bar — no background */}
         <header className="sticky top-0 z-40 flex h-[84px] items-center justify-between px-9 border-b border-gray-200/50" style={{ background: "transparent" }}>
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-extrabold tracking-tight text-foreground">
@@ -81,7 +141,6 @@ export function AppShell({ children, currentPage }) {
           </time>
         </header>
 
-        {/* Page Content */}
         <main className="flex-1 p-9">
           {children}
         </main>

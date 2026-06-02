@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { authService } from "../services/authService";
-import { Button, Input, Label } from "../components/ui";
+import { Button, Input, Label, LoadingScreen } from "../components/ui";
 import { ShaderAnimation } from "../components/ui/shader-animation";
+import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
 
 /* ─── Icons ─── */
 const icons = {
@@ -84,6 +85,8 @@ export default function LoginPage({ onLogin }) {
     return () => clearInterval(timer);
   }, []);
 
+  if (loading) return <LoadingScreen variant="admin" message="Signing you in…" />;
+
   const t = TESTIMONIALS[currentTestimonial];
 
   return (
@@ -101,7 +104,7 @@ export default function LoginPage({ onLogin }) {
           <div className="pointer-events-none absolute -bottom-16 -left-16 h-60 w-60 rounded-full bg-white/5" />
 
           {/* Logo */}
-          <div className="relative z-10">
+          <StaggerItem>
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
                 {icons.home}
@@ -111,59 +114,67 @@ export default function LoginPage({ onLogin }) {
                 <p className="text-[11px] font-medium text-white/50">Human Resource Management</p>
               </div>
             </div>
-          </div>
+          </StaggerItem>
 
           {/* Hero Copy */}
           <div className="relative z-10 -mt-8">
-            <h1 className="mb-4 text-[2.5rem] font-extrabold leading-[1.1] tracking-tight lg:text-5xl">
-              Manage Your
-              <br />
-              <span className="inline-flex items-center gap-2">
-                Team <span className="text-yellow-300">{icons.sparkleLg}</span> Better
-              </span>
-            </h1>
-            <p className="max-w-sm text-base leading-relaxed text-white/65">
-              A modern, intuitive platform for attendance, payroll, leaves, and performance — all in one place.
-            </p>
+            <StaggerItem>
+              <h1 className="mb-4 text-[2.5rem] font-extrabold leading-[1.1] tracking-tight lg:text-5xl">
+                Manage Your
+                <br />
+                <span className="inline-flex items-center gap-2">
+                  Team <span className="text-yellow-300">{icons.sparkleLg}</span> Better
+                </span>
+              </h1>
+            </StaggerItem>
+            <StaggerItem>
+              <p className="max-w-sm text-base leading-relaxed text-white/65">
+                A modern, intuitive platform for attendance, payroll, leaves, and performance — all in one place.
+              </p>
+            </StaggerItem>
 
             {/* Feature pills */}
             <div className="mt-8 flex flex-wrap gap-2">
-              {FEATURES.map((f) => (
-                <div
-                  key={f.label}
-                  className="flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold backdrop-blur-sm"
-                >
-                  {f.icon}
-                  {f.label}
-                </div>
+              {FEATURES.map((f, i) => (
+                <StaggerItem key={f.label}>
+                  <div
+                    className="flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold backdrop-blur-sm"
+                    style={{ animationDelay: `${0.3 + i * 0.08}s` }}
+                  >
+                    {f.icon}
+                    {f.label}
+                  </div>
+                </StaggerItem>
               ))}
             </div>
           </div>
 
           {/* Testimonial Card */}
           <div className="relative z-10">
-            <div key={t.id} className="max-w-md rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm animate-testimonial">
-              <div className="mb-3 flex items-center gap-1">
-                {Array.from({ length: t.rating }).map((_, i) => (
-                  <span key={i} className="text-yellow-300">{icons.sparkle}</span>
-                ))}
-              </div>
-              <div className="mb-4 flex items-start gap-2">
-                {icons.quote}
-                <p className="text-sm leading-relaxed text-white/80">{t.quote}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <img
-                  src={t.avatar}
-                  alt={t.name}
-                  className="h-9 w-9 rounded-full border-2 border-white/20 object-cover"
-                />
-                <div>
-                  <p className="text-sm font-semibold">{t.name}</p>
-                  <p className="text-xs text-white/50">{t.role}</p>
+            <StaggerItem>
+              <div key={t.id} className="max-w-md rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm animate-testimonial">
+                <div className="mb-3 flex items-center gap-1">
+                  {Array.from({ length: t.rating }).map((_, i) => (
+                    <span key={i} className="text-yellow-300">{icons.sparkle}</span>
+                  ))}
+                </div>
+                <div className="mb-4 flex items-start gap-2">
+                  {icons.quote}
+                  <p className="text-sm leading-relaxed text-white/80">{t.quote}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={t.avatar}
+                    alt={t.name}
+                    className="h-9 w-9 rounded-full border-2 border-white/20 object-cover"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold">{t.name}</p>
+                    <p className="text-xs text-white/50">{t.role}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </StaggerItem>
 
             {/* Testimonial Dots */}
             <div className="mt-4 flex gap-2">
@@ -185,94 +196,110 @@ export default function LoginPage({ onLogin }) {
 
       {/* ═══════════ RIGHT: Sign-In Form ═══════════ */}
       <div className="flex flex-1 flex-col items-center justify-center p-6 lg:p-10" style={{ background: "#efe6dd" }}>
-        <div className="w-full max-w-[400px] animate-element">
+        <ScrollReveal variant="fadeUp" stagger={0.1} delay={0.05} className="w-full max-w-[400px]">
           {/* Mobile Logo */}
-          <div className="mb-8 flex items-center justify-center gap-2 md:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              {icons.homeSm}
+          <StaggerItem>
+            <div className="mb-8 flex items-center justify-center gap-2 md:hidden">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                {icons.homeSm}
+              </div>
+              <span className="text-xl font-bold tracking-tight">HRMS</span>
             </div>
-            <span className="text-xl font-bold tracking-tight">HRMS</span>
-          </div>
+          </StaggerItem>
 
           {/* Header */}
-          <div className="mb-8 text-center">
-            <h2 className="text-2xl font-bold tracking-tight lg:text-3xl">
-              Welcome back
-            </h2>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              Sign in to access your dashboard
-            </p>
-          </div>
+          <StaggerItem>
+            <div className="mb-8 text-center">
+              <h2 className="text-2xl font-bold tracking-tight lg:text-3xl">
+                Welcome back
+              </h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                Sign in to access your dashboard
+              </p>
+            </div>
+          </StaggerItem>
 
           {/* Error */}
           {error && (
-            <div className="mb-5 flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive">
-              <span>⚠️</span>
-              {error}
-            </div>
+            <StaggerItem>
+              <div className="mb-5 flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive">
+                <span>⚠️</span>
+                {error}
+              </div>
+            </StaggerItem>
           )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                placeholder="you@company.com"
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
+            <StaggerItem>
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
+                  id="email"
+                  type="email"
                   required
-                  value={password}
-                  placeholder="••••••••"
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10"
+                  value={email}
+                  placeholder="you@company.com"
+                  onChange={(e) => setEmail(e.target.value)}
                 />
+              </div>
+            </StaggerItem>
+
+            <StaggerItem>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    placeholder="••••••••"
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    {showPassword ? icons.eyeOff : icons.eye}
+                  </button>
+                </div>
+              </div>
+            </StaggerItem>
+
+            <StaggerItem>
+              <div className="flex items-center justify-between">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-input accent-primary"
+                  />
+                  <span className="text-sm text-muted-foreground">Remember me</span>
+                </label>
                 <button
                   type="button"
-                  onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="text-sm font-medium text-primary hover:underline"
                 >
-                  {showPassword ? icons.eyeOff : icons.eye}
+                  Forgot password?
                 </button>
               </div>
-            </div>
+            </StaggerItem>
 
-            <div className="flex items-center justify-between">
-              <label className="flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-input accent-primary"
-                />
-                <span className="text-sm text-muted-foreground">Remember me</span>
-              </label>
-              <button
-                type="button"
-                className="text-sm font-medium text-primary hover:underline"
-              >
-                Forgot password?
-              </button>
-            </div>
-
-            <Button type="submit" className="w-full" loading={loading}>
-              {loading ? "Signing in…" : "Sign in"}
-            </Button>
+            <StaggerItem>
+              <Button type="submit" className="w-full">
+                Sign in
+              </Button>
+            </StaggerItem>
           </form>
 
           {/* Footer */}
-          <p className="mt-8 text-center text-xs text-muted-foreground">
-            🔐 Your data is protected with enterprise-grade security
-          </p>
+          <StaggerItem>
+            <p className="mt-8 text-center text-xs text-muted-foreground">
+              🔐 Your data is protected with enterprise-grade security
+            </p>
+          </StaggerItem>
 
           {/* Stats Row */}
           <div className="mt-6 flex justify-center gap-6">
@@ -281,15 +308,17 @@ export default function LoginPage({ onLogin }) {
               { value: "50K+", label: "Users" },
               { value: "99.9%", label: "Uptime" },
             ].map((s) => (
-              <div key={s.label} className="text-center">
-                <p className="text-lg font-bold text-foreground">{s.value}</p>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                  {s.label}
-                </p>
-              </div>
+              <StaggerItem key={s.label}>
+                <div className="text-center">
+                  <p className="text-lg font-bold text-foreground">{s.value}</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    {s.label}
+                  </p>
+                </div>
+              </StaggerItem>
             ))}
           </div>
-        </div>
+        </ScrollReveal>
       </div>
     </div>
   );

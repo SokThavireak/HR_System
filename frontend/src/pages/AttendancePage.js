@@ -3,10 +3,12 @@ import { attendanceService } from "../services/attendanceService";
 import ToastContainer from "../components/common/ToastContainer";
 import { useToast } from "../hooks/useToast";
 import {
-  Button, Input, Select, Badge,
+  Button, Input, Select, Badge, LoadingScreen,
   Card, CardHeader, CardTitle, CardContent,
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "../components/ui";
+import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
+import { PageTransition } from "../components/ui/page-transition";
 
 /* ─── Inline SVG Icon helper (same pattern as AdminDashboard) ─── */
 const Icon = ({ name, size = 18 }) => {
@@ -195,11 +197,14 @@ const AttendancePage = ({ showSidebar = true, standalone = false }) => {
   // ─── Render ───
   const wrapperClass = standalone ? "p-6 space-y-6" : "space-y-6";
 
+  if (loading && records.length === 0) return <LoadingScreen variant="admin" message="Loading attendance data…" />;
+
   return (
     <div className={wrapperClass}>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       {/* ─── Header ─── */}
+      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2.5 text-2xl font-bold">
@@ -221,30 +226,33 @@ const AttendancePage = ({ showSidebar = true, standalone = false }) => {
           </Button>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* ─── KPI Cards ─── */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((s) => (
-          <div
-            key={s.k}
-            className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
-            style={{ borderLeftWidth: "4px", borderLeftColor: s.bg }}
-          >
+          <StaggerItem key={s.k}>
             <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white"
-              style={{ background: s.bg }}
+              className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+              style={{ borderLeftWidth: "4px", borderLeftColor: s.bg }}
             >
-              <Icon name={s.icon} size={20} />
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white"
+                style={{ background: s.bg }}
+              >
+                <Icon name={s.icon} size={20} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold leading-none">{s.v}</p>
+                <p className="mt-0.5 text-xs font-medium text-muted-foreground">{s.k}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold leading-none">{s.v}</p>
-              <p className="mt-0.5 text-xs font-medium text-muted-foreground">{s.k}</p>
-            </div>
-          </div>
+          </StaggerItem>
         ))}
       </div>
 
       {/* ─── Filters ─── */}
+      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.1}>
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -297,8 +305,10 @@ const AttendancePage = ({ showSidebar = true, standalone = false }) => {
           </div>
         </CardContent>
       </Card>
+      </ScrollReveal>
 
       {/* ─── Manual Entry / Edit Form ─── */}
+      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -398,8 +408,10 @@ const AttendancePage = ({ showSidebar = true, standalone = false }) => {
           </form>
         </CardContent>
       </Card>
+      </ScrollReveal>
 
       {/* ─── Attendance Table ─── */}
+      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.2}>
       <Card>
         <CardHeader className="pb-3 flex-row items-center justify-between">
           <CardTitle className="text-base">Attendance Log</CardTitle>
@@ -511,6 +523,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false }) => {
           )}
         </CardContent>
       </Card>
+      </ScrollReveal>
     </div>
   );
 };

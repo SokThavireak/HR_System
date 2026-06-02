@@ -8,8 +8,9 @@ import {
   Button, Input, Select, Textarea,
   Card, CardHeader, CardTitle, CardContent,
   Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-  LoadingSkeleton, LoadingSpinner,
+  LoadingSkeleton, LoadingSpinner, LoadingScreen, PageTransition,
 } from "../components/ui";
+import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
 
 const TABS = [
   { key: "dashboard", label: "Home", icon: "home" },
@@ -116,43 +117,7 @@ const EmployeeDashboard = ({ user }) => {
   const isClockedIn = todayRecord?.clockInTime && !todayRecord?.clockOutTime;
   const isDoneToday = todayRecord?.clockInTime && todayRecord?.clockOutTime;
 
-  if (loading) return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center" style={{ background: "#efe6dd" }}>
-      {/* Floating orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 h-64 w-64 rounded-full opacity-20 animate-floating-orb-1" style={{ background: "radial-gradient(circle, rgba(154,0,2,0.4), transparent 70%)" }} />
-        <div className="absolute bottom-1/3 right-1/4 h-48 w-48 rounded-full opacity-15 animate-floating-orb-2" style={{ background: "radial-gradient(circle, rgba(154,0,2,0.3), transparent 70%)" }} />
-        <div className="absolute top-1/2 left-1/2 h-32 w-32 rounded-full opacity-10 animate-floating-orb-3" style={{ background: "radial-gradient(circle, rgba(154,0,2,0.5), transparent 70%)" }} />
-      </div>
-      {/* Logo */}
-      <div className="relative flex flex-col items-center gap-6 animate-fade-slide">
-        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 animate-logo-breathe">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9a0002" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-            <polyline points="9 22 9 12 15 12 15 22"/>
-          </svg>
-        </div>
-        <div className="text-center">
-          <h1 className="text-3xl font-black tracking-tight" style={{ color: "#9a0002" }}>HRMS</h1>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Employee Portal</p>
-        </div>
-        {/* Animated spinner bars */}
-        <div className="flex items-end gap-1.5 h-8 mt-2">
-          {[0, 1, 2, 3, 4].map(i => (
-            <div
-              key={i}
-              className="w-1.5 rounded-full"
-              style={{
-                background: "#9a0002",
-                animation: `loadingBar 1.2s ease-in-out ${i * 0.12}s infinite`,
-              }}
-            />
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground animate-pulse mt-1">Loading your dashboard…</p>
-      </div>
-    </div>
-  );
+  if (loading) return <LoadingScreen variant="employee" />;
 
   return (
     <div className="min-h-screen" style={{ background: "#efe6dd" }}>
@@ -176,11 +141,11 @@ const EmployeeDashboard = ({ user }) => {
           </div>
         </div>
         <div className="flex items-center gap-4 animate-header-right">
-          <div className="flex items-center gap-2.5 rounded-full px-5 py-2 animate-header-time" style={{ background: "rgba(154, 0, 2, 0.08)" }}>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: "#9a0002" }}>
+          <div className="flex items-center gap-2.5 rounded-full px-4 py-2 max-w-[220px] animate-header-time" style={{ background: "rgba(154, 0, 2, 0.08)" }}>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: "#9a0002" }}>
               {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
             </div>
-            <span className="text-sm font-medium text-foreground">
+            <span className="text-sm font-medium text-foreground truncate">
               {user?.firstName} {user?.lastName}
             </span>
           </div>
@@ -194,47 +159,51 @@ const EmployeeDashboard = ({ user }) => {
       </header>
 
       <div className="p-6 pb-24 min-h-[calc(100vh-8rem)]" style={{ background: "transparent" }}>
+        <PageTransition variant="fadeUp" keyProp={tab}>
         {/* ── DASHBOARD TAB ── */}
         {tab === "dashboard" && (
-          <div className="space-y-6 animate-fade-slide">
+          <ScrollReveal variant="fadeUp" stagger={0.08} delay={0.05}>
+          <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-bold">Welcome, {user?.firstName}</h1>
               <p className="text-sm text-muted-foreground">Here's your dashboard overview.</p>
             </div>
 
             {/* Clock Card */}
-            <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary to-primary-dark text-primary-foreground animate-bounce-in">
-              <CardContent className="p-8 text-center">
-                <p className="mb-2 text-sm font-medium text-white/70">Today's Attendance</p>
-                <p className="mb-6 text-5xl font-bold tracking-tight">{getCurrentTime()}</p>
-                <button
-                  onClick={handleClock}
-                  disabled={isDoneToday}
-                  className="mx-auto flex h-32 w-32 flex-col items-center justify-center gap-1 rounded-full border-4 transition-all hover:scale-105 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer"
-                  style={{
-                    borderColor: isClockedIn ? "#fca5a5" : isDoneToday ? "#86efac" : "rgba(255,255,255,0.4)",
-                    background: isDoneToday ? "rgba(34,197,94,0.2)" : isClockedIn ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.1)",
-                  }}
-                >
-                  {isDoneToday ? (
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  ) : (
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  )}
-                  <span className="text-[10px] font-bold uppercase tracking-wider">
-                    {isClockedIn ? "Clock Out" : isDoneToday ? "Done ✓" : "Clock In"}
-                  </span>
-                </button>
-                <p className="mt-4 text-sm text-white/60">
-                  {todayRecord?.clockInTime
-                    ? `Clocked in at ${new Date(todayRecord.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                    : "Not clocked in yet"}
-                  {todayRecord?.clockOutTime
-                    ? ` · Clocked out at ${new Date(todayRecord.clockOutTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                    : ""}
-                </p>
-              </CardContent>
-            </Card>
+            <StaggerItem>
+              <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary to-primary-dark text-primary-foreground animate-bounce-in">
+                <CardContent className="p-8 text-center">
+                  <p className="mb-2 text-sm font-medium text-white/70">Today's Attendance</p>
+                  <p className="mb-6 text-5xl font-bold tracking-tight">{getCurrentTime()}</p>
+                  <button
+                    onClick={handleClock}
+                    disabled={isDoneToday}
+                    className="mx-auto flex h-32 w-32 flex-col items-center justify-center gap-1 rounded-full border-4 transition-all hover:scale-105 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer"
+                    style={{
+                      borderColor: isClockedIn ? "#fca5a5" : isDoneToday ? "#86efac" : "rgba(255,255,255,0.4)",
+                      background: isDoneToday ? "rgba(34,197,94,0.2)" : isClockedIn ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.1)",
+                    }}
+                  >
+                    {isDoneToday ? (
+                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    ) : (
+                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    )}
+                    <span className="text-[10px] font-bold uppercase tracking-wider">
+                      {isClockedIn ? "Clock Out" : isDoneToday ? "Done ✓" : "Clock In"}
+                    </span>
+                  </button>
+                  <p className="mt-4 text-sm text-white/60">
+                    {todayRecord?.clockInTime
+                      ? `Clocked in at ${new Date(todayRecord.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                      : "Not clocked in yet"}
+                    {todayRecord?.clockOutTime
+                      ? ` · Clocked out at ${new Date(todayRecord.clockOutTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                      : ""}
+                  </p>
+                </CardContent>
+              </Card>
+            </StaggerItem>
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -243,66 +212,75 @@ const EmployeeDashboard = ({ user }) => {
                 { bg: "#3b82f6", value: `${summary?.overtimeHours || 0}h`, label: "Overtime", icon: "clock" },
                 { bg: "#f59e0b", value: summary?.pendingLeaves || 0, label: "Pending Leaves", icon: "calendar" },
                 { bg: "#22c55e", value: `$${summary?.lastPaySlip || 0}`, label: "Last Payslip", icon: "dollar" },
-              ].map((s, i) => (
-                <div key={s.label} className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm animate-fade-slide hover:shadow-md transition-shadow" style={{ animationDelay: `${0.1 + i * 0.05}s` }}>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: s.bg }}>
-                    {s.icon === "check" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                    {s.icon === "clock" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
-                    {s.icon === "calendar" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
-                    {s.icon === "dollar" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>}
+              ].map((s) => (
+                <StaggerItem key={s.label}>
+                  <div className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: s.bg }}>
+                      {s.icon === "check" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                      {s.icon === "clock" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
+                      {s.icon === "calendar" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
+                      {s.icon === "dollar" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>}
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold leading-none">{s.value}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">{s.label}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xl font-bold leading-none">{s.value}</p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">{s.label}</p>
-                  </div>
-                </div>
+                </StaggerItem>
               ))}
             </div>
 
             {/* Attendance Rate + Quick Stats */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Card className="animate-fade-slide" style={{ animationDelay: '0.3s' }}>
-                <CardContent className="p-5">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Attendance Rate</p>
-                  <div className="flex items-end gap-2">
-                    <span className="text-3xl font-bold">{summary?.attendanceRate || 0}%</span>
-                  </div>
-                  <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${summary?.attendanceRate || 0}%`, background: (summary?.attendanceRate || 0) > 80 ? "#22c55e" : "#f59e0b" }} />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="animate-fade-slide" style={{ animationDelay: '0.35s' }}>
-                <CardContent className="p-5">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Total Leaves</p>
-                  <div className="flex items-end gap-2">
-                    <span className="text-3xl font-bold">{leaves.length}</span>
-                    <span className="text-xs text-muted-foreground mb-1">requests</span>
-                  </div>
-                  <div className="mt-3 flex gap-1">
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">{leaves.filter(l => l.status === 'APPROVED').length} approved</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium">{leaves.filter(l => l.status === 'PENDING').length} pending</span>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="animate-fade-slide" style={{ animationDelay: '0.4s' }}>
-                <CardContent className="p-5">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Performance</p>
-                  <div className="flex items-end gap-2">
-                    <span className="text-3xl font-bold">{performance.length > 0 ? performance[0]?.overallScore?.toFixed(1) : '—'}</span>
-                    <span className="text-xs text-muted-foreground mb-1">/ 5.0</span>
-                  </div>
-                  <div className="mt-3 flex gap-0.5">
-                    {[1,2,3,4,5].map(s => (
-                      <div key={s} className="h-2 flex-1 rounded-full" style={{ background: s <= Math.round(performance[0]?.overallScore || 0) ? "#9a0002" : "#e5e7eb" }} />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <StaggerItem>
+                <Card>
+                  <CardContent className="p-5">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Attendance Rate</p>
+                    <div className="flex items-end gap-2">
+                      <span className="text-3xl font-bold">{summary?.attendanceRate || 0}%</span>
+                    </div>
+                    <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${summary?.attendanceRate || 0}%`, background: (summary?.attendanceRate || 0) > 80 ? "#22c55e" : "#f59e0b" }} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </StaggerItem>
+              <StaggerItem>
+                <Card>
+                  <CardContent className="p-5">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Total Leaves</p>
+                    <div className="flex items-end gap-2">
+                      <span className="text-3xl font-bold">{leaves.length}</span>
+                      <span className="text-xs text-muted-foreground mb-1">requests</span>
+                    </div>
+                    <div className="mt-3 flex gap-1">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">{leaves.filter(l => l.status === 'APPROVED').length} approved</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium">{leaves.filter(l => l.status === 'PENDING').length} pending</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </StaggerItem>
+              <StaggerItem>
+                <Card>
+                  <CardContent className="p-5">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Performance</p>
+                    <div className="flex items-end gap-2">
+                      <span className="text-3xl font-bold">{performance.length > 0 ? performance[0]?.overallScore?.toFixed(1) : '—'}</span>
+                      <span className="text-xs text-muted-foreground mb-1">/ 5.0</span>
+                    </div>
+                    <div className="mt-3 flex gap-0.5">
+                      {[1,2,3,4,5].map(s => (
+                        <div key={s} className="h-2 flex-1 rounded-full" style={{ background: s <= Math.round(performance[0]?.overallScore || 0) ? "#9a0002" : "#e5e7eb" }} />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </StaggerItem>
             </div>
 
             {/* Recent Leaves */}
-            <Card className="animate-fade-slide" style={{ animationDelay: '0.45s' }}>
+            <StaggerItem>
+              <Card>
               <CardHeader className="pb-3 flex-row items-center justify-between">
                 <CardTitle className="text-base">Recent Leave Requests</CardTitle>
                 <Button variant="ghost" size="sm" onClick={() => setTab("leaves")}>View All</Button>
@@ -331,8 +309,10 @@ const EmployeeDashboard = ({ user }) => {
                   ))}
                 </div>
               )}
-            </Card>
+              </Card>
+            </StaggerItem>
           </div>
+          </ScrollReveal>
         )}
 
         {/* ── ATTENDANCE TAB ── */}
@@ -340,6 +320,7 @@ const EmployeeDashboard = ({ user }) => {
 
         {/* ── LEAVES TAB ── */}
         {tab === "leaves" && (
+          <ScrollReveal variant="fadeUp" stagger={0.08} delay={0.05}>
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">Leave Management</h2>
 
@@ -406,10 +387,12 @@ const EmployeeDashboard = ({ user }) => {
               </CardContent>
             </Card>
           </div>
+          </ScrollReveal>
         )}
 
         {/* ── REPORTS TAB ── */}
         {tab === "reports" && (
+          <ScrollReveal variant="fadeUp" stagger={0.08} delay={0.05}>
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">Reports & PaySlips</h2>
 
@@ -468,10 +451,12 @@ const EmployeeDashboard = ({ user }) => {
               </CardContent>
             </Card>
           </div>
+          </ScrollReveal>
         )}
 
         {/* ── PROFILE TAB ── */}
         {tab === "profile" && (
+          <ScrollReveal variant="fadeUp" stagger={0.08} delay={0.05}>
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">My Profile</h2>
             <Card className="max-w-2xl">
@@ -501,7 +486,9 @@ const EmployeeDashboard = ({ user }) => {
               </CardContent>
             </Card>
           </div>
+          </ScrollReveal>
         )}
+        </PageTransition>
       </div>
 
       {/* ─── MOBILE BOTTOM NAV ─── */}

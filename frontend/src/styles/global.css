@@ -598,6 +598,10 @@
   .animate-bottom-nav-item { animation: bottomNavItemBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
   .animate-bottom-nav-indicator { animation: bottomNavIndicator 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
   .animate-nav-item-fade { animation: navItemFadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+  .animate-fade-slide { animation: fadeSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+  .animate-tab-enter { animation: tabContentEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+  .animate-card-blur-up { animation: cardBlurUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+  .animate-subtle-glow { animation: subtleGlow 3s ease-in-out infinite; }
 
 }
 
@@ -634,4 +638,28 @@
 @keyframes fullPageFadeOut {
   0%   { opacity: 1; transform: scale(1); filter: blur(0); }
   100% { opacity: 0; transform: scale(1.03); filter: blur(8px); }
+}
+
+/* ── Page transition: fade-slide (used by LoadingScreen exit) ── */
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(20px); filter: blur(6px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
+}
+
+/* ── Tab content switch ── */
+@keyframes tabContentEnter {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Card entrance blur-up ── */
+@keyframes cardBlurUp {
+  from { opacity: 0; transform: translateY(16px); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
+}
+
+/* ── Subtle glow pulse for active elements ── */
+@keyframes subtleGlow {
+  0%, 100% { box-shadow: 0 0 0 0 hsla(var(--primary), 0); }
+  50%      { box-shadow: 0 0 16px 2px hsla(var(--primary), 0.15); }
 }
