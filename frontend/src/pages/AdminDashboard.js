@@ -6,7 +6,7 @@ import {
   Button, Input, Select, Textarea,
   Card, CardHeader, CardTitle, CardContent,
   Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-  LoadingSkeleton, LoadingScreen, PageTransition,
+  LoadingSkeleton, PageLoader, PageTransition,
 } from "../components/ui";
 import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
 
@@ -237,7 +237,7 @@ export default function AdminDashboard({ user }) {
           </div>
         </header>
 
-        <main className="relative flex-1 p-6" style={{ background: "transparent" }}>
+        <main className="relative flex flex-col flex-1 p-6" style={{ background: "transparent" }}>
           <PageTransition variant="fadeUp" keyProp={section}>
             {section === "dashboard" && <DashboardView user={user} />}
             {section === "users" && <UserManagementView />}
@@ -318,8 +318,7 @@ function CategoryView() {
 
   const [loading, setLoading] = useState(true);
   useEffect(() => { const t = setTimeout(() => setLoading(false), 400); return () => clearTimeout(t); }, []);
-
-  if (loading) return <LoadingScreen variant="admin" message="Loading departments…" />;
+  if (loading) return <PageLoader />;
 
   return (
     <div className="space-y-6">
@@ -606,6 +605,7 @@ function DashboardView({ user }) {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+  if (loading) return <PageLoader />;
 
   const maxCardVal = stats
     ? Math.max(stats.totalEmployees, stats.pendingLeaves, stats.totalPayroll / 1000, parseFloat(stats.attendanceRate) / 10)
@@ -618,8 +618,6 @@ function DashboardView({ user }) {
     { color: "#22c55e", label: "Finance", value: stats ? Math.ceil(stats.totalEmployees * 0.15) : 0 },
     { color: "#8b5cf6", label: "Operations", value: stats ? Math.ceil(stats.totalEmployees * 0.15) : 0 },
   ];
-
-  if (loading) return <LoadingScreen variant="admin" />;
 
   return (
     <div className="space-y-6">
@@ -906,7 +904,7 @@ function UserManagementView() {
     { k: "hireDate", l: "Hire Date", type: "date" },
   ];
 
-  if (loading) return <LoadingScreen variant="admin" message="Loading users…" />;
+  if (loading) return <PageLoader />;
 
   return (
     <div className="space-y-6">
@@ -1101,7 +1099,7 @@ function LeaveApprovalsView() {
   const approve = (id) => adminService.approveLeave(id).then(load);
   const reject = (id) => { const r = prompt("Reason:"); if (r) adminService.rejectLeave(id, r).then(load); };
 
-  if (loading) return <LoadingScreen variant="admin" message="Loading leave requests…" />;
+  if (loading) return <PageLoader />;
 
   return (
     <div className="space-y-6">
@@ -1163,7 +1161,7 @@ function PayrollView() {
     adminService.calculatePayroll({ userId: Number(uid), baseSalary: Number(base), extraSalary: Number(extra), overtimeHours: Number(otHours), overtimeRate: Number(otRate), taxDeduction: Number(tax), insuranceDeduction: Number(ins), otherDeductions: Number(oth) }).then(load);
   };
 
-  if (loading) return <LoadingScreen variant="admin" message="Loading payroll…" />;
+  if (loading) return <PageLoader />;
 
   return (
     <div className="space-y-6">
@@ -1222,7 +1220,7 @@ function PerformanceView() {
   useEffect(() => { load(); }, []);
   const del = (id) => { if (confirm("Delete review?")) adminService.deleteReview(id).then(load); };
 
-  if (loading) return <LoadingScreen variant="admin" message="Loading performance reviews…" />;
+  if (loading) return <PageLoader />;
 
   return (
     <div className="space-y-6">

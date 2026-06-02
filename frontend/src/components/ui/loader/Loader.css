@@ -1,0 +1,114 @@
+/* ═══════════════════════════════════════════
+   LOGIN LOADER — full screen
+   ═══════════════════════════════════════════ */
+.loader-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: #efe6dd;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ═══════════════════════════════════════════
+   PAGE LOADER — fills and centers in content area
+   ═══════════════════════════════════════════ */
+.loader-inline {
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  flex: 1;
+}
+
+/* ═══════════════════════════════════════════
+   BOXES — large (login)
+   ═══════════════════════════════════════════ */
+.boxes-large {
+  --size: 40px;
+  --duration: 1.2s;
+  width: calc(var(--size) * 2);
+  height: calc(var(--size) * 2);
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateX(60deg) rotateZ(45deg);
+}
+
+/* ═══════════════════════════════════════════
+   BOXES — small (dashboard pages)
+   ═══════════════════════════════════════════ */
+.boxes-small {
+  --size: 36px;
+  --duration: 1.1s;
+  width: calc(var(--size) * 2);
+  height: calc(var(--size) * 2);
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateX(60deg) rotateZ(45deg);
+}
+
+/* ═══════════════════════════════════════════
+   SHARED BOX STYLES
+   ═══════════════════════════════════════════ */
+.boxes-large .box,
+.boxes-small .box {
+  width: var(--size);
+  height: var(--size);
+  position: absolute;
+  transform-style: preserve-3d;
+  animation: bounce var(--duration) infinite ease-in-out;
+}
+
+.boxes-large .box-1,
+.boxes-small .box-1 { top: 0; left: 0; animation-delay: 0s; }
+
+.boxes-large .box-2,
+.boxes-small .box-2 { top: 0; left: var(--size); animation-delay: 0.15s; }
+
+.boxes-large .box-4,
+.boxes-small .box-4 { top: var(--size); left: var(--size); animation-delay: 0.3s; }
+
+.boxes-large .box-3,
+.boxes-small .box-3 { top: var(--size); left: 0; animation-delay: 0.45s; }
+
+.face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+}
+
+.face-top {
+  background-color: #9a0002;
+  transform: translateZ(var(--size));
+}
+
+.face-right {
+  background-color: #730001;
+  transform-origin: 100% 50%;
+  transform: rotateY(90deg);
+}
+
+.face-front {
+  background-color: #4d0001;
+  transform-origin: 50% 100%;
+  transform: rotateX(-90deg);
+}
+
+.face-back {
+  background-color: #730001;
+  transform-origin: 50% 0%;
+  transform: rotateX(90deg);
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateZ(0); }
+  50%      { transform: translateZ(calc(var(--size) * 0.75)); }
+}

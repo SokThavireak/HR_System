@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { authService } from "../services/authService";
-import { Button, Input, Label, LoadingScreen } from "../components/ui";
+import { Button, Input, Label, LoginLoader } from "../components/ui";
 import { ShaderAnimation } from "../components/ui/shader-animation";
 import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
 
@@ -85,7 +85,8 @@ export default function LoginPage({ onLogin }) {
     return () => clearInterval(timer);
   }, []);
 
-  if (loading) return <LoadingScreen variant="admin" message="Signing you in…" />;
+
+  if (loading) return <LoginLoader />;
 
   const t = TESTIMONIALS[currentTestimonial];
 

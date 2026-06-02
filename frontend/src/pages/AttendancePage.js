@@ -3,7 +3,7 @@ import { attendanceService } from "../services/attendanceService";
 import ToastContainer from "../components/common/ToastContainer";
 import { useToast } from "../hooks/useToast";
 import {
-  Button, Input, Select, Badge, LoadingScreen,
+  Button, Input, Select, Badge, PageLoader,
   Card, CardHeader, CardTitle, CardContent,
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "../components/ui";
@@ -195,9 +195,9 @@ const AttendancePage = ({ showSidebar = true, standalone = false }) => {
   };
 
   // ─── Render ───
-  const wrapperClass = standalone ? "p-6 space-y-6" : "space-y-6";
+  if (loading && records.length === 0) return <PageLoader />;
 
-  if (loading && records.length === 0) return <LoadingScreen variant="admin" message="Loading attendance data…" />;
+  const wrapperClass = standalone ? "p-6 space-y-6" : "space-y-6";
 
   return (
     <div className={wrapperClass}>

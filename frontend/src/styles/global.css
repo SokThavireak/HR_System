@@ -536,7 +536,6 @@
   .animate-particle-1 { animation: particleFloat1 6s ease-in-out infinite; }
   .animate-particle-2 { animation: particleFloat2 8s ease-in-out 1s infinite; }
   .animate-particle-3 { animation: particleFloat3 7s ease-in-out 0.5s infinite; }
-  .animate-logo-breathe { animation: logoBreathe 3s ease-in-out infinite; }
   .animate-border-glow { animation: borderGlow 4s ease-in-out infinite; }
 
   /* ---- Enhanced Header Animations ---- */
@@ -552,9 +551,6 @@
   .animate-header-particle-4 { animation: headerParticleDrift4 7s ease-in-out 1.5s infinite; }
   .animate-header-time { animation: headerTimePulse 3s ease-in-out infinite; }
   .animate-header-bg-breath { animation: headerBgBreath 4s ease-in-out infinite; }
-  .animate-floating-orb-1 { animation: floatingOrb1 10s ease-in-out infinite; }
-  .animate-floating-orb-2 { animation: floatingOrb2 12s ease-in-out 1s infinite; }
-  .animate-floating-orb-3 { animation: floatingOrb3 14s ease-in-out 2s infinite; }
 
   /* ---- Sidebar Animations ---- */
   .animate-sidebar-item { animation: sidebarItemSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
@@ -621,30 +617,6 @@
 @media (max-width: 768px) { html { font-size: 15px; } }
 @media (max-width: 480px) { html { font-size: 14px; } }
 
-/* ═══════════════════════════════════════════
-   Full-Page Loading Animations
-   ═══════════════════════════════════════════ */
-
-@keyframes loadingBar {
-  0%, 100% { height: 8px; opacity: 0.3; }
-  50%      { height: 32px; opacity: 1; }
-}
-
-@keyframes loadingPulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50%      { opacity: 1; transform: scale(1.05); }
-}
-
-@keyframes fullPageFadeOut {
-  0%   { opacity: 1; transform: scale(1); filter: blur(0); }
-  100% { opacity: 0; transform: scale(1.03); filter: blur(8px); }
-}
-
-/* ── Page transition: fade-slide (used by LoadingScreen exit) ── */
-@keyframes fadeSlide {
-  from { opacity: 0; transform: translateY(20px); filter: blur(6px); }
-  to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
-}
 
 /* ── Tab content switch ── */
 @keyframes tabContentEnter {

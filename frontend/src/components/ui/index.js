@@ -12,5 +12,5 @@ export { ShaderAnimation } from "./shader-animation";
 export { LoadingSkeleton, LoadingSpinner, LoadingOverlay } from "./loading-skeleton";
 export { LordIcon, StatusIcon } from "./lordicon";
 export { StaggeredReveal, ScrollReveal, StaggerItem } from "./staggered-reveal";
-export { default as LoadingScreen } from "./loading-screen";
+export { LoginLoader, PageLoader } from "./loader";
 export { PageTransition } from "./page-transition";

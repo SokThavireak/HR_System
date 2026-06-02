@@ -8,7 +8,7 @@ import {
   Button, Input, Select, Textarea,
   Card, CardHeader, CardTitle, CardContent,
   Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-  LoadingSkeleton, LoadingSpinner, LoadingScreen, PageTransition,
+  LoadingSkeleton, LoadingSpinner, PageLoader, PageTransition,
 } from "../components/ui";
 import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
 
@@ -117,7 +117,7 @@ const EmployeeDashboard = ({ user }) => {
   const isClockedIn = todayRecord?.clockInTime && !todayRecord?.clockOutTime;
   const isDoneToday = todayRecord?.clockInTime && todayRecord?.clockOutTime;
 
-  if (loading) return <LoadingScreen variant="employee" />;
+  if (loading) return <PageLoader />;
 
   return (
     <div className="min-h-screen" style={{ background: "#efe6dd" }}>
@@ -158,7 +158,7 @@ const EmployeeDashboard = ({ user }) => {
         </div>
       </header>
 
-      <div className="p-6 pb-24 min-h-[calc(100vh-8rem)]" style={{ background: "transparent" }}>
+      <div className="flex flex-col p-6 pb-24 min-h-[calc(100vh-8rem)]" style={{ background: "transparent" }}>
         <PageTransition variant="fadeUp" keyProp={tab}>
         {/* ── DASHBOARD TAB ── */}
         {tab === "dashboard" && (
