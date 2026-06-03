@@ -21,4 +21,13 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     @Query("SELECT COUNT(a) FROM Attendance a WHERE a.user.id = :userId AND a.status = 'PRESENT' AND a.date BETWEEN :from AND :to")
     Long countPresentDays(@Param("userId") Long userId, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("SELECT COALESCE(SUM(a.hoursWorked), 0) FROM Attendance a WHERE a.user.id = :userId AND a.date BETWEEN :from AND :to")
+    Double sumHoursWorked(@Param("userId") Long userId, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("SELECT COALESCE(SUM(a.lateMinutes), 0) FROM Attendance a WHERE a.user.id = :userId AND a.date BETWEEN :from AND :to AND a.status <> 'ON_LEAVE'")
+    Integer sumLateMinutesExcludingLeave(@Param("userId") Long userId, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.user.id = :userId AND a.date BETWEEN :from AND :to AND a.lateMinutes > 0 AND a.status <> 'ON_LEAVE'")
+    Long countLateDaysExcludingLeave(@Param("userId") Long userId, @Param("from") LocalDate from, @Param("to") LocalDate to);
 }

@@ -60,5 +60,12 @@ public class LeaveService {
         return leaveRepo.save(leave);
     }
 
+    @Transactional
+    public LeaveRequest cancel(Long leaveId) {
+        LeaveRequest leave = leaveRepo.findById(leaveId).orElseThrow(() -> new RuntimeException("Leave not found"));
+        leave.setStatus(LeaveStatus.CANCELLED);
+        return leaveRepo.save(leave);
+    }
+
     public long countPending() { return leaveRepo.countByStatus(LeaveStatus.PENDING); }
 }

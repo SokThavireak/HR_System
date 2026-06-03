@@ -38,6 +38,11 @@ public class AdminLeaveController {
         return leaveService.reject(id, rejecterId, req.getRejectionReason());
     }
 
+    @PutMapping("/{id}/cancel")
+    public LeaveRequest cancel(@PathVariable Long id) {
+        return leaveService.cancel(id);
+    }
+
     @lombok.Data
     public static class RejectRequest {
         private String rejectionReason;

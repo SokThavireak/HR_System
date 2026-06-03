@@ -13,6 +13,7 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
     List<Payroll> findByUserIdOrderByPayPeriodEndDesc(Long userId);
     Optional<Payroll> findByUserIdAndPayPeriodStartAndPayPeriodEnd(Long userId, java.time.LocalDate start, java.time.LocalDate end);
     Page<Payroll> findAllByOrderByPayPeriodEndDesc(Pageable pageable);
+    List<Payroll> findAllByStatus(Payroll.PayrollStatus status);
 
     @Query("SELECT COALESCE(SUM(p.netSalary), 0) FROM Payroll p WHERE p.status = 'PAID'")
     java.math.BigDecimal sumPaidNet();

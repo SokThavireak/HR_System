@@ -25,10 +25,13 @@ public class Payroll {
 
     @Column(nullable = false)
     private BigDecimal baseSalary;
-    private BigDecimal overtimeRate;
+    private Double fullTimeWorkHours;
+    private Double actualWorkHours;
     private Double overtimeHours;
     private BigDecimal overtimePay;
     private BigDecimal extraSalary;
+    private BigDecimal lateDeduction;
+    private Integer lateMinutes;
     private BigDecimal taxDeduction;
     private BigDecimal insuranceDeduction;
     private BigDecimal otherDeductions;

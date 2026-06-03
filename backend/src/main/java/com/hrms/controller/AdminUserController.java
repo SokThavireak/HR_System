@@ -43,6 +43,9 @@ public class AdminUserController {
             .department(req.getDepartment())
             .position(req.getPosition())
             .baseSalary(req.getBaseSalary() != null ? new BigDecimal(req.getBaseSalary()) : null)
+            .workHoursPerDay(req.getWorkHoursPerDay())
+            .workingDaysPerMonth(req.getWorkingDaysPerMonth())
+            .workStartTime(req.getWorkStartTime())
             .hireDate(req.getHireDate())
             .active(true)
             .build();
@@ -58,6 +61,52 @@ public class AdminUserController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody CreateUserRequest req) {
+        User user = userRepo.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        user.setFirstName(req.getFirstName());
+        user.setLastName(req.getLastName());
+        user.setPhone(req.getPhone());
+        user.setDepartment(req.getDepartment());
+        user.setPosition(req.getPosition());
+        if (req.getBaseSalary() != null) user.setBaseSalary(new BigDecimal(req.getBaseSalary()));
+        if (req.getWorkHoursPerDay() != null) user.setWorkHoursPerDay(req.getWorkHoursPerDay());
+        if (req.getWorkingDaysPerMonth() != null) user.setWorkingDaysPerMonth(req.getWorkingDaysPerMonth());
+        if (req.getWorkStartTime() != null) user.setWorkStartTime(req.getWorkStartTime());
+        if (req.getHireDate() != null) user.setHireDate(req.getHireDate());
+        return ResponseEntity.ok(userRepo.save(user));
+    }
+
+    @PutMapping("/{id}/activate")
+    public ResponseEntity<User> activateUser(@PathVariable Long id) {
+        User user = userRepo.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        user.setActive(true);
+        return ResponseEntity.ok(userRepo.save(user));
+    }
+
+    @PutMapping("/{id}/role")
+    public ResponseEntity<User> updateRole(@PathVariable Long id, @RequestBody RoleRequest req) {
+        User user = userRepo.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        Role role = roleRepo.findByName(Role.RoleName.valueOf(req.getRole())).orElseThrow();
+        user.getRoles().clear();
+        user.getRoles().add(role);
+        return ResponseEntity.ok(userRepo.save(user));
+    }
+
+    @PutMapping("/{id}/reset-password")
+    public ResponseEntity<Void> resetPassword(@PathVariable Long id, @RequestBody ResetPwdRequest req) {
+        User user = userRepo.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        user.setPassword(encoder.encode(req.getNewPassword()));
+        userRepo.save(user);
+        return ResponseEntity.ok().build();
+    }
+
+    @lombok.Data
+    public static class RoleRequest { private String role; }
+
+    @lombok.Data
+    public static class ResetPwdRequest { private String newPassword; }
+
     @lombok.Data
     public static class CreateUserRequest {
         private String email;
@@ -68,6 +117,9 @@ public class AdminUserController {
         private String department;
         private String position;
         private String baseSalary;
+        private Double workHoursPerDay;
+        private Integer workingDaysPerMonth;
+        private java.time.LocalTime workStartTime;
         private java.time.LocalDate hireDate;
         private String role;
     }

@@ -3,7 +3,7 @@ import { attendanceService } from "../services/attendanceService";
 import ToastContainer from "../components/common/ToastContainer";
 import { useToast } from "../hooks/useToast";
 import {
-  Button, Input, Select, Badge, PageLoader,
+  Button, Input, Select, Badge, AttendancePageSkeleton, AdminAttendanceSkeleton,
   Card, CardHeader, CardTitle, CardContent,
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "../components/ui";
@@ -69,7 +69,7 @@ function useLocalState(key, initial) {
 /* ═══════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════ */
-const AttendancePage = ({ showSidebar = true, standalone = false }) => {
+const AttendancePage = ({ showSidebar = true, standalone = false, admin = false }) => {
   const { toasts, showToast, removeToast } = useToast();
 
   // Data
@@ -116,7 +116,10 @@ const AttendancePage = ({ showSidebar = true, standalone = false }) => {
         setTotalPages(data.totalPages || 0);
       }
     } catch (e) { showToast("Failed to load attendance", "error"); }
-    finally { setLoading(false); }
+    finally {
+      await new Promise((r) => setTimeout(r, 1200));
+      setLoading(false);
+    }
   };
 
   useEffect(() => { loadData(); }, [page]);
@@ -195,7 +198,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false }) => {
   };
 
   // ─── Render ───
-  if (loading && records.length === 0) return <PageLoader />;
+  if (loading) return admin ? <AdminAttendanceSkeleton /> : <AttendancePageSkeleton />;
 
   const wrapperClass = standalone ? "p-6 space-y-6" : "space-y-6";
 
@@ -419,9 +422,13 @@ const AttendancePage = ({ showSidebar = true, standalone = false }) => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="space-y-3 py-8">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-12 w-full rounded-lg loading-shimmer" />
+            <div className="space-y-2 py-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex gap-4 items-center py-2">
+                  {[1, 2, 3, 4, 5].map((j) => (
+                    <div key={j} className="h-3.5 flex-1 rounded sk-shimmer" style={{ animationDelay: `${j * 60}ms` }} />
+                  ))}
+                </div>
               ))}
             </div>
           ) : records.length === 0 ? (

@@ -6,7 +6,9 @@ import {
   Button, Input, Select, Textarea,
   Card, CardHeader, CardTitle, CardContent,
   Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-  LoadingSkeleton, PageLoader, PageTransition,
+  LoadingSkeleton, AdminDashboardSkeleton, AdminTableSkeleton, DeptPositionSkeleton,
+  AdminAttendanceSkeleton, LeaveApprovalsSkeleton, PayrollSkeleton, PerformanceSkeleton,
+  PageTransition, Modal,
 } from "../components/ui";
 import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
 
@@ -242,7 +244,7 @@ export default function AdminDashboard({ user }) {
             {section === "dashboard" && <DashboardView user={user} />}
             {section === "users" && <UserManagementView />}
             {section === "categories" && <CategoryView />}
-            {section === "attendance" && <AttendancePage />}
+            {section === "attendance" && <AttendancePage showSidebar={false} admin />}
             {section === "leaves" && <LeaveApprovalsView />}
             {section === "payroll" && <PayrollView />}
             {section === "performance" && <PerformanceView />}
@@ -317,8 +319,8 @@ function CategoryView() {
   };
 
   const [loading, setLoading] = useState(true);
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 400); return () => clearTimeout(t); }, []);
-  if (loading) return <PageLoader />;
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 1200); return () => clearTimeout(t); }, []);
+  if (loading) return <DeptPositionSkeleton />;
 
   return (
     <div className="space-y-6">
@@ -600,12 +602,13 @@ function DashboardView({ user }) {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     setLoading(true);
+    const minDelay = new Promise((r) => setTimeout(r, 1200));
     adminService.getDashboardStats()
       .then((r) => setStats(r.data))
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { Promise.all([minDelay]).then(() => setLoading(false)); });
   }, []);
-  if (loading) return <PageLoader />;
+  if (loading) return <AdminDashboardSkeleton />;
 
   const maxCardVal = stats
     ? Math.max(stats.totalEmployees, stats.pendingLeaves, stats.totalPayroll / 1000, parseFloat(stats.attendanceRate) / 10)
@@ -847,7 +850,7 @@ function UserManagementView() {
   const [departments] = useLocalState("cat-departments", []);
   const [positions] = useLocalState("cat-positions", []);
 
-  const load = () => { setLoading(true); adminService.getUsers(search).then((r) => { setUsers(r.data.content || r.data); setLoading(false); }).catch(() => setLoading(false)); };
+  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getUsers(search).then((r) => { setUsers(r.data.content || r.data); }).catch(() => {}).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
   useEffect(() => { load(); }, []);
 
   // Filter positions by selected department
@@ -856,7 +859,7 @@ function UserManagementView() {
     : positions;
 
   const resetForm = () => {
-    setForm({ firstName: "", lastName: "", email: "", phone: "", department: "", position: "", baseSalary: "", hireDate: "", role: "ROLE_EMPLOYEE", password: "changeme" });
+    setForm({ firstName: "", lastName: "", email: "", phone: "", department: "", position: "", baseSalary: "", workHoursPerDay: "", workingDaysPerMonth: "", workStartTime: "", hireDate: "", role: "ROLE_EMPLOYEE", password: "changeme" });
     setEditUserId(null);
   };
 
@@ -877,6 +880,9 @@ function UserManagementView() {
       department: u.department || "",
       position: u.position || "",
       baseSalary: u.baseSalary || "",
+      workHoursPerDay: u.workHoursPerDay || "",
+      workingDaysPerMonth: u.workingDaysPerMonth || "",
+      workStartTime: u.workStartTime || "",
       hireDate: u.hireDate || "",
       role: (u.roles || []).some((r) => r.name === "ROLE_HR_ADMIN") ? "ROLE_HR_ADMIN" : "ROLE_EMPLOYEE",
       password: "",
@@ -901,10 +907,13 @@ function UserManagementView() {
     { k: "email", l: "Email", type: "email" },
     { k: "phone", l: "Phone" },
     { k: "baseSalary", l: "Base Salary ($)", type: "number" },
+    { k: "workHoursPerDay", l: "Work Hours/Day", type: "number" },
+    { k: "workingDaysPerMonth", l: "Working Days/Month", type: "number" },
+    { k: "workStartTime", l: "Work Start Time", type: "time" },
     { k: "hireDate", l: "Hire Date", type: "date" },
   ];
 
-  if (loading) return <PageLoader />;
+  if (loading) return <AdminTableSkeleton />;
 
   return (
     <div className="space-y-6">
@@ -944,6 +953,7 @@ function UserManagementView() {
       </div>
 
       {/* Add / Edit Form */}
+      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -1021,15 +1031,19 @@ function UserManagementView() {
           </form>
         </CardContent>
       </Card>
+      </ScrollReveal>
 
       {/* Search */}
-      <div className="flex gap-3">
-        <Input placeholder="Search name, email, dept…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
-        <Button onClick={load} variant="outline"><Icon name="search" size={14} /> Search</Button>
-        <Button onClick={load} variant="secondary"><Icon name="refresh" size={14} /> Refresh</Button>
-      </div>
+      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
+        <div className="flex gap-3">
+          <Input placeholder="Search name, email, dept…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
+          <Button onClick={load} variant="outline"><Icon name="search" size={14} /> Search</Button>
+          <Button onClick={load} variant="secondary"><Icon name="refresh" size={14} /> Refresh</Button>
+        </div>
+      </ScrollReveal>
 
       {/* Table */}
+      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Employees ({users.length})</CardTitle></CardHeader>
         <CardContent>
@@ -1084,6 +1098,7 @@ function UserManagementView() {
           )}
         </CardContent>
       </Card>
+      </ScrollReveal>
     </div>
   );
 }
@@ -1094,12 +1109,12 @@ function UserManagementView() {
 function LeaveApprovalsView() {
   const [leaves, setLeaves] = useLocalState("al-leaves", []);
   const [loading, setLoading] = useState(true);
-  const load = () => { setLoading(true); adminService.getLeaves("PENDING").then((r) => setLeaves(r.data.content || r.data)).catch(() => {}).finally(() => setLoading(false)); };
+  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getLeaves("PENDING").then((r) => setLeaves(r.data.content || r.data)).catch(() => {}).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
   useEffect(() => { load(); }, []);
   const approve = (id) => adminService.approveLeave(id).then(load);
   const reject = (id) => { const r = prompt("Reason:"); if (r) adminService.rejectLeave(id, r).then(load); };
 
-  if (loading) return <PageLoader />;
+  if (loading) return <LeaveApprovalsSkeleton />;
 
   return (
     <div className="space-y-6">
@@ -1109,7 +1124,7 @@ function LeaveApprovalsView() {
           <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
         </div>
       </ScrollReveal>
-      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.05}>
+      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
         <Card>
           <CardHeader className="pb-3"><CardTitle className="text-base">Pending Requests ({leaves.length})</CardTitle></CardHeader>
           <CardContent>
@@ -1147,35 +1162,66 @@ function LeaveApprovalsView() {
 function PayrollView() {
   const [payrolls, setPayrolls] = useLocalState("ap-payrolls", []);
   const [loading, setLoading] = useState(true);
-  const load = () => { setLoading(true); adminService.getPayrolls().then((r) => setPayrolls(r.data.content || r.data)).catch(() => {}).finally(() => setLoading(false)); };
+  const [calcOpen, setCalcOpen] = useState(false);
+  const [calcLoading, setCalcLoading] = useState(false);
+  const [calcPreview, setCalcPreview] = useState(null);
+  const [calcForm, setCalcForm] = useState({
+    userId: "", fullTimeWorkHours: "", taxDeduction: "0", insuranceDeduction: "0", otherDeductions: "0",
+    payPeriodStart: new Date().toISOString().slice(0, 7) + "-01",
+    payPeriodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10),
+  });
+  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getPayrolls().then((r) => setPayrolls(r.data.content || r.data)).catch(() => {}).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
   useEffect(() => { load(); }, []);
   const processRec = (id) => adminService.processPayroll(id).then(load);
   const payRec = (id) => adminService.payPayroll(id).then(load);
   const deleteRec = (id) => { if (confirm("Delete?")) adminService.deletePayroll(id).then(load); };
 
-  const calculate = () => {
-    const uid = prompt("Employee ID:"); if (!uid) return;
-    const base = prompt("Base salary:") || "0"; const extra = prompt("Extra salary:", "0") || "0";
-    const otHours = prompt("OT hours:", "0") || "0"; const otRate = prompt("OT rate:", "25") || "25";
-    const tax = prompt("Tax:", "0") || "0"; const ins = prompt("Insurance:", "0") || "0"; const oth = prompt("Other ded:", "0") || "0";
-    adminService.calculatePayroll({ userId: Number(uid), baseSalary: Number(base), extraSalary: Number(extra), overtimeHours: Number(otHours), overtimeRate: Number(otRate), taxDeduction: Number(tax), insuranceDeduction: Number(ins), otherDeductions: Number(oth) }).then(load);
+  const handleCalculate = async () => {
+    if (!calcForm.userId) { alert("Employee ID is required"); return; }
+    if (!calcForm.fullTimeWorkHours || Number(calcForm.fullTimeWorkHours) <= 0) { alert("Full-time work hours is required"); return; }
+    setCalcLoading(true);
+    setCalcPreview(null);
+    try {
+      const res = await adminService.calculatePayroll({
+        userId: Number(calcForm.userId),
+        fullTimeWorkHours: Number(calcForm.fullTimeWorkHours),
+        taxDeduction: Number(calcForm.taxDeduction) || 0,
+        insuranceDeduction: Number(calcForm.insuranceDeduction) || 0,
+        otherDeductions: Number(calcForm.otherDeductions) || 0,
+        payPeriodStart: calcForm.payPeriodStart,
+        payPeriodEnd: calcForm.payPeriodEnd,
+      });
+      setCalcPreview(res.data);
+      load();
+    } catch (err) {
+      alert("Failed: " + (err?.message || "Unknown error"));
+    } finally {
+      setCalcLoading(false);
+    }
   };
 
-  if (loading) return <PageLoader />;
+  const calcField = (key, label, type = "number") => (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
+      <Input type={type} value={calcForm[key]} onChange={(e) => { setCalcForm({ ...calcForm, [key]: e.target.value }); setCalcPreview(null); }} />
+    </div>
+  );
+
+  if (loading) return <PayrollSkeleton />;
 
   return (
     <div className="space-y-6">
-      <ScrollReveal variant="fadeUp" stagger={0.08}>
+      <ScrollReveal variant="fadeUp" stagger={0.08} delay={0}>
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Payroll System</h2>
           <div className="flex gap-2">
             <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
-            <Button onClick={calculate} size="sm"><Icon name="plus" size={14} /> Calculate</Button>
+            <Button onClick={() => setCalcOpen(true)} size="sm"><Icon name="plus" size={14} /> Calculate</Button>
             <Button onClick={() => adminService.bulkProcess().then(load)} variant="outline" size="sm"><Icon name="clock" size={14} /> Bulk Process</Button>
           </div>
         </div>
       </ScrollReveal>
-      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.05}>
+      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Payroll Records ({payrolls.length})</CardTitle></CardHeader>
         <CardContent>
@@ -1206,6 +1252,86 @@ function PayrollView() {
         </CardContent>
       </Card>
       </ScrollReveal>
+
+      <Modal
+        open={calcOpen}
+        onClose={() => setCalcOpen(false)}
+        title="Calculate Payroll"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setCalcOpen(false)}>Cancel</Button>
+            <Button onClick={handleCalculate} disabled={calcLoading}>
+              {calcLoading ? "Calculating…" : "Calculate"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            {calcField("userId", "Employee ID", "number")}
+            {calcField("fullTimeWorkHours", "Full-Time Work Hours")}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {calcField("payPeriodStart", "Period Start", "date")}
+            {calcField("payPeriodEnd", "Period End", "date")}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {calcField("taxDeduction", "Tax ($)")}
+            {calcField("insuranceDeduction", "Insurance ($)")}
+            {calcField("otherDeductions", "Other Deductions ($)")}
+          </div>
+          {calcPreview && (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-2">
+              <h4 className="font-semibold text-sm">Calculation Result</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="rounded-lg bg-white p-2 border border-gray-100">
+                  <p className="text-[10px] text-muted-foreground">Base Salary</p>
+                  <p className="font-semibold">${calcPreview.baseSalary}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-gray-100">
+                  <p className="text-[10px] text-muted-foreground">Full-Time Hours</p>
+                  <p className="font-semibold">{calcPreview.fullTimeWorkHours}h</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-gray-100">
+                  <p className="text-[10px] text-muted-foreground">Actual Work Hours</p>
+                  <p className="font-semibold">{calcPreview.actualWorkHours}h</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-gray-100">
+                  <p className="text-[10px] text-muted-foreground">Overtime Hours</p>
+                  <p className="font-semibold">{calcPreview.overtimeHours}h</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-gray-100">
+                  <p className="text-[10px] text-muted-foreground">Extra Salary</p>
+                  <p className="font-semibold text-blue-600">${calcPreview.extraSalary}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-gray-100">
+                  <p className="text-[10px] text-muted-foreground">Overtime Pay</p>
+                  <p className="font-semibold text-blue-600">${calcPreview.overtimePay}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-gray-100">
+                  <p className="text-[10px] text-muted-foreground">Late Deduction</p>
+                  <p className="font-semibold text-orange-600">${calcPreview.lateDeduction || 0} <span className="text-[10px] font-normal">({calcPreview.lateMinutes || 0} min late)</span></p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-gray-100">
+                  <p className="text-[10px] text-muted-foreground">Gross Salary</p>
+                  <p className="font-semibold">${calcPreview.grossSalary}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-gray-100">
+                  <p className="text-[10px] text-muted-foreground">Total Deductions</p>
+                  <p className="font-semibold text-red-600">${calcPreview.totalDeductions}</p>
+                </div>
+                <div className="rounded-lg bg-emerald-50 p-2 border border-emerald-200 col-span-2">
+                  <p className="text-[10px] text-emerald-600">Net Salary</p>
+                  <p className="text-lg font-bold text-emerald-700">${calcPreview.netSalary}</p>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Extra = (base ÷ fullTime) × (actual — fullTime) &nbsp;|&nbsp; OT Pay = hourly × OT hours × 1.5
+              </p>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -1216,18 +1342,58 @@ function PayrollView() {
 function PerformanceView() {
   const [reviews, setReviews] = useLocalState("apr-reviews", []);
   const [loading, setLoading] = useState(true);
-  const load = () => { setLoading(true); adminService.getReviews().then((r) => setReviews(r.data.content || r.data)).catch(() => {}).finally(() => setLoading(false)); };
+  const [perfOpen, setPerfOpen] = useState(false);
+  const [perfLoading, setPerfLoading] = useState(false);
+  const [perfResult, setPerfResult] = useState(null);
+  const [perfError, setPerfError] = useState("");
+  const [perfEmployeeId, setPerfEmployeeId] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResult, setBulkResult] = useState(null);
+  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getReviews().then((r) => setReviews(r.data.content || r.data)).catch(() => {}).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
   useEffect(() => { load(); }, []);
   const del = (id) => { if (confirm("Delete review?")) adminService.deleteReview(id).then(load); };
 
-  if (loading) return <PageLoader />;
+  const handleEmployeePerformance = async () => {
+    if (!perfEmployeeId) { setPerfError("Employee ID is required"); return; }
+    setPerfLoading(true);
+    setPerfError("");
+    setPerfResult(null);
+    try {
+      const res = await adminService.getEmployeePerformance(Number(perfEmployeeId));
+      const data = res.data;
+      // API returns Page { content: [...] } or plain array
+      const reviews = Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : data);
+      setPerfResult(reviews);
+    } catch (err) {
+      setPerfError(err?.message || "Failed to fetch performance data");
+    } finally {
+      setPerfLoading(false);
+    }
+  };
+
+  const handleBulkProcess = async () => {
+    setBulkLoading(true);
+    setBulkResult(null);
+    try {
+      const res = await adminService.bulkProcess();
+      setBulkResult({ success: true, message: "Bulk payroll processed successfully", data: res.data });
+      load();
+    } catch (err) {
+      setBulkResult({ success: false, message: err?.response?.data?.message || err?.message || "Bulk process failed" });
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  if (loading) return <PerformanceSkeleton />;
 
   return (
     <div className="space-y-6">
-      <ScrollReveal variant="fadeUp" stagger={0}>
+      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
         <h2 className="text-2xl font-bold">Performance Reviews</h2>
       </ScrollReveal>
-      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.05}>
+      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
       <Card>
         <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Icon name="plus" size={16} className="text-primary" /> Submit Review</CardTitle></CardHeader>
         <CardContent>
@@ -1248,13 +1414,14 @@ function PerformanceView() {
         </CardContent>
       </Card>
       </ScrollReveal>
-      <ScrollReveal variant="fadeUp" stagger={0.08} delay={0.1}>
+      <ScrollReveal variant="fadeUp" stagger={0.08} delay={0.3}>
         <div className="flex gap-2">
           <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
-          <Button onClick={() => { const id = prompt("Employee ID:"); if (id) adminService.getEmployeePerformance(Number(id)).then((r) => alert(JSON.stringify(r.data, null, 2))); }} variant="outline" size="sm"><Icon name="users" size={14} /> Employee Performance</Button>
+          <Button onClick={() => { setPerfOpen(true); setPerfResult(null); setPerfError(""); setPerfEmployeeId(""); }} variant="outline" size="sm"><Icon name="users" size={14} /> Employee Performance</Button>
+          <Button onClick={() => { setBulkOpen(true); setBulkResult(null); }} variant="outline" size="sm"><Icon name="clock" size={14} /> Bulk Process</Button>
         </div>
       </ScrollReveal>
-      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
+      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.45}>
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">All Reviews ({reviews.length})</CardTitle></CardHeader>
         <CardContent>
@@ -1283,6 +1450,112 @@ function PerformanceView() {
         </CardContent>
       </Card>
       </ScrollReveal>
+
+      {/* Employee Performance Modal */}
+      <Modal
+        open={perfOpen}
+        onClose={() => setPerfOpen(false)}
+        title="Employee Performance"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setPerfOpen(false)}>Close</Button>
+            <Button onClick={handleEmployeePerformance} disabled={perfLoading}>
+              {perfLoading ? "Loading…" : "Fetch"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Employee ID</label>
+            <Input type="number" value={perfEmployeeId} onChange={(e) => setPerfEmployeeId(e.target.value)} placeholder="Enter employee ID" />
+          </div>
+          {perfError && (
+            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <Icon name="alert" size={16} />
+              {perfError}
+            </div>
+          )}
+          {perfResult && (
+            <div className="space-y-3">
+              {Array.isArray(perfResult) && perfResult.length > 0 ? (
+                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Period</TableHead>
+                        <TableHead>Quality</TableHead>
+                        <TableHead>Productivity</TableHead>
+                        <TableHead>Teamwork</TableHead>
+                        <TableHead>Overall</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {perfResult.map((r) => (
+                        <TableRow key={r.id}>
+                          <TableCell className="text-xs">{r.reviewPeriodStart} — {r.reviewPeriodEnd}</TableCell>
+                          <TableCell>{r.qualityScore ?? "—"}/5</TableCell>
+                          <TableCell>{r.productivityScore ?? "—"}/5</TableCell>
+                          <TableCell>{r.teamworkScore ?? "—"}/5</TableCell>
+                          <TableCell className="font-bold text-primary">{r.overallScore ?? "—"}/5</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-sm text-muted-foreground">No performance reviews found for this employee.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Bulk Process Modal */}
+      <Modal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        title="Bulk Process Payroll"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setBulkOpen(false)}>Cancel</Button>
+            {!bulkResult && (
+              <Button onClick={handleBulkProcess} disabled={bulkLoading}>
+                {bulkLoading ? "Processing…" : "Confirm"}
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {!bulkResult && !bulkLoading && (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <Icon name="alert" size={18} className="shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Process all draft payrolls?</p>
+                <p className="mt-1 text-amber-700">This will process all pending payroll records in bulk. This action cannot be undone.</p>
+              </div>
+            </div>
+          )}
+          {bulkLoading && (
+            <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+              <Icon name="clock" size={18} className="shrink-0 animate-spin" />
+              <p className="font-medium">Processing bulk payroll… Please wait.</p>
+            </div>
+          )}
+          {bulkResult && (
+            <div className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm ${bulkResult.success ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-800"}`}>
+              <Icon name={bulkResult.success ? "check" : "alert"} size={18} className="shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">{bulkResult.success ? "Success" : "Failed"}</p>
+                <p className="mt-1">{bulkResult.message}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -8,7 +8,7 @@ import {
   Button, Input, Select, Textarea,
   Card, CardHeader, CardTitle, CardContent,
   Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-  LoadingSkeleton, LoadingSpinner, PageLoader, PageTransition,
+  LoadingSkeleton, LoadingSpinner, EmployeeDashboardSkeleton, PageTransition,
 } from "../components/ui";
 import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
 
@@ -72,6 +72,7 @@ const EmployeeDashboard = ({ user }) => {
     } catch (err) {
       showToast("Failed to load data", "error");
     } finally {
+      await new Promise((r) => setTimeout(r, 1200));
       setLoading(false);
     }
   }, [showToast]);
@@ -117,8 +118,6 @@ const EmployeeDashboard = ({ user }) => {
   const isClockedIn = todayRecord?.clockInTime && !todayRecord?.clockOutTime;
   const isDoneToday = todayRecord?.clockInTime && todayRecord?.clockOutTime;
 
-  if (loading) return <PageLoader />;
-
   return (
     <div className="min-h-screen" style={{ background: "#efe6dd" }}>
 
@@ -159,6 +158,9 @@ const EmployeeDashboard = ({ user }) => {
       </header>
 
       <div className="flex flex-col p-6 pb-24 min-h-[calc(100vh-8rem)]" style={{ background: "transparent" }}>
+        {loading ? (
+          <EmployeeDashboardSkeleton />
+        ) : (
         <PageTransition variant="fadeUp" keyProp={tab}>
         {/* ── DASHBOARD TAB ── */}
         {tab === "dashboard" && (
@@ -489,6 +491,7 @@ const EmployeeDashboard = ({ user }) => {
           </ScrollReveal>
         )}
         </PageTransition>
+        )}
       </div>
 
       {/* ─── MOBILE BOTTOM NAV ─── */}

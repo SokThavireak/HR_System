@@ -18,9 +18,9 @@ public class AdminPayrollController {
     @PostMapping("/calculate")
     public Payroll calculate(@RequestBody PayrollCalcRequest req) {
         return payrollService.calculateAndCreate(
-            req.getUserId(), req.getExtraSalary(), req.getOvertimeHours(),
-            req.getOvertimeRate(), req.getTaxDeduction(), req.getInsuranceDeduction(),
-            req.getOtherDeductions());
+            req.getUserId(), req.getFullTimeWorkHours(),
+            req.getTaxDeduction(), req.getInsuranceDeduction(),
+            req.getOtherDeductions(), req.getPayPeriodStart(), req.getPayPeriodEnd());
     }
 
     @GetMapping
@@ -34,14 +34,23 @@ public class AdminPayrollController {
     @PutMapping("/{id}/pay")
     public Payroll pay(@PathVariable Long id) { return payrollService.markPaid(id); }
 
+    @GetMapping("/{id}")
+    public Payroll getById(@PathVariable Long id) { return payrollService.getById(id); }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { payrollService.delete(id); }
+
+    @PostMapping("/bulk-process")
+    public void bulkProcess() { payrollService.bulkProcess(); }
+
     @lombok.Data
     public static class PayrollCalcRequest {
         private Long userId;
-        private BigDecimal extraSalary;
-        private Double overtimeHours;
-        private BigDecimal overtimeRate;
+        private Double fullTimeWorkHours;
         private BigDecimal taxDeduction;
         private BigDecimal insuranceDeduction;
         private BigDecimal otherDeductions;
+        private java.time.LocalDate payPeriodStart;
+        private java.time.LocalDate payPeriodEnd;
     }
 }

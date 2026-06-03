@@ -37,6 +37,8 @@ export const adminService = {
     api.get('/admin/payroll', { params: { page, size, userId, status } }),
   getPayroll: (id) => api.get(`/admin/payroll/${id}`),
   calculatePayroll: (data) => api.post('/admin/payroll/calculate', data),
+  getAttendanceSummary: (userId, start, end) =>
+    api.get('/admin/attendance/summary', { params: { userId, start, end } }),
   createPayroll: (data) => api.post('/admin/payroll', data),
   updatePayroll: (id, data) => api.put(`/admin/payroll/${id}`, data),
   processPayroll: (id) => api.put(`/admin/payroll/${id}/process`),
@@ -54,7 +56,7 @@ export const adminService = {
   updateReview: (id, data) => api.put(`/admin/performance/${id}`, data),
   deleteReview: (id) => api.delete(`/admin/performance/${id}`),
   getEmployeePerformance: (employeeId) =>
-    api.get(`/admin/performance/employee/${employeeId}`),
+    api.get('/admin/performance', { params: { employeeId } }),
 
   /* =================================================================
      DASHBOARD STATS

@@ -636,7 +636,7 @@
   50%      { box-shadow: 0 0 16px 2px hsla(var(--primary), 0.15); }
 }
 
-/* ── Loader Overlay (Bulletproof Classic Centering) ── */
+/* ── Login Loader Overlay ── */
 .loader-container {
   position: fixed !important;
   inset: 0 !important;
@@ -644,8 +644,21 @@
   height: 100vh !important;
   background-color: rgba(239, 230, 221, 0.85) !important;
   z-index: 999999 !important;
-  display: block !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+/* ── Page Loader Overlay ── */
+.page-loader-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(239, 230, 221, 0.85) !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
 }
 

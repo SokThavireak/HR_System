@@ -12,5 +12,12 @@ export { ShaderAnimation } from "./shader-animation";
 export { LoadingSkeleton, LoadingSpinner, LoadingOverlay } from "./loading-skeleton";
 export { LordIcon, StatusIcon } from "./lordicon";
 export { StaggeredReveal, ScrollReveal, StaggerItem } from "./staggered-reveal";
-export { LoginLoader, PageLoader } from "./loader";
+export {
+  LoginLoader, PageLoader,
+  EmployeeDashboardSkeleton, AttendancePageSkeleton,
+  AdminDashboardSkeleton, AdminTableSkeleton, DeptPositionSkeleton,
+  AdminAttendanceSkeleton, LeaveApprovalsSkeleton,
+  PayrollSkeleton, PerformanceSkeleton,
+} from "./loader";
 export { PageTransition } from "./page-transition";
+export { Modal } from "./modal";

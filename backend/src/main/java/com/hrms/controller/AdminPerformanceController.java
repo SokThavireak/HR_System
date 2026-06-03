@@ -7,6 +7,7 @@ import com.hrms.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +21,12 @@ public class AdminPerformanceController {
     private final UserRepository userRepo;
 
     @GetMapping
-    public Page<PerformanceReview> getReviews(@RequestParam(defaultValue = "0") int page) {
+    public Page<PerformanceReview> getReviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) Long employeeId) {
+        if (employeeId != null) {
+            return repo.findByEmployeeIdOrderByCreatedAtDesc(employeeId, PageRequest.of(page, 20));
+        }
         return repo.findAllByOrderByCreatedAtDesc(PageRequest.of(page, 20));
     }
 
@@ -47,6 +53,9 @@ public class AdminPerformanceController {
             .build();
         return repo.save(r);
     }
+
+    @GetMapping("/{id}")
+    public PerformanceReview getById(@PathVariable Long id) { return repo.findById(id).orElseThrow(); }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) { repo.deleteById(id); }

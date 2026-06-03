@@ -32,6 +32,9 @@ public class User {
     private String department;
     private String position;
     private BigDecimal baseSalary;
+    private Double workHoursPerDay;
+    private Integer workingDaysPerMonth;
+    private java.time.LocalTime workStartTime;
     private LocalDate hireDate;
 
     @Column(nullable = false)

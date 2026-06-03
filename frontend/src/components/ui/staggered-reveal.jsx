@@ -1,5 +1,5 @@
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useRef, useState } from "react";
+import { motion, useInView } from "framer-motion";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -113,13 +113,26 @@ export function StaggeredReveal({
 }
 
 /**
- * StaggerItem — individual animated item for use inside StaggeredReveal.
+ * StaggerItem — individual animated item that triggers when scrolled into view.
  * Use when you need mixed content (some animated, some not) inside a stagger container.
  */
-export function StaggerItem({ children, className = "" }) {
+export function StaggerItem({ children, className = "", amount = 0.25 }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount, margin: "-10% 0px -10% 0px" });
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  useEffect(() => {
+    if (isInView && !hasAnimated) {
+      setHasAnimated(true);
+    }
+  }, [isInView, hasAnimated]);
+
   return (
     <motion.div
+      ref={ref}
       variants={itemVariants}
+      initial="hidden"
+      animate={hasAnimated ? "visible" : "hidden"}
       className={className}
       style={{ willChange: "transform, opacity" }}
     >
@@ -131,6 +144,14 @@ export function StaggerItem({ children, className = "" }) {
 /**
  * ScrollReveal — triggers animation when element scrolls into view.
  * Uses framer-motion's whileInView for scroll-triggered staggered entrance.
+ *
+ * Props:
+ *   variant    — "fadeUp" (default) | "slideLeft" | "scale" | "item"
+ *   stagger    — delay between each child (seconds, default 0.1)
+ *   delay      — initial delay before first child (seconds, default 0)
+ *   className  — optional wrapper class
+ *   amount     — fraction of element that must be visible to trigger (0-1, default 0.15)
+ *   rootMargin — viewport margin shorthand, "-20% 0px -20% 0px" shrinks trigger zone
  */
 export function ScrollReveal({
   children,
@@ -138,7 +159,8 @@ export function ScrollReveal({
   stagger = 0.1,
   delay = 0,
   className = "",
-  amount = 0.2,
+  amount = 0.25,
+  rootMargin = "-10% 0px -10% 0px",
 }) {
   const variantsMap = {
     fadeUp: fadeUpVariants,
@@ -148,17 +170,28 @@ export function ScrollReveal({
   };
 
   const v = variantsMap[variant] || fadeUpVariants;
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount, margin: rootMargin });
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  useEffect(() => {
+    if (isInView && !hasAnimated) {
+      setHasAnimated(true);
+    }
+  }, [isInView, hasAnimated]);
+
+  const animateState = hasAnimated ? "visible" : "hidden";
 
   return (
     <motion.div
+      ref={ref}
       className={className}
       variants={{
         hidden: { opacity: 0 },
         visible: { opacity: 1, transition: { staggerChildren: stagger, delayChildren: delay } },
       }}
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount }}
+      animate={animateState}
     >
       {React.Children.map(children, (child) => {
         if (!React.isValidElement(child)) return child;

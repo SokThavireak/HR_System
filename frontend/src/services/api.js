@@ -22,7 +22,16 @@ api.interceptors.response.use(
       localStorage.removeItem('hrms_token');
       window.location.reload();
     }
-    return Promise.reject(err.response?.data || err);
+    // Wrap response data in an Error so .message always works
+    const data = err.response?.data;
+    if (data && typeof data === "object") {
+      const msg = data.message || data.error || JSON.stringify(data);
+      const wrap = new Error(msg);
+      wrap.status = err.response?.status;
+      wrap.data = data;
+      return Promise.reject(wrap);
+    }
+    return Promise.reject(data ? new Error(String(data)) : err);
   }
 );
 

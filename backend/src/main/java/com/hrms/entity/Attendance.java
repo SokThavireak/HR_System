@@ -30,6 +30,7 @@ public class Attendance {
 
     private Double hoursWorked;
     private Double overtimeHours;
+    private Integer lateMinutes;
     private String clockInNote;
     private String clockOutNote;
 
