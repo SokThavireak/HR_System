@@ -358,19 +358,32 @@ function CategoryView() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl bg-gray-100 p-1">
+      <div className="relative flex gap-1 rounded-xl bg-gray-100 p-1">
+        {/* Sliding active indicator pill — mirrors sidebar nav animation */}
+        <div
+          className="absolute rounded-lg pointer-events-none"
+          style={{
+            width: "calc(50% - 4px)",
+            height: "calc(100% - 8px)",
+            top: "4px",
+            left: activeTab === "departments" ? "4px" : "calc(50% + 4px)",
+            background: "#9a0002",
+            boxShadow: "0 4px 16px rgba(154,0,2,0.25), inset 0 1px 0 rgba(255,255,255,0.15)",
+            transition: "left 0.55s cubic-bezier(0.34, 1.56, 0.64, 1)",
+          }}
+        />
         <button
           onClick={() => setActiveTab("departments")}
-          className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
-            activeTab === "departments" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+          className={`relative z-10 flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-300 cursor-pointer ${
+            activeTab === "departments" ? "text-white" : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <Icon name="folder" size={14} className="mr-1.5 inline-block" /> Departments
         </button>
         <button
           onClick={() => setActiveTab("positions")}
-          className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
-            activeTab === "positions" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+          className={`relative z-10 flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-300 cursor-pointer ${
+            activeTab === "positions" ? "text-white" : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <Icon name="briefcase" size={14} className="mr-1.5 inline-block" /> Positions
@@ -379,8 +392,8 @@ function CategoryView() {
 
       {/* ═══ DEPARTMENTS TAB ═══ */}
       {activeTab === "departments" && (
-        <div className="space-y-6">
-          <Card>
+        <div className="space-y-6 tab-card-stagger animate-tab-slide-left" key="dept-tab">
+          <Card className="card-stagger-item">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Icon name="plus" size={16} className="text-primary" />
@@ -409,7 +422,7 @@ function CategoryView() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="card-stagger-item">
             <CardHeader className="pb-3"><CardTitle className="text-base">All Departments ({departments.length})</CardTitle></CardHeader>
             <CardContent>
               {!departments.length ? (
@@ -446,8 +459,8 @@ function CategoryView() {
 
       {/* ═══ POSITIONS TAB ═══ */}
       {activeTab === "positions" && (
-        <div className="space-y-6">
-          <Card>
+        <div className="space-y-6 tab-card-stagger animate-tab-slide-right" key="pos-tab">
+          <Card className="card-stagger-item">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Icon name="plus" size={16} className="text-primary" />
@@ -483,7 +496,7 @@ function CategoryView() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="card-stagger-item">
             <CardHeader className="pb-3"><CardTitle className="text-base">All Positions ({positions.length})</CardTitle></CardHeader>
             <CardContent>
               {!positions.length ? (
@@ -500,7 +513,10 @@ function CategoryView() {
                   </TableHeader>
                   <TableBody>
                     {positions.map((pos) => (
-                      <TableRow key={pos.id}>
+                      <TableRow
+                        key={pos.id}
+                        style={editPosId === pos.id ? { animation: "posRowFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards", background: "hsla(358, 100%, 30%, 0.07)" } : undefined}
+                      >
                         <TableCell className="font-medium">{pos.title}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{pos.department}</Badge>
@@ -1350,6 +1366,8 @@ function PerformanceView() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
+  const [empIds, setEmpIds] = useState([{ id: 1, value: "" }]);
+  const nextIdRef = useRef(2);
   const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getReviews().then((r) => setReviews(r.data.content || r.data)).catch(() => {}).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
   useEffect(() => { load(); }, []);
   const del = (id) => { if (confirm("Delete review?")) adminService.deleteReview(id).then(load); };
@@ -1397,10 +1415,33 @@ function PerformanceView() {
       <Card>
         <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Icon name="plus" size={16} className="text-primary" /> Submit Review</CardTitle></CardHeader>
         <CardContent>
-          <form onSubmit={(e) => { e.preventDefault(); const f = e.target; adminService.createReview({ employeeId: Number(f.employeeId.value), reviewPeriodStart: f.periodStart.value, reviewPeriodEnd: f.periodEnd.value, qualityScore: Number(f.quality.value), productivityScore: Number(f.productivity.value), communicationScore: Number(f.communication.value), teamworkScore: Number(f.teamwork.value), punctualityScore: Number(f.punctuality.value), feedback: f.feedback.value, goals: f.goals.value }).then(() => { f.reset(); load(); }); }}>
+          <form onSubmit={(e) => { e.preventDefault(); const f = e.target; const ids = empIds.map((e) => Number(e.value)).filter(Boolean); const reviewData = { reviewPeriodStart: f.periodStart.value, reviewPeriodEnd: f.periodEnd.value, qualityScore: Number(f.quality.value), productivityScore: Number(f.productivity.value), communicationScore: Number(f.communication.value), teamworkScore: Number(f.teamwork.value), punctualityScore: Number(f.punctuality.value), feedback: f.feedback.value, goals: f.goals.value }; const promises = ids.map((id) => adminService.createReview({ employeeId: id, ...reviewData })); Promise.all(promises).then(() => { setEmpIds([{ id: 1, value: "" }]); nextIdRef.current = 2; f.reset(); load(); }); }}>
+            <div className="rounded-xl border border-primary/10 bg-primary/[0.03] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Icon name="users" size={14} /> Employee(s)</p>
+                {empIds.length < 5 && (
+                  <button type="button" onClick={() => { setEmpIds([...empIds, { id: nextIdRef.current, value: "" }]); nextIdRef.current += 1; }} className="flex h-7 items-center gap-1 rounded-lg bg-primary px-2.5 text-[11px] font-semibold text-white hover:bg-primary/90 transition-colors cursor-pointer">
+                    <Icon name="plus" size={12} /> Add
+                  </button>
+                )}
+              </div>
+              <div className="space-y-2">
+                {empIds.map((emp, idx) => (
+                  <div key={emp.id} className="flex items-center gap-2">
+                    <span className="w-5 text-center text-[10px] font-bold text-muted-foreground">{idx + 1}</span>
+                    <Input type="number" min={1} value={emp.value} onChange={(e) => { const updated = [...empIds]; updated[idx].value = e.target.value; setEmpIds(updated); }} placeholder={`Employee ID ${idx + 1}`} required={idx === 0} className="flex-1" />
+                    {empIds.length > 1 && (
+                      <button type="button" onClick={() => setEmpIds(empIds.filter((e) => e.id !== emp.id))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer">
+                        <Icon name="x" size={14} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                { n: "employeeId", l: "Employee ID", type: "number" }, { n: "periodStart", l: "Period Start", type: "date" }, { n: "periodEnd", l: "Period End", type: "date" },
+                { n: "periodStart", l: "Period Start", type: "date" }, { n: "periodEnd", l: "Period End", type: "date" },
                 { n: "quality", l: "Quality (1-5)", type: "number" }, { n: "productivity", l: "Productivity (1-5)", type: "number" }, { n: "communication", l: "Communication (1-5)", type: "number" },
                 { n: "teamwork", l: "Teamwork (1-5)", type: "number" }, { n: "punctuality", l: "Punctuality (1-5)", type: "number" },
               ].map(({ n, l, type = "text" }) => (

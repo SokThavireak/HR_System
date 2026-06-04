@@ -4,10 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 /* ─── Preset variant definitions ─── */
 const variants = {
   fadeUp: {
-    initial: { opacity: 0, y: 24 },
+    initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -16 },
-    transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
+    exit: { opacity: 0, y: -12, transition: { duration: 0.2 } },
+    transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
   },
   fadeIn: {
     initial: { opacity: 0 },

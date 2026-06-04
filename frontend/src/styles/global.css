@@ -636,6 +636,48 @@
   50%      { box-shadow: 0 0 16px 2px hsla(var(--primary), 0.15); }
 }
 
+/* ── Tab content: soft fade-in + gentle rise ── */
+@keyframes tabFadeIn {
+  0%   { opacity: 0; transform: translateY(14px); filter: blur(3px); }
+  50%  { opacity: 0.6; filter: blur(1px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.animate-tab-slide-left  { animation: tabFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-tab-slide-right { animation: tabFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* ── Staggered card cascade inside tabs ── */
+@keyframes cardStaggerIn {
+  0%   { opacity: 0; transform: translateY(18px) scale(0.98); filter: blur(4px); }
+  60%  { opacity: 0.8; filter: blur(0.5px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.tab-card-stagger > .card-stagger-item:nth-child(1) { animation: cardStaggerIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both; }
+.tab-card-stagger > .card-stagger-item:nth-child(2) { animation: cardStaggerIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both; }
+.tab-card-stagger > .card-stagger-item:nth-child(3) { animation: cardStaggerIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both; }
+.tab-card-stagger > .card-stagger-item:nth-child(4) { animation: cardStaggerIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both; }
+
+/* ── Table row gentle fade-in ── */
+@keyframes rowFadeIn {
+  0%   { opacity: 0; transform: translateX(-8px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.tab-card-stagger table tbody tr:nth-child(1)  { animation: rowFadeIn 0.3s ease 0.12s both; }
+.tab-card-stagger table tbody tr:nth-child(2)  { animation: rowFadeIn 0.3s ease 0.18s both; }
+.tab-card-stagger table tbody tr:nth-child(3)  { animation: rowFadeIn 0.3s ease 0.24s both; }
+.tab-card-stagger table tbody tr:nth-child(4)  { animation: rowFadeIn 0.3s ease 0.30s both; }
+.tab-card-stagger table tbody tr:nth-child(5)  { animation: rowFadeIn 0.3s ease 0.36s both; }
+.tab-card-stagger table tbody tr:nth-child(6)  { animation: rowFadeIn 0.3s ease 0.42s both; }
+.tab-card-stagger table tbody tr:nth-child(7)  { animation: rowFadeIn 0.3s ease 0.48s both; }
+.tab-card-stagger table tbody tr:nth-child(8)  { animation: rowFadeIn 0.3s ease 0.54s both; }
+.tab-card-stagger table tbody tr:nth-child(9)  { animation: rowFadeIn 0.3s ease 0.60s both; }
+.tab-card-stagger table tbody tr:nth-child(10) { animation: rowFadeIn 0.3s ease 0.66s both; }
+
+/* ── Active position row fade-in ── */
+@keyframes posRowFadeIn {
+  from { opacity: 0; background-color: hsla(var(--primary), 0); }
+  to   { opacity: 1; background-color: hsla(var(--primary), 0.06); }
+}
+
 /* ── Login Loader Overlay ── */
 .loader-container {
   position: fixed !important;
