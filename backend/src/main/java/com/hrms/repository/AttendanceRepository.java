@@ -1,6 +1,7 @@
 package com.hrms.repository;
 
 import com.hrms.entity.Attendance;
+import com.hrms.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,8 +14,10 @@ import java.util.Optional;
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     Optional<Attendance> findByUserIdAndDate(Long userId, LocalDate date);
     List<Attendance> findByUserIdAndDateBetweenOrderByDateDesc(Long userId, LocalDate from, LocalDate to);
+    Page<Attendance> findByUserIdAndDateBetweenOrderByDateDesc(Long userId, LocalDate from, LocalDate to, Pageable pageable);
 
     Page<Attendance> findByDateBetween(LocalDate from, LocalDate to, Pageable pageable);
+    Page<Attendance> findByUserOrderByDateDesc(User user, Pageable pageable);
 
     @Query("SELECT COALESCE(SUM(a.overtimeHours), 0) FROM Attendance a WHERE a.user.id = :userId AND a.date BETWEEN :from AND :to")
     Double sumOvertimeByUserAndPeriod(@Param("userId") Long userId, @Param("from") LocalDate from, @Param("to") LocalDate to);

@@ -1,5 +1,6 @@
 package com.hrms.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -15,6 +16,7 @@ public class LeaveRequest {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "roles"})
     private User user;
 
     @Enumerated(EnumType.STRING)
@@ -40,6 +42,7 @@ public class LeaveRequest {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approved_by")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "roles"})
     private User approvedBy;
 
     private LocalDateTime approvedAt;
@@ -50,7 +53,7 @@ public class LeaveRequest {
     private LocalDateTime updatedAt;
 
     public enum LeaveType { ANNUAL, SICK, MATERNITY, PATERNITY, UNPAID, EMERGENCY }
-    public enum LeaveStatus { PENDING, APPROVED, REJECTED }
+    public enum LeaveStatus { PENDING, APPROVED, REJECTED, CANCELLED }
 
     @PrePersist
     protected void onCreate() { createdAt = LocalDateTime.now(); updatedAt = LocalDateTime.now(); }

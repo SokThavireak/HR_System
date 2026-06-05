@@ -62,4 +62,27 @@ export const adminService = {
      DASHBOARD STATS
      ================================================================= */
   getDashboardStats: () => api.get('/admin/dashboard/stats'),
+
+  /* =================================================================
+	   DEPARTMENTS  —  list · get · create · update · delete
+	   ================================================================= */
+  getDepartments: (search, page = 0, size = 50) =>
+    api.get('/admin/departments', { params: { search, page, size } }),
+  getDepartmentList: () => api.get('/admin/departments/list'),
+  getDepartment: (id) => api.get(`/admin/departments/${id}`),
+  createDepartment: (data) => api.post('/admin/departments', data),
+  updateDepartment: (id, data) => api.put(`/admin/departments/${id}`, data),
+  deleteDepartment: (id) => api.delete(`/admin/departments/${id}`),
+
+  /* =================================================================
+	   POSITIONS  —  list · get · create · update · delete
+	   ================================================================= */
+  getPositions: (departmentId, page = 0, size = 50) =>
+    api.get('/admin/positions', { params: { departmentId, page, size } }),
+  getPositionList: (departmentId) =>
+    api.get('/admin/positions/list', { params: { departmentId } }),
+  getPosition: (id) => api.get(`/admin/positions/${id}`),
+  createPosition: (data) => api.post('/admin/positions', data),
+  updatePosition: (id, data) => api.put(`/admin/positions/${id}`, data),
+  deletePosition: (id) => api.delete(`/admin/positions/${id}`),
 };

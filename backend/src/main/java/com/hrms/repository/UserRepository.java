@@ -4,6 +4,8 @@ import com.hrms.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -12,4 +14,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByActiveTrue();
     Page<User> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrEmailContainingIgnoreCase(
         String first, String last, String email, Pageable pageable);
+
+    @Query("SELECT u.department as department, COUNT(u) as count FROM User u WHERE u.active = true AND u.department IS NOT NULL GROUP BY u.department ORDER BY count DESC")
+    List<DeptCount> countByDepartment();
+
+    interface DeptCount {
+        String getDepartment();
+        Long getCount();
+    }
 }

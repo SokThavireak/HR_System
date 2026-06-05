@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { attendanceService } from "../services/attendanceService";
 import ToastContainer from "../components/common/ToastContainer";
 import { useToast } from "../hooks/useToast";
+import { SEED_ATTENDANCE } from "../data/seedData";
 import {
   Button, Input, Select, Badge, AttendancePageSkeleton, AdminAttendanceSkeleton,
   Card, CardHeader, CardTitle, CardContent,
@@ -56,10 +57,20 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-/* ─── localStorage-backed useState ─── */
-function useLocalState(key, initial) {
+/* ─── localStorage-backed useState with seed support ─── */
+function useLocalState(key, initial, seed) {
   const [v, setV] = useState(() => {
-    try { const raw = localStorage.getItem(key); if (raw) return JSON.parse(raw); } catch (e) {}
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    if (seed && Array.isArray(seed) && seed.length > 0) {
+      try { localStorage.setItem(key, JSON.stringify(seed)); } catch (e) {}
+      return seed;
+    }
     return initial;
   });
   useEffect(() => { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }, [key, v]);
@@ -97,9 +108,23 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
   const [editRecord, setEditRecord] = useState(null);
 
   // Department data (from AdminDashboard shared state)
-  const [departments] = useLocalState("cat-departments", []);
-  const [positions] = useLocalState("cat-positions", []);
+  const [departments] = useLocalState("cat-departments", [], SEED_DEPARTMENTS);
+  const [positions] = useLocalState("cat-positions", [], SEED_POSITIONS);
   const [filterDept, setFilterDept] = useState("");
+
+  // ─── Seed attendance into localStorage on first load ───
+  const [attendanceSeed] = useState(() => {
+    try {
+      const raw = localStorage.getItem("am-attendance");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return null; // already seeded
+      }
+    } catch (e) {}
+    // Seed localStorage with sample attendance
+    try { localStorage.setItem("am-attendance", JSON.stringify(SEED_ATTENDANCE)); } catch (e) {}
+    return SEED_ATTENDANCE;
+  });
 
   // ─── Data Loading ───
   const loadData = async () => {
@@ -112,12 +137,31 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
       if (sRes.status === "fulfilled") setSummary(sRes.value.data);
       if (rRes.status === "fulfilled") {
         const data = rRes.value.data;
-        setRecords(data.content || data || []);
-        setTotalPages(data.totalPages || 0);
+        const recs = data.content || data || [];
+        if (recs.length > 0) {
+          setRecords(recs);
+          setTotalPages(data.totalPages || 0);
+        } else if (attendanceSeed) {
+          // API returned empty — use seed data
+          const filtered = attendanceSeed.filter((a) => {
+            const d = a.date || a.attendanceDate;
+            return d >= from && d <= to && (!filterUserId || String(a.user?.id) === String(filterUserId));
+          });
+          setRecords(filtered);
+          setTotalPages(Math.ceil(filtered.length / 20));
+        }
+      } else if (attendanceSeed) {
+        // API call failed — use seed data
+        const filtered = attendanceSeed.filter((a) => {
+          const d = a.date || a.attendanceDate;
+          return d >= from && d <= to && (!filterUserId || String(a.user?.id) === String(filterUserId));
+        });
+        setRecords(filtered);
+        setTotalPages(Math.ceil(filtered.length / 20));
       }
-    } catch (e) { showToast("Failed to load attendance", "error"); }
+    } catch (e) { console.error("[AttendancePage] loadData error:", e); showToast("Failed to load attendance", "error"); }
     finally {
-      await new Promise((r) => setTimeout(r, 1200));
+      await new Promise((r) => setTimeout(r, 600));
       setLoading(false);
     }
   };
@@ -125,10 +169,10 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
   useEffect(() => { loadData(); }, [page]);
 
   // ─── Computed Stats ───
-  const presentCount = useMemo(() => summary?.presentCount ?? records.filter((r) => r.status === "PRESENT").length, [summary, records]);
-  const lateCount    = useMemo(() => summary?.lateCount    ?? records.filter((r) => r.status === "LATE").length, [summary, records]);
-  const absentCount  = useMemo(() => summary?.absentCount  ?? records.filter((r) => r.status === "ABSENT").length, [summary, records]);
-  const totalHours   = useMemo(() => summary?.totalWorkedHours ?? records.reduce((sum, r) => sum + (r.workedHours || 0), 0), [summary, records]);
+  const presentCount = useMemo(() => summary?.presentDays ?? records.filter((r) => r.status === "PRESENT").length, [summary, records]);
+  const lateCount    = useMemo(() => summary?.lateDays    ?? records.filter((r) => r.status === "LATE").length, [summary, records]);
+  const absentCount  = useMemo(() => records.filter((r) => r.status === "ABSENT").length, [records]);
+  const totalHours   = useMemo(() => summary?.totalHoursWorked ?? records.reduce((sum, r) => sum + (r.hoursWorked || r.workedHours || 0), 0), [summary, records]);
 
   const stats = [
     { k: "Present",     v: presentCount,           bg: "#10b981", icon: "check" },
@@ -463,17 +507,17 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
                       </TableCell>
                       <TableCell className="font-medium">{r.date || r.attendanceDate}</TableCell>
                       <TableCell className="font-medium" style={{ color: "#10b981" }}>
-                        {r.clockIn
-                          ? new Date(r.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                        {(r.clockInTime || r.clockIn)
+                          ? new Date(r.clockInTime || r.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
                           : "—"}
                       </TableCell>
                       <TableCell className="font-medium" style={{ color: "#ef4444" }}>
-                        {r.clockOut
-                          ? new Date(r.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                        {(r.clockOutTime || r.clockOut)
+                          ? new Date(r.clockOutTime || r.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
                           : "—"}
                       </TableCell>
                       <TableCell className="font-semibold">
-                        {r.workedHours != null ? r.workedHours : "—"}
+                        {(r.hoursWorked != null ? r.hoursWorked : r.workedHours) != null ? (r.hoursWorked ?? r.workedHours) : "—"}
                       </TableCell>
                       <TableCell><StatusBadge status={r.status} /></TableCell>
                       <TableCell>

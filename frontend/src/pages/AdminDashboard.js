@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { adminService } from "../services/adminService";
 import AttendancePage from "./AttendancePage";
 import { ShaderAnimation } from "../components/ui/shader-animation";
+import { SEED_DEPARTMENTS, SEED_POSITIONS, SEED_USERS } from "../data/seedData";
 import {
   Button, Input, Select, Textarea,
   Card, CardHeader, CardTitle, CardContent,
@@ -48,10 +49,21 @@ const Icon = ({ name, size = 18 }) => {
   return icons[name] || null;
 };
 
-/* ─── localStorage-backed useState ─── */
-function useLocalState(key, initial) {
+/* ─── localStorage-backed useState with seed support ─── */
+function useLocalState(key, initial, seed) {
   const [v, setV] = React.useState(() => {
-    try { const raw = localStorage.getItem(key); if (raw) return JSON.parse(raw); } catch (e) {}
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    // If empty/missing and seed provided, seed localStorage
+    if (seed && Array.isArray(seed) && seed.length > 0) {
+      try { localStorage.setItem(key, JSON.stringify(seed)); } catch (e) {}
+      return seed;
+    }
     return initial;
   });
   React.useEffect(() => { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }, [key, v]);
@@ -259,35 +271,53 @@ export default function AdminDashboard({ user }) {
    DEPARTMENT & POSITION MANAGEMENT
    ═══════════════════════════════════════════ */
 function CategoryView() {
-  const [departments, setDepartments] = useLocalState("cat-departments", []);
-  const [positions, setPositions] = useLocalState("cat-positions", []);
+  const [departments, setDepartments] = useLocalState("cat-departments", [], SEED_DEPARTMENTS);
+  const [positions, setPositions] = useLocalState("cat-positions", [], SEED_POSITIONS);
   const [activeTab, setActiveTab] = useState("departments");
+  const [loading, setLoading] = useState(true);
 
   // Department form
   const [deptForm, setDeptForm] = useState({ name: "", description: "" });
   const [editDeptId, setEditDeptId] = useState(null);
 
   // Position form
-  const [posForm, setPosForm] = useState({ title: "", description: "", department: "" });
+  const [posForm, setPosForm] = useState({ title: "", description: "", departmentId: "" });
   const [editPosId, setEditPosId] = useState(null);
 
+  // Load from API on mount (falls back to seed data if API fails)
+  useEffect(() => {
+    setLoading(true);
+    const minDelay = new Promise((r) => setTimeout(r, 800));
+    Promise.allSettled([
+      adminService.getDepartmentList().then((r) => { if (r.data?.length) setDepartments(r.data); }),
+      adminService.getPositionList().then((r) => { if (r.data?.length) setPositions(r.data); }),
+    ]).catch((e) => console.error("[CategoryView] API load failed:", e))
+     .finally(() => { Promise.all([minDelay]).then(() => setLoading(false)); });
+  }, []);
+
   // Department CRUD
-  const saveDept = (e) => {
+  const saveDept = async (e) => {
     e.preventDefault();
-    if (editDeptId !== null) {
-      setDepartments(departments.map((d) => (d.id === editDeptId ? { ...d, ...deptForm } : d)));
-      setEditDeptId(null);
-    } else {
-      setDepartments([...departments, { id: Date.now(), ...deptForm }]);
-    }
-    setDeptForm({ name: "", description: "" });
+    try {
+      if (editDeptId !== null) {
+        await adminService.updateDepartment(editDeptId, deptForm);
+        setDepartments(departments.map((d) => (d.id === editDeptId ? { ...d, ...deptForm } : d)));
+        setEditDeptId(null);
+      } else {
+        const res = await adminService.createDepartment(deptForm);
+        setDepartments([...departments, res.data]);
+      }
+      setDeptForm({ name: "", description: "" });
+    } catch (err) { alert("Failed: " + (err.message || "Unknown error")); }
   };
 
-  const deleteDept = (id) => {
-    if (confirm("Delete this department?")) {
+  const deleteDept = async (id) => {
+    if (!confirm("Delete this department?")) return;
+    try {
+      await adminService.deleteDepartment(id);
       setDepartments(departments.filter((d) => d.id !== id));
-      setPositions(positions.filter((p) => p.department !== departments.find((d) => d.id === id)?.name));
-    }
+      setPositions(positions.filter((p) => p.departmentId !== id));
+    } catch (err) { alert("Failed: " + (err.message || "Unknown error")); }
   };
 
   const startEditDept = (dept) => {
@@ -296,30 +326,36 @@ function CategoryView() {
   };
 
   // Position CRUD
-  const savePos = (e) => {
+  const savePos = async (e) => {
     e.preventDefault();
-    if (editPosId !== null) {
-      setPositions(positions.map((p) => (p.id === editPosId ? { ...p, ...posForm } : p)));
-      setEditPosId(null);
-    } else {
-      setPositions([...positions, { id: Date.now(), ...posForm }]);
-    }
-    setPosForm({ title: "", description: "", department: "" });
+    try {
+      if (editPosId !== null) {
+        await adminService.updatePosition(editPosId, posForm);
+        setPositions(positions.map((p) => (p.id === editPosId ? { ...p, ...posForm, department: departments.find(d => d.id === Number(posForm.departmentId))?.name || p.department } : p)));
+        setEditPosId(null);
+      } else {
+        const res = await adminService.createPosition(posForm);
+        const newPos = res.data;
+        newPos.department = departments.find(d => d.id === Number(posForm.departmentId))?.name || "";
+        setPositions([...positions, newPos]);
+      }
+      setPosForm({ title: "", description: "", departmentId: "" });
+    } catch (err) { alert("Failed: " + (err.message || "Unknown error")); }
   };
 
-  const deletePos = (id) => {
-    if (confirm("Delete this position?")) {
+  const deletePos = async (id) => {
+    if (!confirm("Delete this position?")) return;
+    try {
+      await adminService.deletePosition(id);
       setPositions(positions.filter((p) => p.id !== id));
-    }
+    } catch (err) { alert("Failed: " + (err.message || "Unknown error")); }
   };
 
   const startEditPos = (pos) => {
     setEditPosId(pos.id);
-    setPosForm({ title: pos.title, description: pos.description, department: pos.department });
+    setPosForm({ title: pos.title, description: pos.description, departmentId: String(pos.departmentId || "") });
   };
 
-  const [loading, setLoading] = useState(true);
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 1200); return () => clearTimeout(t); }, []);
   if (loading) return <DeptPositionSkeleton />;
 
   return (
@@ -476,9 +512,9 @@ function CategoryView() {
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">Department</label>
-                    <Select value={posForm.department} onChange={(e) => setPosForm({ ...posForm, department: e.target.value })} required>
+                    <Select value={posForm.departmentId} onChange={(e) => setPosForm({ ...posForm, departmentId: e.target.value })} required>
                       <option value="">Select department...</option>
-                      {departments.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+                      {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </Select>
                   </div>
                   <div>
@@ -489,7 +525,7 @@ function CategoryView() {
                 <div className="flex gap-2">
                   <Button type="submit">{editPosId !== null ? "Update Position" : "Add Position"}</Button>
                   {editPosId !== null && (
-                    <Button type="button" variant="outline" onClick={() => { setEditPosId(null); setPosForm({ title: "", description: "", department: "" }); }}>Cancel</Button>
+                    <Button type="button" variant="outline" onClick={() => { setEditPosId(null); setPosForm({ title: "", description: "", departmentId: "" }); }}>Cancel</Button>
                   )}
                 </div>
               </form>
@@ -519,7 +555,7 @@ function CategoryView() {
                       >
                         <TableCell className="font-medium">{pos.title}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{pos.department}</Badge>
+                          <Badge variant="outline">{pos.department || (departments.find(d => d.id === pos.departmentId)?.name) || "—"}</Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">{pos.description || "—"}</TableCell>
                         <TableCell>
@@ -621,7 +657,7 @@ function DashboardView({ user }) {
     const minDelay = new Promise((r) => setTimeout(r, 1200));
     adminService.getDashboardStats()
       .then((r) => setStats(r.data))
-      .catch(() => {})
+      .catch((e) => console.error("[Dashboard] API load failed:", e))
       .finally(() => { Promise.all([minDelay]).then(() => setLoading(false)); });
   }, []);
   if (loading) return <AdminDashboardSkeleton />;
@@ -630,13 +666,23 @@ function DashboardView({ user }) {
     ? Math.max(stats.totalEmployees, stats.pendingLeaves, stats.totalPayroll / 1000, parseFloat(stats.attendanceRate) / 10)
     : 1;
 
-  const deptData = [
-    { color: "#9a0002", label: "HR", value: stats ? Math.ceil(stats.totalEmployees * 0.15) : 0 },
-    { color: "#3b82f6", label: "Engineering", value: stats ? Math.ceil(stats.totalEmployees * 0.35) : 0 },
-    { color: "#f59e0b", label: "Marketing", value: stats ? Math.ceil(stats.totalEmployees * 0.2) : 0 },
-    { color: "#22c55e", label: "Finance", value: stats ? Math.ceil(stats.totalEmployees * 0.15) : 0 },
-    { color: "#8b5cf6", label: "Operations", value: stats ? Math.ceil(stats.totalEmployees * 0.15) : 0 },
-  ];
+  const DEPT_COLORS = {
+    "Engineering": "#3b82f6",
+    "Marketing": "#f59e0b",
+    "Finance": "#22c55e",
+    "Human Resources": "#9a0002",
+    "Sales": "#f97316",
+    "Operations": "#8b5cf6",
+    "Design": "#ec4899",
+    "Legal": "#14b8a6",
+    "Customer Support": "#06b6d4",
+  };
+  const rawBreakdown = stats?.departmentBreakdown || [];
+  const deptData = rawBreakdown.map((d) => ({
+    label: d.department,
+    value: d.count,
+    color: DEPT_COLORS[d.department] || "#6b7280",
+  }));
 
   return (
     <div className="space-y-6">
@@ -858,15 +904,25 @@ function DashboardView({ user }) {
    USER MANAGEMENT
    ═══════════════════════════════════════════ */
 function UserManagementView() {
-  const [users, setUsers] = useLocalState("am-users", []);
+  const [users, setUsers] = useState([]);
   const [search, setSearch] = useLocalState("am-search", "");
   const [form, setForm] = useLocalState("am-form", { firstName: "", lastName: "", email: "", phone: "", department: "", position: "", baseSalary: "", hireDate: "", role: "ROLE_EMPLOYEE", password: "changeme" });
-  const [loading, setLoading] = useLocalState("am-loading", false);
+  const [loading, setLoading] = useState(true);
   const [editUserId, setEditUserId] = useState(null);
-  const [departments] = useLocalState("cat-departments", []);
-  const [positions] = useLocalState("cat-positions", []);
+  const [departments] = useLocalState("cat-departments", [], SEED_DEPARTMENTS);
+  const [positions] = useLocalState("cat-positions", [], SEED_POSITIONS);
 
-  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getUsers(search).then((r) => { setUsers(r.data.content || r.data); }).catch(() => {}).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
+  const load = () => {
+    setLoading(true);
+    adminService.getUsers(search, 0, 100)
+      .then((r) => {
+        const page = r.data;
+        const data = page.content || page;
+        setUsers(data || []);
+      })
+      .catch((e) => { console.error("[UserManagement] API load failed:", e); setUsers([]); })
+      .finally(() => setLoading(false));
+  };
   useEffect(() => { load(); }, []);
 
   // Filter positions by selected department
@@ -915,7 +971,7 @@ function UserManagementView() {
   const deactivate = async (u) => { if (confirm(`Deactivate ${u.firstName} ${u.lastName}?`)) { await adminService.deactivateUser(u.id); load(); } };
   const activate = async (u) => { await adminService.activateUser(u.id); load(); };
   const resetPwd = async (u) => { const pw = prompt("New password:"); if (pw) await adminService.resetPassword(u.id, pw); };
-  const remove = async (u) => { if (confirm(`Permanently delete ${u.firstName} ${u.lastName}?`)) { await adminService.deleteUser(u.id); load(); } };
+  const remove = async (u) => { if (confirm(`Deactivate ${u.firstName} ${u.lastName}?`)) { await adminService.deactivateUser(u.id); load(); } };
 
   const TEXT_FIELDS = [
     { k: "firstName", l: "First Name" },
@@ -1125,7 +1181,7 @@ function UserManagementView() {
 function LeaveApprovalsView() {
   const [leaves, setLeaves] = useLocalState("al-leaves", []);
   const [loading, setLoading] = useState(true);
-  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getLeaves("PENDING").then((r) => setLeaves(r.data.content || r.data)).catch(() => {}).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
+  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getLeaves("PENDING").then((r) => setLeaves(r.data.content || r.data)).catch((e) => console.error("[LeaveApprovals] API load failed:", e)).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
   useEffect(() => { load(); }, []);
   const approve = (id) => adminService.approveLeave(id).then(load);
   const reject = (id) => { const r = prompt("Reason:"); if (r) adminService.rejectLeave(id, r).then(load); };
@@ -1186,7 +1242,7 @@ function PayrollView() {
     payPeriodStart: new Date().toISOString().slice(0, 7) + "-01",
     payPeriodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10),
   });
-  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getPayrolls().then((r) => setPayrolls(r.data.content || r.data)).catch(() => {}).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
+  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getPayrolls().then((r) => setPayrolls(r.data.content || r.data)).catch((e) => console.error("[Payroll] API load failed:", e)).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
   useEffect(() => { load(); }, []);
   const processRec = (id) => adminService.processPayroll(id).then(load);
   const payRec = (id) => adminService.payPayroll(id).then(load);
@@ -1368,7 +1424,7 @@ function PerformanceView() {
   const [bulkResult, setBulkResult] = useState(null);
   const [empIds, setEmpIds] = useState([{ id: 1, value: "" }]);
   const nextIdRef = useRef(2);
-  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getReviews().then((r) => setReviews(r.data.content || r.data)).catch(() => {}).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
+  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getReviews().then((r) => setReviews(r.data.content || r.data)).catch((e) => console.error("[Performance] API load failed:", e)).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
   useEffect(() => { load(); }, []);
   const del = (id) => { if (confirm("Delete review?")) adminService.deleteReview(id).then(load); };
 

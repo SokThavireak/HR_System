@@ -22,7 +22,8 @@ public class AdminDashboardController {
             "totalEmployees", userRepo.countByActiveTrue(),
             "attendanceRate", 94.5,
             "pendingLeaves", leaveService.countPending(),
-            "totalPayroll", payrollService.sumPaidNet()
+            "totalPayroll", payrollService.sumPaidNet(),
+            "departmentBreakdown", userRepo.countByDepartment()
         );
     }
 }
