@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { attendanceService } from "../services/attendanceService";
 import ToastContainer from "../components/common/ToastContainer";
 import { useToast } from "../hooks/useToast";
-import { SEED_ATTENDANCE } from "../data/seedData";
+import { SEED_ATTENDANCE, SEED_DEPARTMENTS, SEED_POSITIONS } from "../data/seedData";
 import {
   Button, Input, Select, Badge, AttendancePageSkeleton, AdminAttendanceSkeleton,
   Card, CardHeader, CardTitle, CardContent,
