@@ -3,6 +3,7 @@ import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import LoadingPage from './components/ui/loading-page';
+import ProtectedRoute from './components/ProtectedRoute';
 import { authService } from './services/authService';
 
 export default function App() {
@@ -32,7 +33,8 @@ export default function App() {
       }
 
       authService.getCurrentUser()
-        .then((u) => {
+        .then((response) => {
+          const u = response.data;
           // Normalize roles: API returns Role objects, but we need string names
           if (u?.roles?.length && typeof u.roles[0] === 'object') {
             u.roles = u.roles.map((r) => r.name || r);
@@ -83,6 +85,19 @@ export default function App() {
     setTimeout(() => { setUser(data); setLoadingPage(false); }, 2000);
   }} />;
 
-  const isAdmin = user.roles?.includes('ROLE_HR_ADMIN');
-  return isAdmin ? <AdminDashboard user={user} /> : <EmployeeDashboard user={user} />;
+  const isAdmin = user.roles?.some(r => r === 'ROLE_HR_ADMIN' || r?.name === 'ROLE_HR_ADMIN');
+
+  if (isAdmin) {
+    return (
+      <ProtectedRoute user={user} allowedRoles={['ROLE_HR_ADMIN']}>
+        <AdminDashboard user={user} />
+      </ProtectedRoute>
+    );
+  }
+
+  return (
+    <ProtectedRoute user={user} allowedRoles={['ROLE_EMPLOYEE']}>
+      <EmployeeDashboard user={user} />
+    </ProtectedRoute>
+  );
 }

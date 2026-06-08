@@ -1,5 +1,6 @@
 package com.hrms.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -21,6 +22,7 @@ public class Position {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id", nullable = false)
+    @JsonIgnoreProperties({"head", "positions"})
     private Department department;
 
     private BigDecimal minSalary;

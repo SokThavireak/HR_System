@@ -42,7 +42,7 @@ TableRow.displayName = "TableRow";
 export const TableHead = React.forwardRef(({ className = "", ...props }, ref) => (
   <th
     ref={ref}
-    className={`h-10 px-3 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[0.5px] ${className}`}
+    className={`h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[0.5px] ${className}`}
     {...props}
   />
 ));
@@ -51,7 +51,7 @@ TableHead.displayName = "TableHead";
 export const TableCell = React.forwardRef(({ className = "", ...props }, ref) => (
   <td
     ref={ref}
-    className={`p-3 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[0.5px] ${className}`}
+    className={`p-4 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[0.5px] ${className}`}
     {...props}
   />
 ));

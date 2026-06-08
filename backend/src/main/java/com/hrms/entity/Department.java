@@ -1,5 +1,6 @@
 package com.hrms.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -22,9 +23,11 @@ public class Department {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "head_user_id")
+    @JsonIgnoreProperties({"password", "roles", "department"})
     private User head;
 
     @OneToMany(mappedBy = "department", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("department")
     @Builder.Default
     private Set<Position> positions = new HashSet<>();
 

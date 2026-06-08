@@ -60,6 +60,7 @@ function useLocalState(key, initial, seed) {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (!Array.isArray(parsed) && typeof parsed === "object" && parsed !== null) return parsed;
       }
     } catch (e) {}
     // If empty/missing and seed provided, seed localStorage
@@ -70,20 +71,21 @@ function useLocalState(key, initial, seed) {
     return initial;
   });
   React.useEffect(() => { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }, [key, v]);
-  const safeV = Array.isArray(v) ? v : (Array.isArray(initial) ? initial : []);
+  const isArrayMode = Array.isArray(initial);
+  const safeV = v != null ? v : (isArrayMode ? initial : initial);
   return [safeV, setV];
 }
 
 /* ─── Stat Card ─── */
 function StatCard({ bg, value, label, iconName }) {
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: bg }}>
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: bg }}>
-        <Icon name={iconName} size={20} />
+    <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: bg }}>
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: bg }}>
+        <Icon name={iconName} size={22} />
       </div>
       <div>
         <p className="text-2xl font-bold leading-none">{value}</p>
-        <p className="mt-0.5 text-xs font-medium text-muted-foreground">{label}</p>
+        <p className="mt-1 text-xs font-medium text-muted-foreground">{label}</p>
       </div>
     </div>
   );
@@ -91,8 +93,16 @@ function StatCard({ bg, value, label, iconName }) {
 
 
 export default function AdminDashboard({ user }) {
-  const [section, _setSection] = useState(() => localStorage.getItem("admin_section") || "dashboard");
-  const setSection = (key) => { _setSection(key); localStorage.setItem("admin_section", key); };
+  // Role guard — if a non-admin somehow lands here, force redirect
+  const userRoles = (user?.roles || []).map((r) => (typeof r === "object" ? r.name : r));
+  if (!userRoles.includes("ROLE_HR_ADMIN")) {
+    localStorage.clear();
+    window.location.reload();
+    return null;
+  }
+
+  const [section, _setSection] = useState(() => sessionStorage.getItem("admin_section") || "dashboard");
+  const setSection = (key) => { _setSection(key); sessionStorage.setItem("admin_section", key); };
   const [navVisible, setNavVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [activeNavY, setActiveNavY] = useState(0);
@@ -185,7 +195,7 @@ export default function AdminDashboard({ user }) {
                 <button
                   key={item.key}
                   ref={el => { navItemRefs.current[idx] = el; }}
-                  onClick={() => { updateActiveNavY(); setSection(item.key); localStorage.setItem("admin_section", item.key); }}
+                  onClick={() => { updateActiveNavY(); setSection(item.key); }}
                   className={`animate-sidebar-item relative z-10 flex w-full items-center gap-3 rounded-xl px-3 text-sm font-medium cursor-pointer transition-all duration-300 ${
                     isActive
                       ? "text-white font-bold"
@@ -235,10 +245,10 @@ export default function AdminDashboard({ user }) {
       {/* ══════════════════════════════════════════
           MAIN — transparent, shows body #efe6dd
           ══════════════════════════════════════════ */}
-      <div className="relative z-10 ml-[260px] flex flex-1 flex-col" style={{ background: "transparent" }}>
+      <div className="relative z-10 flex h-screen flex-col" style={{ marginLeft: 260, background: "transparent" }}>
 
         {/* Top Bar */}
-        <header className="sticky top-0 z-50 flex h-32 items-center justify-between px-8 border-b border-gray-200/50 backdrop-blur-md transition-transform duration-300 ease-in-out" style={{ background: "transparent", transform: navVisible ? "translateY(0)" : "translateY(-100%)" }}>
+        <header className="sticky top-0 z-50 flex h-32 shrink-0 items-center justify-between px-8 border-b border-gray-200/50 backdrop-blur-md transition-transform duration-300 ease-in-out" style={{ background: "transparent", transform: navVisible ? "translateY(0)" : "translateY(-100%)" }}>
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "rgba(154, 0, 2, 0.1)" }}>
               <Icon name={SIDEBAR_ITEMS.find((s) => s.key === section)?.icon || "home"} size={24} />
@@ -264,7 +274,7 @@ export default function AdminDashboard({ user }) {
           </div>
         </header>
 
-        <main className="relative flex flex-col flex-1 p-6" style={{ background: "transparent" }}>
+        <main className="relative flex-1 overflow-y-auto p-8" style={{ background: "transparent" }}>
           <PageTransition variant="fadeUp" keyProp={section}>
             {section === "dashboard" && <DashboardView user={user} />}
             {section === "users" && <UserManagementView />}
@@ -374,7 +384,7 @@ function CategoryView() {
   if (loading) return <DeptPositionSkeleton />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <ScrollReveal variant="fadeUp" stagger={0}>
         <div>
           <h2 className="text-2xl font-bold">Department & Position</h2>
@@ -383,26 +393,26 @@ function CategoryView() {
       </ScrollReveal>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <StaggerItem>
-          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: "#9a0002" }}>
-              <Icon name="folder" size={20} />
+          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: "#9a0002" }}>
+              <Icon name="folder" size={22} />
             </div>
             <div>
               <p className="text-2xl font-bold leading-none">{departments.length}</p>
-              <p className="mt-0.5 text-xs font-medium text-muted-foreground">Total Departments</p>
+              <p className="mt-1 text-xs font-medium text-muted-foreground">Total Departments</p>
             </div>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: "#3b82f6" }}>
-              <Icon name="briefcase" size={20} />
+          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: "#3b82f6" }}>
+              <Icon name="briefcase" size={22} />
             </div>
             <div>
               <p className="text-2xl font-bold leading-none">{positions.length}</p>
-              <p className="mt-0.5 text-xs font-medium text-muted-foreground">Total Positions</p>
+              <p className="mt-1 text-xs font-medium text-muted-foreground">Total Positions</p>
             </div>
           </div>
         </StaggerItem>
@@ -452,8 +462,8 @@ function CategoryView() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={saveDept} className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <form onSubmit={saveDept} className="space-y-5">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">Department Name</label>
                     <Input value={deptForm.name} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} placeholder="e.g. Engineering" required />
@@ -519,8 +529,8 @@ function CategoryView() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={savePos} className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <form onSubmit={savePos} className="space-y-5">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">Position Title</label>
                     <Input value={posForm.title} onChange={(e) => setPosForm({ ...posForm, title: e.target.value })} placeholder="e.g. Software Engineer" required />
@@ -570,7 +580,9 @@ function CategoryView() {
                       >
                         <TableCell className="font-medium">{pos.title}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{pos.department || (departments.find(d => d.id === pos.departmentId)?.name) || "—"}</Badge>
+                          <Badge variant="outline">
+                            {typeof pos.department === "object" ? pos.department?.name : pos.department || departments.find(d => d.id === pos.departmentId)?.name || "—"}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">{pos.description || "—"}</TableCell>
                         <TableCell>
@@ -699,7 +711,7 @@ function DashboardView({ user }) {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
         <div>
           <h2 className="text-2xl font-bold">Overview</h2>
@@ -708,7 +720,7 @@ function DashboardView({ user }) {
       </ScrollReveal>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StaggerItem><StatCard bg="#9a0002" value={stats.totalEmployees} label="Total Employees" iconName="users" /></StaggerItem>
         <StaggerItem><StatCard bg="#22c55e" value={`${stats.attendanceRate}%`} label="Attendance Rate" iconName="check" /></StaggerItem>
         <StaggerItem><StatCard bg="#f59e0b" value={stats.pendingLeaves} label="Pending Leaves" iconName="clock" /></StaggerItem>
@@ -716,10 +728,10 @@ function DashboardView({ user }) {
       </div>
 
       {/* Payroll Breakdown Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#6366f1" }}>
-            <div className="flex items-center gap-3 mb-3">
+          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#6366f1" }}>
+            <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#6366f1" }}>
                 <Icon name="dollar" size={18} />
               </div>
@@ -731,8 +743,8 @@ function DashboardView({ user }) {
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#14b8a6" }}>
-            <div className="flex items-center gap-3 mb-3">
+          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#14b8a6" }}>
+            <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#14b8a6" }}>
                 <Icon name="clock" size={18} />
               </div>
@@ -744,8 +756,8 @@ function DashboardView({ user }) {
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#ec4899" }}>
-            <div className="flex items-center gap-3 mb-3">
+          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#ec4899" }}>
+            <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#ec4899" }}>
                 <Icon name="trending" size={18} />
               </div>
@@ -757,8 +769,8 @@ function DashboardView({ user }) {
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#f97316" }}>
-            <div className="flex items-center gap-3 mb-3">
+          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#f97316" }}>
+            <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#f97316" }}>
                 <Icon name="calendar" size={18} />
               </div>
@@ -952,7 +964,11 @@ function UserManagementView() {
 
   const create = async (e) => {
     e.preventDefault();
-    await adminService.createUser(form);
+    const cleaned = { ...form };
+    ["baseSalary", "workHoursPerDay", "workingDaysPerMonth", "workStartTime", "hireDate", "phone"].forEach((k) => {
+      if (cleaned[k] === "" || cleaned[k] === undefined) cleaned[k] = null;
+    });
+    await adminService.createUser(cleaned);
     resetForm();
     load();
   };
@@ -979,7 +995,12 @@ function UserManagementView() {
 
   const saveEdit = async (e) => {
     e.preventDefault();
-    await adminService.updateUser(editUserId, form);
+    // Clean empty strings to null so backend doesn't choke on parsing
+    const cleaned = { ...form };
+    ["baseSalary", "workHoursPerDay", "workingDaysPerMonth", "workStartTime", "hireDate", "phone"].forEach((k) => {
+      if (cleaned[k] === "" || cleaned[k] === undefined) cleaned[k] = null;
+    });
+    await adminService.updateUser(editUserId, cleaned);
     resetForm();
     load();
   };
@@ -990,21 +1011,21 @@ function UserManagementView() {
   const remove = async (u) => { if (confirm(`Deactivate ${u.firstName} ${u.lastName}?`)) { await adminService.deactivateUser(u.id); load(); } };
 
   const TEXT_FIELDS = [
-    { k: "firstName", l: "First Name" },
-    { k: "lastName", l: "Last Name" },
-    { k: "email", l: "Email", type: "email" },
-    { k: "phone", l: "Phone" },
-    { k: "baseSalary", l: "Base Salary ($)", type: "number" },
-    { k: "workHoursPerDay", l: "Work Hours/Day", type: "number" },
-    { k: "workingDaysPerMonth", l: "Working Days/Month", type: "number" },
-    { k: "workStartTime", l: "Work Start Time", type: "time" },
-    { k: "hireDate", l: "Hire Date", type: "date" },
+    { k: "firstName", l: "First Name", required: true },
+    { k: "lastName", l: "Last Name", required: true },
+    { k: "email", l: "Email", type: "email", required: true },
+    { k: "phone", l: "Phone", required: false },
+    { k: "baseSalary", l: "Base Salary ($)", type: "number", required: false },
+    { k: "workHoursPerDay", l: "Work Hours/Day", type: "number", required: false },
+    { k: "workingDaysPerMonth", l: "Working Days/Month", type: "number", required: false },
+    { k: "workStartTime", l: "Work Start Time", type: "time", required: false },
+    { k: "hireDate", l: "Hire Date", type: "date", required: false },
   ];
 
   if (loading) return <AdminTableSkeleton />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <ScrollReveal variant="fadeUp" stagger={0}>
         <div>
           <h2 className="text-2xl font-bold">User Management</h2>
@@ -1013,29 +1034,29 @@ function UserManagementView() {
       </ScrollReveal>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
             <p className="text-2xl font-bold">{users.length}</p>
-            <p className="text-xs font-medium text-muted-foreground">Total Users</p>
+            <p className="mt-1 text-xs font-medium text-muted-foreground">Total Users</p>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#10b981" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#10b981" }}>
             <p className="text-2xl font-bold">{users.filter((u) => u.active).length}</p>
-            <p className="text-xs font-medium text-muted-foreground">Active</p>
+            <p className="mt-1 text-xs font-medium text-muted-foreground">Active</p>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#6b7280" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#6b7280" }}>
             <p className="text-2xl font-bold">{users.filter((u) => !u.active).length}</p>
-            <p className="text-xs font-medium text-muted-foreground">Inactive</p>
+            <p className="mt-1 text-xs font-medium text-muted-foreground">Inactive</p>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
             <p className="text-2xl font-bold">{departments.length}</p>
-            <p className="text-xs font-medium text-muted-foreground">Departments</p>
+            <p className="mt-1 text-xs font-medium text-muted-foreground">Departments</p>
           </div>
         </StaggerItem>
       </div>
@@ -1056,12 +1077,12 @@ function UserManagementView() {
               No departments or positions found. Please add them in <strong>Department & Position</strong> first.
             </div>
           )}
-          <form onSubmit={editUserId !== null ? saveEdit : create} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {TEXT_FIELDS.map(({ k, l, type = "text" }) => (
+          <form onSubmit={editUserId !== null ? saveEdit : create} className="space-y-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {TEXT_FIELDS.map(({ k, l, type = "text", required = false }) => (
                 <div key={k}>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">{l}</label>
-                  <Input type={type} value={form[k] || ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} required />
+                  <Input type={type} value={form[k] || ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} required={required} />
                 </div>
               ))}
               {/* Department Select */}
@@ -1346,7 +1367,7 @@ function LeaveApprovalsView({ showToast }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Leave Management</h2>
@@ -1762,7 +1783,7 @@ function PayrollView({ showToast }) {
   if (loading) return <PayrollSkeleton />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <ScrollReveal variant="fadeUp" stagger={0.08} delay={0}>
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Payroll System</h2>
@@ -2200,7 +2221,7 @@ function PerformanceView({ showToast }) {
   if (loading) return <PerformanceSkeleton />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
         <h2 className="text-2xl font-bold">Performance Reviews</h2>
       </ScrollReveal>

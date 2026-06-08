@@ -763,8 +763,8 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
                     <TableRow>
                       <TableHead>Employee</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead>Clock In</TableHead>
-                      <TableHead>Clock Out</TableHead>
+                      <TableHead style={{ minWidth: "120px" }}>Clock In</TableHead>
+                      <TableHead style={{ minWidth: "120px" }}>Clock Out</TableHead>
                       <TableHead>Worked (hrs)</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="w-[120px]">Actions</TableHead>
