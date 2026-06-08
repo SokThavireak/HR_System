@@ -33,8 +33,12 @@ public class AdminUserController {
     public ResponseEntity<User> createUser(@RequestBody CreateUserRequest req) {
         if (userRepo.existsByEmail(req.getEmail()))
             throw new RuntimeException("Email already exists");
+        if (req.getEmployeeId() != null && !req.getEmployeeId().isBlank()
+                && userRepo.findByEmployeeId(req.getEmployeeId()).isPresent())
+            throw new RuntimeException("Employee ID already exists");
         Role role = roleRepo.findByName(Role.RoleName.valueOf(req.getRole())).orElseThrow();
         User user = User.builder()
+            .employeeId(req.getEmployeeId())
             .email(req.getEmail())
             .password(encoder.encode(req.getPassword()))
             .firstName(req.getFirstName())
@@ -74,6 +78,9 @@ public class AdminUserController {
         if (req.getWorkingDaysPerMonth() != null) user.setWorkingDaysPerMonth(req.getWorkingDaysPerMonth());
         if (req.getWorkStartTime() != null) user.setWorkStartTime(req.getWorkStartTime());
         if (req.getHireDate() != null) user.setHireDate(req.getHireDate());
+        if (req.getIlLeaveEntitlement() != null) user.setIlLeaveEntitlement(req.getIlLeaveEntitlement());
+        if (req.getSickLeaveEntitlement() != null) user.setSickLeaveEntitlement(req.getSickLeaveEntitlement());
+        if (req.getSpecialLeaveEntitlement() != null) user.setSpecialLeaveEntitlement(req.getSpecialLeaveEntitlement());
         return ResponseEntity.ok(userRepo.save(user));
     }
 
@@ -109,6 +116,7 @@ public class AdminUserController {
 
     @lombok.Data
     public static class CreateUserRequest {
+        private String employeeId;
         private String email;
         private String password;
         private String firstName;
@@ -122,5 +130,8 @@ public class AdminUserController {
         private java.time.LocalTime workStartTime;
         private java.time.LocalDate hireDate;
         private String role;
+        private Integer ilLeaveEntitlement;
+        private Integer sickLeaveEntitlement;
+        private Integer specialLeaveEntitlement;
     }
 }

@@ -9,10 +9,14 @@ import com.hrms.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -22,8 +26,9 @@ public class PayrollService {
     private final UserRepository userRepo;
     private final AttendanceRepository attendanceRepo;
 
+    @Async
     @Transactional
-    public Payroll calculateAndCreate(Long userId, Double fullTimeWorkHours, BigDecimal tax,
+    public CompletableFuture<Payroll> calculateAndCreate(Long userId, Double fullTimeWorkHours, BigDecimal tax,
                                       BigDecimal insurance, BigDecimal otherDeductions,
                                       java.time.LocalDate periodStart, java.time.LocalDate periodEnd) {
         User user = userRepo.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
@@ -35,39 +40,50 @@ public class PayrollService {
         if (payrollRepo.findByUserIdAndPayPeriodStartAndPayPeriodEnd(userId, periodStart, periodEnd).isPresent())
             throw new RuntimeException("Payroll already exists for this period");
 
-        // Calculate actual work hours from attendance records
-        double actualWorkHours = calculateActualWorkHours(userId, periodStart, periodEnd);
+        // Monthly salary = annual / 12
+        BigDecimal monthlySalary = user.getBaseSalary()
+                .divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
 
-        // Overtime = actual - fullTime (only if positive)
+        double actualWorkHours = calculateActualWorkHours(userId, periodStart, periodEnd);
         double overtimeHours = Math.max(0, actualWorkHours - fullTimeWorkHours);
 
-        // Hourly rate = baseSalary / fullTimeWorkHours
-        BigDecimal hourlyRate = user.getBaseSalary()
+        BigDecimal hourlyRate = monthlySalary
                 .divide(BigDecimal.valueOf(fullTimeWorkHours), 2, RoundingMode.HALF_UP);
 
-        // Overtime pay = overtimeHours * hourlyRate * 1.5 (time-and-a-half)
         BigDecimal overtimePay = hourlyRate
                 .multiply(BigDecimal.valueOf(overtimeHours))
                 .multiply(new BigDecimal("1.5"))
                 .setScale(2, RoundingMode.HALF_UP);
 
-        // Extra salary = (baseSalary / fullTimeWorkHours) * (actualWorkHours - fullTimeWorkHours)
-        // This is the prorated amount for hours worked beyond full time, at normal rate
         double extraHours = Math.max(0, actualWorkHours - fullTimeWorkHours);
         BigDecimal extraSalary = hourlyRate
                 .multiply(BigDecimal.valueOf(extraHours))
                 .setScale(2, RoundingMode.HALF_UP);
 
-        // Calculate late deductions from attendance
         int totalLateMinutes = calculateTotalLateMinutes(userId, periodStart, periodEnd);
-        BigDecimal lateDeduction = calculateLateDeduction(userId, totalLateMinutes, user.getBaseSalary(),
+        BigDecimal lateDeduction = calculateLateDeduction(userId, totalLateMinutes, monthlySalary,
                 periodStart, periodEnd);
+
+        // ── IL Payout: unused IL days paid at OT rate (once per year) ──
+        BigDecimal ilPayout = BigDecimal.ZERO;
+        if (Boolean.FALSE.equals(user.getUnusedIlPaid())) {
+            int unusedIlDays = user.getIlLeaveEntitlement() - user.getIlLeaveUsed();
+            if (unusedIlDays > 0) {
+                ilPayout = hourlyRate
+                    .multiply(BigDecimal.valueOf(unusedIlDays))
+                    .multiply(BigDecimal.valueOf(8))
+                    .multiply(new BigDecimal("1.5"))
+                    .setScale(2, RoundingMode.HALF_UP);
+                user.setUnusedIlPaid(true);
+                userRepo.save(user);
+            }
+        }
 
         BigDecimal taxAmt = tax != null ? tax : BigDecimal.ZERO;
         BigDecimal insAmt = insurance != null ? insurance : BigDecimal.ZERO;
         BigDecimal otherDed = otherDeductions != null ? otherDeductions : BigDecimal.ZERO;
 
-        BigDecimal gross = user.getBaseSalary().add(extraSalary).add(overtimePay);
+        BigDecimal gross = monthlySalary.add(extraSalary).add(overtimePay).add(ilPayout);
         BigDecimal totalDed = taxAmt.add(insAmt).add(otherDed).add(lateDeduction);
         BigDecimal net = gross.subtract(totalDed);
 
@@ -75,12 +91,13 @@ public class PayrollService {
             .user(user)
             .payPeriodStart(periodStart)
             .payPeriodEnd(periodEnd)
-            .baseSalary(user.getBaseSalary())
+            .baseSalary(monthlySalary)
             .fullTimeWorkHours(fullTimeWorkHours)
             .actualWorkHours(actualWorkHours)
             .overtimeHours(overtimeHours)
             .overtimePay(overtimePay)
             .extraSalary(extraSalary)
+            .ilPayout(ilPayout)
             .lateDeduction(lateDeduction)
             .lateMinutes(totalLateMinutes)
             .taxDeduction(taxAmt)
@@ -91,33 +108,19 @@ public class PayrollService {
             .netSalary(net)
             .status(PayrollStatus.DRAFT)
             .build();
-        return payrollRepo.save(p);
+        return CompletableFuture.completedFuture(payrollRepo.save(p));
     }
 
-    /**
-     * Sum hoursWorked from attendance records within the given date range.
-     */
     private double calculateActualWorkHours(Long userId, java.time.LocalDate start, java.time.LocalDate end) {
         Double sum = attendanceRepo.sumHoursWorked(userId, start, end);
         return sum != null ? sum : 0.0;
     }
 
-    /**
-     * Sum late minutes from attendance records, excluding leave days.
-     */
     private int calculateTotalLateMinutes(Long userId, java.time.LocalDate start, java.time.LocalDate end) {
         Integer sum = attendanceRepo.sumLateMinutesExcludingLeave(userId, start, end);
         return sum != null ? sum : 0;
     }
 
-    /**
-     * Calculate late deduction based on total late minutes.
-     * Rules (per late instance):
-     *   1-30 min  → $5
-     *   31-60 min → $15
-     *   60+ min   → 50% of daily salary
-     * Daily salary = baseSalary / workingDaysInMonth (default 26)
-     */
     private BigDecimal calculateLateDeduction(Long userId, int totalLateMinutes, BigDecimal baseSalary,
                                                java.time.LocalDate periodStart, java.time.LocalDate periodEnd) {
         if (totalLateMinutes <= 0) return BigDecimal.ZERO;
@@ -126,7 +129,6 @@ public class PayrollService {
         if (lateDays == 0) return BigDecimal.ZERO;
 
         int avgLatePerDay = totalLateMinutes / (int) lateDays;
-
         BigDecimal dailySalary = baseSalary.divide(BigDecimal.valueOf(26), 2, RoundingMode.HALF_UP);
 
         BigDecimal deductionPerDay;
@@ -141,40 +143,79 @@ public class PayrollService {
         return deductionPerDay.multiply(BigDecimal.valueOf(lateDays)).setScale(2, RoundingMode.HALF_UP);
     }
 
-    public Page<Payroll> getAll(Pageable page) {
-        return payrollRepo.findAllByOrderByPayPeriodEndDesc(page);
+    @Async
+    public CompletableFuture<Page<Payroll>> getAll(Pageable page) {
+        return CompletableFuture.completedFuture(payrollRepo.findAllByOrderByPayPeriodEndDesc(page));
     }
 
-    public java.util.List<Payroll> getByUser(Long userId) {
-        return payrollRepo.findByUserIdOrderByPayPeriodEndDesc(userId);
+    @Async
+    public CompletableFuture<List<Payroll>> getByUser(Long userId) {
+        return CompletableFuture.completedFuture(payrollRepo.findByUserIdOrderByPayPeriodEndDesc(userId));
     }
 
+    @Async
     @Transactional
-    public Payroll processPayroll(Long id) {
-        Payroll p = payrollRepo.findById(id).orElseThrow();
+    public CompletableFuture<Payroll> processPayroll(Long id) {
+        Payroll p = payrollRepo.findByIdWithUser(id).orElseThrow();
         p.setStatus(PayrollStatus.PROCESSED);
-        return payrollRepo.save(p);
+        return CompletableFuture.completedFuture(payrollRepo.save(p));
     }
 
+    @Async
     @Transactional
-    public Payroll markPaid(Long id) {
-        Payroll p = payrollRepo.findById(id).orElseThrow();
+    public CompletableFuture<Payroll> markPaid(Long id) {
+        Payroll p = payrollRepo.findByIdWithUser(id).orElseThrow();
         p.setStatus(PayrollStatus.PAID);
         p.setPaymentDate(java.time.LocalDate.now());
-        return payrollRepo.save(p);
+        return CompletableFuture.completedFuture(payrollRepo.save(p));
     }
 
-    public Payroll getById(Long id) { return payrollRepo.findById(id).orElseThrow(() -> new RuntimeException("Payroll not found")); }
+    @Async
+    public CompletableFuture<Payroll> getById(Long id) {
+        return CompletableFuture.completedFuture(
+            payrollRepo.findByIdWithUser(id).orElseThrow(() -> new RuntimeException("Payroll not found"))
+        );
+    }
 
-    public void delete(Long id) { payrollRepo.deleteById(id); }
-
+    @Async
     @Transactional
-    public void bulkProcess() {
+    public CompletableFuture<Void> delete(Long id) {
+        payrollRepo.deleteById(id);
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Async
+    @Transactional
+    public CompletableFuture<Void> bulkProcess() {
         payrollRepo.findAllByStatus(PayrollStatus.DRAFT).forEach(p -> {
             p.setStatus(PayrollStatus.PROCESSED);
             payrollRepo.save(p);
         });
+        return CompletableFuture.completedFuture(null);
     }
 
-    public java.math.BigDecimal sumPaidNet() { return payrollRepo.sumPaidNet(); }
+    @Async
+    @Transactional
+    public CompletableFuture<Payroll> updatePayroll(Long id, BigDecimal taxDeduction, BigDecimal insuranceDeduction,
+                                                    BigDecimal otherDeductions, String notes) {
+        Payroll p = payrollRepo.findByIdWithUser(id).orElseThrow(() -> new RuntimeException("Payroll not found"));
+        if (taxDeduction != null) p.setTaxDeduction(taxDeduction);
+        if (insuranceDeduction != null) p.setInsuranceDeduction(insuranceDeduction);
+        if (otherDeductions != null) p.setOtherDeductions(otherDeductions);
+        if (notes != null) p.setNotes(notes);
+
+        // Recalculate gross, total deductions, net
+        BigDecimal totalDed = p.getTaxDeduction().add(p.getInsuranceDeduction()).add(p.getOtherDeductions()).add(p.getLateDeduction() != null ? p.getLateDeduction() : BigDecimal.ZERO);
+        BigDecimal gross = p.getBaseSalary().add(p.getExtraSalary() != null ? p.getExtraSalary() : BigDecimal.ZERO).add(p.getOvertimePay() != null ? p.getOvertimePay() : BigDecimal.ZERO).add(p.getIlPayout() != null ? p.getIlPayout() : BigDecimal.ZERO);
+        p.setGrossSalary(gross);
+        p.setTotalDeductions(totalDed);
+        p.setNetSalary(gross.subtract(totalDed));
+
+        return CompletableFuture.completedFuture(payrollRepo.save(p));
+    }
+
+    @Async
+    public CompletableFuture<BigDecimal> sumPaidNet() {
+        return CompletableFuture.completedFuture(payrollRepo.sumPaidNet());
+    }
 }

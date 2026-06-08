@@ -66,6 +66,7 @@ const salaries = [95000, 75000, 82000, 70000, 73000, 78000, 80000, 60000, 55000,
 
 export const SEED_USERS = Array.from({ length: 30 }, (_, i) => ({
   id: i + 2,
+  employeeId: String(i + 1).padStart(6, '0'),
   email: `${firstNames[i].toLowerCase()}.${lastNames[i].toLowerCase()}@hrms.local`,
   firstName: firstNames[i],
   lastName: lastNames[i],
@@ -76,73 +77,85 @@ export const SEED_USERS = Array.from({ length: 30 }, (_, i) => ({
   hireDate: `2023-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
   active: true,
   roles: [{ name: 'ROLE_EMPLOYEE' }],
+  ilLeaveEntitlement: 18,
+  ilLeaveUsed: 0,
+  sickLeaveEntitlement: 7,
+  sickLeaveUsed: 0,
+  specialLeaveEntitlement: 0,
+  specialLeaveUsed: 0,
+  unusedIlPaid: false,
 }));
 
-// Generate attendance for June 2025 (21 work days)
-const workDays = [
-  '2025-06-02','2025-06-03','2025-06-04','2025-06-05','2025-06-06',
-  '2025-06-09','2025-06-10','2025-06-11','2025-06-12','2025-06-13',
-  '2025-06-16','2025-06-17','2025-06-18','2025-06-19','2025-06-20',
-  '2025-06-23','2025-06-24','2025-06-25','2025-06-26','2025-06-27',
-  '2025-06-30'
-];
+// Generate attendance seed data — function runs at call time, not module load time
+export function getAttendanceSeed() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const workDays = [];
+  for (let d = 1; d <= new Date(year, month + 1, 0).getDate(); d++) {
+    const day = new Date(year, month, d);
+    if (day.getDay() !== 0 && day.getDay() !== 6)
+      workDays.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+  }
 
-export const SEED_ATTENDANCE = [];
-for (let uid = 2; uid <= 31; uid++) {
-  workDays.forEach((date, idx) => {
-    let status = 'PRESENT';
-    let hours = 8.0;
-    let lateMinutes = 0;
-    let clockIn = `${date}T08:5${idx % 10}:00`;
-    let clockOut = `${date}T17:1${idx % 5}:00`;
+  const seed = [];
+  for (let uid = 2; uid <= 31; uid++) {
+    workDays.forEach((date, idx) => {
+      let status = 'PRESENT';
+      let hours = 8.0;
+      let lateMinutes = 0;
+      let clockIn = `${date}T08:5${idx % 10}:00`;
+      let clockOut = `${date}T17:1${idx % 5}:00`;
 
-    if (uid % 7 === 0 && idx % 5 === 0) {
-      status = 'LATE';
-      lateMinutes = 15 + (idx % 3) * 10;
-      clockIn = `${date}T09:${15 + lateMinutes}:00`;
-      clockOut = `${date}T17:${15 + lateMinutes}:00`;
-    } else if (uid % 11 === 0 && idx % 8 === 0) {
-      status = 'ABSENT';
-      hours = 0;
-      lateMinutes = 0;
-      clockIn = null;
-      clockOut = null;
-    } else if (uid % 5 === 0 && idx % 10 === 0) {
-      status = 'HALF_DAY';
-      hours = 4.0;
-      clockIn = `${date}T09:00:00`;
-      clockOut = `${date}T13:00:00`;
-    }
+      if (uid % 7 === 0 && idx % 5 === 0) {
+        status = 'LATE';
+        lateMinutes = 15 + (idx % 3) * 10;
+        clockIn = `${date}T09:${15 + lateMinutes}:00`;
+        clockOut = `${date}T17:${15 + lateMinutes}:00`;
+      } else if (uid % 11 === 0 && idx % 8 === 0) {
+        status = 'ABSENT';
+        hours = 0;
+        lateMinutes = 0;
+        clockIn = null;
+        clockOut = null;
+      } else if (uid % 5 === 0 && idx % 10 === 0) {
+        status = 'HALF_DAY';
+        hours = 4.0;
+        clockIn = `${date}T09:00:00`;
+        clockOut = `${date}T13:00:00`;
+      }
 
-    SEED_ATTENDANCE.push({
-      id: SEED_ATTENDANCE.length + 1,
-      user: { id: uid, firstName: firstNames[uid - 2] || 'User', lastName: lastNames[uid - 2] || 'Test', department: departments[uid - 2] || 'Engineering' },
-      date,
-      clockInTime: clockIn,
-      clockOutTime: clockOut,
-      hoursWorked: hours,
-      status,
-      lateMinutes,
-      overtimeHours: hours > 8 ? hours - 8 : 0,
+      seed.push({
+        id: seed.length + 1,
+        user: { id: uid, employeeId: String(uid - 1).padStart(6, '0'), firstName: firstNames[uid - 2] || 'User', lastName: lastNames[uid - 2] || 'Test', department: departments[uid - 2] || 'Engineering' },
+        date,
+        clockInTime: clockIn,
+        clockOutTime: clockOut,
+        hoursWorked: hours,
+        status,
+        lateMinutes,
+        overtimeHours: hours > 8 ? hours - 8 : 0,
+      });
     });
-  });
+  }
+  return seed;
 }
 
 export const SEED_LEAVES = [
-  { id: 1, user: { firstName: 'Sophia', lastName: 'Chen' }, leaveType: 'ANNUAL', startDate: '2025-06-09', endDate: '2025-06-13', totalDays: 5, reason: 'Family vacation to Hawaii', status: 'APPROVED' },
+  { id: 1, user: { firstName: 'Sophia', lastName: 'Chen' }, leaveType: 'IL', startDate: '2025-06-09', endDate: '2025-06-13', totalDays: 5, reason: 'Family vacation to Hawaii', status: 'APPROVED' },
   { id: 2, user: { firstName: 'Carlos', lastName: 'Reyes' }, leaveType: 'SICK', startDate: '2025-06-16', endDate: '2025-06-17', totalDays: 2, reason: 'Medical appointment and recovery', status: 'APPROVED' },
-  { id: 3, user: { firstName: 'Raj', lastName: 'Gupta' }, leaveType: 'ANNUAL', startDate: '2025-06-23', endDate: '2025-06-27', totalDays: 5, reason: 'Summer break with family', status: 'APPROVED' },
+  { id: 3, user: { firstName: 'Raj', lastName: 'Gupta' }, leaveType: 'IL', startDate: '2025-06-23', endDate: '2025-06-27', totalDays: 5, reason: 'Summer break with family', status: 'APPROVED' },
   { id: 4, user: { firstName: 'Nguyen', lastName: 'Tran' }, leaveType: 'EMERGENCY', startDate: '2025-06-04', endDate: '2025-06-04', totalDays: 1, reason: 'Family emergency — parent hospitalized', status: 'APPROVED' },
-  { id: 5, user: { firstName: 'Nadia', lastName: 'Petrova' }, leaveType: 'ANNUAL', startDate: '2025-06-16', endDate: '2025-06-20', totalDays: 5, reason: 'Trip to Japan', status: 'APPROVED' },
+  { id: 5, user: { firstName: 'Nadia', lastName: 'Petrova' }, leaveType: 'IL', startDate: '2025-06-16', endDate: '2025-06-20', totalDays: 5, reason: 'Trip to Japan', status: 'APPROVED' },
   { id: 6, user: { firstName: 'Alex', lastName: 'Morgan' }, leaveType: 'SICK', startDate: '2025-06-25', endDate: '2025-06-26', totalDays: 2, reason: 'Dental surgery recovery', status: 'APPROVED' },
-  { id: 7, user: { firstName: 'Marcus', lastName: 'Johnson' }, leaveType: 'ANNUAL', startDate: '2025-07-07', endDate: '2025-07-11', totalDays: 5, reason: 'Visiting relatives overseas', status: 'PENDING' },
+  { id: 7, user: { firstName: 'Marcus', lastName: 'Johnson' }, leaveType: 'IL', startDate: '2025-07-07', endDate: '2025-07-11', totalDays: 5, reason: 'Visiting relatives overseas', status: 'PENDING' },
   { id: 8, user: { firstName: 'Lisa', lastName: 'Thompson' }, leaveType: 'SICK', startDate: '2025-07-01', endDate: '2025-07-02', totalDays: 2, reason: 'Scheduled surgery', status: 'PENDING' },
-  { id: 9, user: { firstName: 'Sara', lastName: 'Dupont' }, leaveType: 'MATERNITY', startDate: '2025-07-14', endDate: '2025-08-14', totalDays: 30, reason: 'Maternity leave', status: 'PENDING' },
-  { id: 10, user: { firstName: 'Peter', lastName: 'Jones' }, leaveType: 'ANNUAL', startDate: '2025-07-21', endDate: '2025-07-25', totalDays: 5, reason: 'Wedding anniversary trip', status: 'PENDING' },
+  { id: 9, user: { firstName: 'Sara', lastName: 'Dupont' }, leaveType: 'SPECIAL', startDate: '2025-07-14', endDate: '2025-08-14', totalDays: 30, reason: 'Maternity leave', status: 'PENDING' },
+  { id: 10, user: { firstName: 'Peter', lastName: 'Jones' }, leaveType: 'IL', startDate: '2025-07-21', endDate: '2025-07-25', totalDays: 5, reason: 'Wedding anniversary trip', status: 'PENDING' },
   { id: 11, user: { firstName: 'William', lastName: 'Scott' }, leaveType: 'EMERGENCY', startDate: '2025-07-03', endDate: '2025-07-03', totalDays: 1, reason: 'Home repair emergency', status: 'PENDING' },
-  { id: 12, user: { firstName: 'Emily', lastName: 'Wang' }, leaveType: 'ANNUAL', startDate: '2025-06-09', endDate: '2025-06-13', totalDays: 5, reason: 'Personal travel', status: 'REJECTED' },
+  { id: 12, user: { firstName: 'Emily', lastName: 'Wang' }, leaveType: 'IL', startDate: '2025-06-09', endDate: '2025-06-13', totalDays: 5, reason: 'Personal travel', status: 'REJECTED' },
   { id: 13, user: { firstName: 'Anna', lastName: 'Mueller' }, leaveType: 'UNPAID', startDate: '2025-06-23', endDate: '2025-07-04', totalDays: 10, reason: 'Extended personal project', status: 'REJECTED' },
-  { id: 14, user: { firstName: 'Isabella', lastName: 'Rossi' }, leaveType: 'ANNUAL', startDate: '2025-06-16', endDate: '2025-06-27', totalDays: 10, reason: 'Too many team members already on leave', status: 'REJECTED' },
+  { id: 14, user: { firstName: 'Isabella', lastName: 'Rossi' }, leaveType: 'IL', startDate: '2025-06-16', endDate: '2025-06-27', totalDays: 10, reason: 'Too many team members already on leave', status: 'REJECTED' },
 ];
 
 export const SEED_PAYROLLS = SEED_USERS.map((u, i) => {

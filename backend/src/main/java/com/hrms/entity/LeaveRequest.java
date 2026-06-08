@@ -52,7 +52,7 @@ public class LeaveRequest {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public enum LeaveType { ANNUAL, SICK, MATERNITY, PATERNITY, UNPAID, EMERGENCY }
+    public enum LeaveType { IL, SICK, SPECIAL, UNPAID, EMERGENCY }
     public enum LeaveStatus { PENDING, APPROVED, REJECTED, CANCELLED }
 
     @PrePersist

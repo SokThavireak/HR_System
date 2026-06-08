@@ -12,10 +12,50 @@ export default function App() {
 
   useEffect(() => {
     const token = localStorage.getItem('hrms_token');
+    const loginTime = localStorage.getItem('hrms_login_time');
+    const role = localStorage.getItem('hrms_role');
+
     if (token) {
+      // Check expiry: admin = 8 hours, employee = forever
+      if (loginTime && role === 'admin') {
+        const elapsed = Date.now() - Number(loginTime);
+        const eightHours = 8 * 60 * 60 * 1000;
+        if (elapsed > eightHours) {
+          // Admin session expired
+          localStorage.removeItem('hrms_token');
+          localStorage.removeItem('hrms_user');
+          localStorage.removeItem('hrms_login_time');
+          localStorage.removeItem('hrms_role');
+          setLoading(false);
+          return;
+        }
+      }
+
       authService.getCurrentUser()
-        .then(setUser)
-        .catch(() => localStorage.removeItem('hrms_token'))
+        .then((u) => {
+          // Normalize roles: API returns Role objects, but we need string names
+          if (u?.roles?.length && typeof u.roles[0] === 'object') {
+            u.roles = u.roles.map((r) => r.name || r);
+          }
+          setUser(u);
+        })
+        .catch(() => {
+          try {
+            const saved = localStorage.getItem('hrms_user');
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              if (parsed?.roles?.length && typeof parsed.roles[0] === 'object') {
+                parsed.roles = parsed.roles.map((r) => r.name || r);
+              }
+              setUser(parsed);
+              return;
+            }
+          } catch (e) {}
+          localStorage.removeItem('hrms_token');
+          localStorage.removeItem('hrms_user');
+          localStorage.removeItem('hrms_login_time');
+          localStorage.removeItem('hrms_role');
+        })
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
@@ -32,7 +72,16 @@ export default function App() {
 
   if (loadingPage) return <LoadingPage />;
 
-  if (!user) return <LoginPage onLogin={(data) => { setLoadingPage(true); setTimeout(() => { setUser(data); setLoadingPage(false); }, 2000); }} />;
+  if (!user) return <LoginPage onLogin={(data) => {
+    setLoadingPage(true);
+    try {
+      localStorage.setItem('hrms_user', JSON.stringify(data));
+      localStorage.setItem('hrms_login_time', String(Date.now()));
+      const isAdmin = data.roles?.includes('ROLE_HR_ADMIN');
+      localStorage.setItem('hrms_role', isAdmin ? 'admin' : 'employee');
+    } catch(e) {}
+    setTimeout(() => { setUser(data); setLoadingPage(false); }, 2000);
+  }} />;
 
   const isAdmin = user.roles?.includes('ROLE_HR_ADMIN');
   return isAdmin ? <AdminDashboard user={user} /> : <EmployeeDashboard user={user} />;

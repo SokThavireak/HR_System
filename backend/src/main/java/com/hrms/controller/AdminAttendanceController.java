@@ -21,13 +21,29 @@ public class AdminAttendanceController {
 
     private final AttendanceRepository attendanceRepo;
     private final UserRepository userRepo;
+    private final com.hrms.repository.LeaveRequestRepository leaveRepo;
 
     @GetMapping
     public Page<Attendance> getAttendance(
             @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String employeeId,
+            @RequestParam(required = false) Long id,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             Pageable page) {
+        if (id != null) {
+            return attendanceRepo.findById(id)
+                    .map(java.util.Collections::singletonList)
+                    .map(list -> new org.springframework.data.domain.PageImpl<>(list, page, 1))
+                    .orElseGet(() -> new org.springframework.data.domain.PageImpl<>(java.util.Collections.emptyList(), page, 0));
+        }
+        if (employeeId != null && !employeeId.isBlank()) {
+            User user = userRepo.findByEmployeeId(employeeId).orElseThrow(() -> new RuntimeException("User not found"));
+            if (from != null && to != null) {
+                return attendanceRepo.findByUserIdAndDateBetweenOrderByDateDesc(user.getId(), from, to, page);
+            }
+            return attendanceRepo.findByUserOrderByDateDesc(user, page);
+        }
         if (userId != null && from != null && to != null) {
             return attendanceRepo.findByUserIdAndDateBetweenOrderByDateDesc(userId, from, to, page);
         }
@@ -138,6 +154,7 @@ public class AdminAttendanceController {
     @GetMapping("/summary")
     public AttendanceSummary getSummary(
             @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String employeeId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         // Default to current month if not provided
@@ -146,9 +163,13 @@ public class AdminAttendanceController {
             from = now.withDayOfMonth(1);
             to = now.withDayOfMonth(now.lengthOfMonth());
         }
+        // Resolve userId from employeeId if provided
+        if (userId == null && employeeId != null && !employeeId.isBlank()) {
+            userId = userRepo.findByEmployeeId(employeeId).map(User::getId).orElse(null);
+        }
         // If no userId, return aggregate zeros (frontend will compute from records)
         if (userId == null) {
-            return new AttendanceSummary(0.0, 0.0, 0L, 0, 0L);
+            return new AttendanceSummary(0.0, 0.0, 0L, 0, 0L, 0L, 0L, 0L, 0, 0, 0, 0, 0, 0);
         }
         Double totalHours = attendanceRepo.sumHoursWorked(userId, from, to);
         Double totalOvertime = attendanceRepo.sumOvertimeByUserAndPeriod(userId, from, to);
@@ -156,7 +177,21 @@ public class AdminAttendanceController {
         Integer totalLateMinutes = attendanceRepo.sumLateMinutesExcludingLeave(userId, from, to);
         Long lateDays = attendanceRepo.countLateDaysExcludingLeave(userId, from, to);
 
-        return new AttendanceSummary(totalHours, totalOvertime, presentDays, totalLateMinutes, lateDays);
+        // Leave counts by type within the date range
+        long ilDays = leaveRepo.countByUserAndTypeAndDateRange(userId, com.hrms.entity.LeaveRequest.LeaveType.IL, from, to);
+        long sickDays = leaveRepo.countByUserAndTypeAndDateRange(userId, com.hrms.entity.LeaveRequest.LeaveType.SICK, from, to);
+        long specialDays = leaveRepo.countByUserAndTypeAndDateRange(userId, com.hrms.entity.LeaveRequest.LeaveType.SPECIAL, from, to);
+
+        // Fetch entitlements from user
+        User user = userRepo.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+
+        return new AttendanceSummary(
+            totalHours, totalOvertime, presentDays, totalLateMinutes, lateDays,
+            ilDays, sickDays, specialDays,
+            user.getIlLeaveEntitlement(), user.getIlLeaveUsed(),
+            user.getSickLeaveEntitlement(), user.getSickLeaveUsed(),
+            user.getSpecialLeaveEntitlement(), user.getSpecialLeaveUsed()
+        );
     }
 
     @lombok.Data
@@ -188,6 +223,15 @@ public class AdminAttendanceController {
         Double totalOvertimeHours,
         Long presentDays,
         Integer totalLateMinutes,
-        Long lateDays
+        Long lateDays,
+        Long ilLeaveDays,
+        Long sickLeaveDays,
+        Long specialLeaveDays,
+        Integer ilEntitlement,
+        Integer ilUsed,
+        Integer sickEntitlement,
+        Integer sickUsed,
+        Integer specialEntitlement,
+        Integer specialUsed
     ) {}
 }

@@ -11,8 +11,8 @@ export const attendanceService = {
     api.get('/employee/attendance/monthly', { params: { month, year } }),
 
   /* ---------- Admin endpoints ---------- */
-  getAllAttendance: (from, to, userId, page = 0, size = 20) =>
-    api.get('/admin/attendance', { params: { from, to, userId, page, size } }),
+  getAllAttendance: (from, to, userId, page = 0, size = 20, id = null, employeeId = null) =>
+    api.get('/admin/attendance', { params: { from, to, userId, page, size, id, employeeId } }),
   getUserAttendance: (userId, from, to) =>
     api.get(`/admin/attendance/employee/${userId}`, {
       params: { from, to },
@@ -26,5 +26,5 @@ export const attendanceService = {
       params: { from, to, userId },
       responseType: 'blob',
     }),
-  getSummary: () => api.get('/admin/attendance/summary'),
+  getSummary: (userId, from, to) => api.get('/admin/attendance/summary', { params: { userId, from, to } }),
 };

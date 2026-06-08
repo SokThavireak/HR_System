@@ -29,6 +29,9 @@ export const adminService = {
   rejectLeave: (id, reason) =>
     api.put(`/admin/leaves/${id}/reject`, { rejectionReason: reason }),
   cancelLeave: (id) => api.put(`/admin/leaves/${id}/cancel`),
+  updateLeave: (id, data) => api.put(`/admin/leaves/${id}`, data),
+  getLeaveBalance: (userId) => api.get(`/admin/leaves/balance/${userId}`),
+  updateLeaveBalance: (userId, data) => api.put(`/admin/leaves/balance/${userId}`, data),
 
   /* =================================================================
      PAYROLL  —  list · get · calculate · create · process · pay · delete

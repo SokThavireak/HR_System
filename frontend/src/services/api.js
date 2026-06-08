@@ -7,6 +7,7 @@ const API_BASE = process.env.REACT_APP_API_URL || '/api/v1';
 const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 5000, // 5 second timeout — fail fast if backend is down
 });
 
 api.interceptors.request.use((config) => {

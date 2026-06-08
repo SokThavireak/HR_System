@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { adminService } from "../services/adminService";
 import AttendancePage from "./AttendancePage";
 import { ShaderAnimation } from "../components/ui/shader-animation";
@@ -9,9 +9,12 @@ import {
   Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
   LoadingSkeleton, AdminDashboardSkeleton, AdminTableSkeleton, DeptPositionSkeleton,
   AdminAttendanceSkeleton, LeaveApprovalsSkeleton, PayrollSkeleton, PerformanceSkeleton,
+  AttendancePageSkeleton,
   PageTransition, Modal,
 } from "../components/ui";
 import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
+import { useToast } from "../hooks/useToast";
+import ToastContainer from "../components/common/ToastContainer";
 
 const SIDEBAR_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: "home" },
@@ -67,7 +70,8 @@ function useLocalState(key, initial, seed) {
     return initial;
   });
   React.useEffect(() => { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }, [key, v]);
-  return [v, setV];
+  const safeV = Array.isArray(v) ? v : (Array.isArray(initial) ? initial : []);
+  return [safeV, setV];
 }
 
 /* ─── Stat Card ─── */
@@ -87,13 +91,15 @@ function StatCard({ bg, value, label, iconName }) {
 
 
 export default function AdminDashboard({ user }) {
-  const [section, setSection] = useState("dashboard");
+  const [section, _setSection] = useState(() => localStorage.getItem("admin_section") || "dashboard");
+  const setSection = (key) => { _setSection(key); localStorage.setItem("admin_section", key); };
   const [navVisible, setNavVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [activeNavY, setActiveNavY] = useState(0);
   const [activeNavH, setActiveNavH] = useState(44);
   const navItemRefs = React.useRef([]);
   const navRef = React.useRef(null);
+  const { toasts, showToast, removeToast } = useToast();
 
   // Calculate sliding indicator position & height to match active nav item exactly
   const updateActiveNavY = React.useCallback(() => {
@@ -179,7 +185,7 @@ export default function AdminDashboard({ user }) {
                 <button
                   key={item.key}
                   ref={el => { navItemRefs.current[idx] = el; }}
-                  onClick={() => { updateActiveNavY(); setSection(item.key); }}
+                  onClick={() => { updateActiveNavY(); setSection(item.key); localStorage.setItem("admin_section", item.key); }}
                   className={`animate-sidebar-item relative z-10 flex w-full items-center gap-3 rounded-xl px-3 text-sm font-medium cursor-pointer transition-all duration-300 ${
                     isActive
                       ? "text-white font-bold"
@@ -216,7 +222,7 @@ export default function AdminDashboard({ user }) {
               </div>
             </div>
             <button
-              onClick={() => { localStorage.removeItem("hrms_token"); window.location.reload(); }}
+              onClick={() => { localStorage.removeItem("hrms_token"); localStorage.removeItem("hrms_user"); localStorage.removeItem("hrms_login_time"); localStorage.removeItem("hrms_role"); window.location.reload(); }}
               className="flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:text-white cursor-pointer"
               style={{ background: "rgba(255,255,255,0.1)" }}
             >
@@ -244,10 +250,17 @@ export default function AdminDashboard({ user }) {
               <p className="text-sm text-muted-foreground">Admin Portal</p>
             </div>
           </div>
-          <div className="flex items-center gap-4 animate-header-right">
+          <div className="flex items-center gap-3 animate-header-right">
             <time className="text-sm text-muted-foreground animate-header-time">
               {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
             </time>
+            <button
+              onClick={() => window.location.reload()}
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-muted-foreground hover:bg-gray-200 hover:text-foreground transition-colors cursor-pointer"
+              title="Refresh page"
+            >
+              <Icon name="refresh" size={16} />
+            </button>
           </div>
         </header>
 
@@ -257,12 +270,15 @@ export default function AdminDashboard({ user }) {
             {section === "users" && <UserManagementView />}
             {section === "categories" && <CategoryView />}
             {section === "attendance" && <AttendancePage showSidebar={false} admin />}
-            {section === "leaves" && <LeaveApprovalsView />}
-            {section === "payroll" && <PayrollView />}
-            {section === "performance" && <PerformanceView />}
+            {section === "leaves" && <LeaveApprovalsView showToast={showToast} />}
+            {section === "payroll" && <PayrollView showToast={showToast} />}
+            {section === "performance" && <PerformanceView showToast={showToast} />}
           </PageTransition>
         </main>
       </div>
+
+      {/* Toast notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 }
@@ -287,12 +303,11 @@ function CategoryView() {
   // Load from API on mount (falls back to seed data if API fails)
   useEffect(() => {
     setLoading(true);
-    const minDelay = new Promise((r) => setTimeout(r, 800));
     Promise.allSettled([
-      adminService.getDepartmentList().then((r) => { if (r.data?.length) setDepartments(r.data); }),
-      adminService.getPositionList().then((r) => { if (r.data?.length) setPositions(r.data); }),
+      adminService.getDepartmentList().then((r) => { const d = Array.isArray(r.data) ? r.data : (r.data?.content || []); if (d.length) setDepartments(d); }),
+      adminService.getPositionList().then((r) => { const d = Array.isArray(r.data) ? r.data : (r.data?.content || []); if (d.length) setPositions(d); }),
     ]).catch((e) => console.error("[CategoryView] API load failed:", e))
-     .finally(() => { Promise.all([minDelay]).then(() => setLoading(false)); });
+     .finally(() => setLoading(false));
   }, []);
 
   // Department CRUD
@@ -654,11 +669,10 @@ function DashboardView({ user }) {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     setLoading(true);
-    const minDelay = new Promise((r) => setTimeout(r, 1200));
     adminService.getDashboardStats()
       .then((r) => setStats(r.data))
       .catch((e) => console.error("[Dashboard] API load failed:", e))
-      .finally(() => { Promise.all([minDelay]).then(() => setLoading(false)); });
+      .finally(() => setLoading(false));
   }, []);
   if (loading) return <AdminDashboardSkeleton />;
 
@@ -906,7 +920,8 @@ function DashboardView({ user }) {
 function UserManagementView() {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useLocalState("am-search", "");
-  const [form, setForm] = useLocalState("am-form", { firstName: "", lastName: "", email: "", phone: "", department: "", position: "", baseSalary: "", hireDate: "", role: "ROLE_EMPLOYEE", password: "changeme" });
+  const [filterEmployeeId, setFilterEmployeeId] = useLocalState("am-filterEmployeeId", "");
+  const [form, setForm] = useLocalState("am-form", { employeeId: "", firstName: "", lastName: "", email: "", phone: "", department: "", position: "", baseSalary: "", hireDate: "", role: "ROLE_EMPLOYEE", password: "changeme" });
   const [loading, setLoading] = useState(true);
   const [editUserId, setEditUserId] = useState(null);
   const [departments] = useLocalState("cat-departments", [], SEED_DEPARTMENTS);
@@ -931,7 +946,7 @@ function UserManagementView() {
     : positions;
 
   const resetForm = () => {
-    setForm({ firstName: "", lastName: "", email: "", phone: "", department: "", position: "", baseSalary: "", workHoursPerDay: "", workingDaysPerMonth: "", workStartTime: "", hireDate: "", role: "ROLE_EMPLOYEE", password: "changeme" });
+    setForm({ employeeId: "", firstName: "", lastName: "", email: "", phone: "", department: "", position: "", baseSalary: "", workHoursPerDay: "", workingDaysPerMonth: "", workStartTime: "", hireDate: "", role: "ROLE_EMPLOYEE", password: "changeme" });
     setEditUserId(null);
   };
 
@@ -945,6 +960,7 @@ function UserManagementView() {
   const startEdit = (u) => {
     setEditUserId(u.id);
     setForm({
+      employeeId: u.employeeId || "",
       firstName: u.firstName || "",
       lastName: u.lastName || "",
       email: u.email || "",
@@ -1081,6 +1097,16 @@ function UserManagementView() {
                 )}
               </div>
               <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Employee ID</label>
+                {editUserId !== null ? (
+                  <div className="flex h-10 items-center rounded-lg border border-gray-200 bg-gray-50 px-3">
+                    <span className="font-mono text-sm font-semibold text-primary">{form.employeeId || "—"}</span>
+                  </div>
+                ) : (
+                  <Input value={form.employeeId || ""} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} placeholder="Auto-generated if left blank" />
+                )}
+              </div>
+              <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">Role</label>
                 <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
                   <option value="ROLE_EMPLOYEE">Employee</option>
@@ -1105,10 +1131,16 @@ function UserManagementView() {
       </Card>
       </ScrollReveal>
 
-      {/* Search */}
+      {/* Search + Filter */}
       <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Input placeholder="Search name, email, dept…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
+          <Input placeholder="Filter by Employee ID…" value={filterEmployeeId} onChange={(e) => setFilterEmployeeId(e.target.value)} className="max-w-[220px]" />
+          {filterEmployeeId && (
+            <Button onClick={() => setFilterEmployeeId("")} variant="ghost" size="sm">
+              <Icon name="x" size={12} /> Clear ID
+            </Button>
+          )}
           <Button onClick={load} variant="outline"><Icon name="search" size={14} /> Search</Button>
           <Button onClick={load} variant="secondary"><Icon name="refresh" size={14} /> Refresh</Button>
         </div>
@@ -1117,7 +1149,7 @@ function UserManagementView() {
       {/* Table */}
       <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Employees ({users.length})</CardTitle></CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Employees ({users.filter((u) => !filterEmployeeId || (u.employeeId && u.employeeId.includes(filterEmployeeId))).length})</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
             <p className="py-8 text-center text-muted-foreground">Loading…</p>
@@ -1127,6 +1159,7 @@ function UserManagementView() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Employee ID</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Department</TableHead>
@@ -1134,15 +1167,20 @@ function UserManagementView() {
                   <TableHead>Salary</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Leave Balance</TableHead>
                   <TableHead className="w-[130px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((u) => {
+                {users.filter((u) => {
+                  if (!filterEmployeeId) return true;
+                  return u.employeeId && u.employeeId.includes(filterEmployeeId);
+                }).map((u) => {
                   const isAdmin = (u.roles || []).some((r) => r.name === "ROLE_HR_ADMIN");
                   const saving = editUserId === u.id;
                   return (
                     <TableRow key={u.id} style={saving ? { background: "rgba(59,130,246,0.04)" } : undefined}>
+                      <TableCell><span className="font-mono text-xs font-semibold text-primary">{u.employeeId || "—"}</span></TableCell>
                       <TableCell className="font-medium">{u.firstName} {u.lastName}</TableCell>
                       <TableCell className="text-muted-foreground">{u.email}</TableCell>
                       <TableCell>
@@ -1154,6 +1192,13 @@ function UserManagementView() {
                       <TableCell className="font-semibold">{u.baseSalary ? `$${u.baseSalary}` : "—"}</TableCell>
                       <TableCell><Badge variant={isAdmin ? "default" : "outline"}>{isAdmin ? "Admin" : "Employee"}</Badge></TableCell>
                       <TableCell><Badge variant={u.active ? "success" : "destructive"}>{u.active ? "Active" : "Inactive"}</Badge></TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5 text-[10px] leading-tight">
+                          <span className="inline-flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" /> IL: {u.ilLeaveEntitlement != null ? `${u.ilLeaveEntitlement - (u.ilLeaveUsed || 0)}/${u.ilLeaveEntitlement}` : "—"}</span>
+                          <span className="inline-flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" /> Sick: {u.sickLeaveEntitlement != null ? `${u.sickLeaveEntitlement - (u.sickLeaveUsed || 0)}/${u.sickLeaveEntitlement}` : "—"}</span>
+                          <span className="inline-flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-purple-500" /> Special: {u.specialLeaveEntitlement != null ? `${u.specialLeaveEntitlement - (u.specialLeaveUsed || 0)}/${u.specialLeaveEntitlement}` : "—"}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <button title="Edit" onClick={() => startEdit(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
@@ -1178,52 +1223,363 @@ function UserManagementView() {
 /* ═══════════════════════════════════════════
    LEAVE APPROVALS
    ═══════════════════════════════════════════ */
-function LeaveApprovalsView() {
+function LeaveApprovalsView({ showToast }) {
   const [leaves, setLeaves] = useLocalState("al-leaves", []);
+  const [historyLeaves, setHistoryLeaves] = useLocalState("al-leaves-history", []);
   const [loading, setLoading] = useState(true);
-  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getLeaves("PENDING").then((r) => setLeaves(r.data.content || r.data)).catch((e) => console.error("[LeaveApprovals] API load failed:", e)).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
-  useEffect(() => { load(); }, []);
-  const approve = (id) => adminService.approveLeave(id).then(load);
-  const reject = (id) => { const r = prompt("Reason:"); if (r) adminService.rejectLeave(id, r).then(load); };
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("pending");
+  const [rejectTarget, setRejectTarget] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [detailView, setDetailView] = useState(null);
+  const [editLeave, setEditLeave] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null);
+  const editFormRef = useRef(null);
 
-  if (loading) return <LeaveApprovalsSkeleton />;
+  const loadPending = useCallback(() => {
+    setLoading(true);
+    adminService.getLeaves("PENDING")
+      .then((r) => setLeaves(r.data.content || r.data))
+      .catch((e) => { console.error("[LeaveApprovals] API load failed:", e); showToast("Failed to load pending leaves", "error"); })
+      .finally(() => setLoading(false));
+  }, [setLeaves, showToast]);
+
+  const loadHistory = useCallback(() => {
+    setHistoryLoading(true);
+    Promise.allSettled([
+      adminService.getLeaves("APPROVED"),
+      adminService.getLeaves("REJECTED"),
+    ])
+      .then((results) => {
+        const all = [];
+        results.forEach((res) => {
+          if (res.status === "fulfilled") {
+            all.push(...(res.value.data.content || res.value.data || []));
+          }
+        });
+        all.sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""));
+        setHistoryLeaves(all);
+      })
+      .catch((e) => { console.error("[LeaveApprovals] History load failed:", e); showToast("Failed to load leave history", "error"); })
+      .finally(() => setHistoryLoading(false));
+  }, [setHistoryLeaves, showToast]);
+
+  useEffect(() => { loadPending(); loadHistory(); }, [loadPending, loadHistory]);
+
+  const approve = async (id) => {
+    setActionLoading(id);
+    try {
+      await adminService.approveLeave(id);
+      showToast("Leave approved successfully", "success");
+      loadPending();
+      loadHistory();
+    } catch (err) {
+      showToast("Failed to approve: " + (err?.message || "Unknown error"), "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const reject = async () => {
+    if (!rejectTarget || !rejectReason.trim()) return;
+    const id = rejectTarget;
+    setRejectTarget(null);
+    setRejectReason("");
+    setActionLoading(id);
+    try {
+      await adminService.rejectLeave(id, rejectReason);
+      showToast("Leave rejected", "success");
+      loadPending();
+      loadHistory();
+    } catch (err) {
+      showToast("Failed to reject: " + (err?.message || "Unknown error"), "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const openDetail = async (id) => {
+    try {
+      const r = await adminService.getLeave(id);
+      setDetailView(r.data);
+    } catch (err) {
+      showToast("Failed to load details", "error");
+    }
+  };
+
+  const openEdit = (lv) => {
+    setEditLeave(lv);
+    setEditForm({
+      leaveType: lv.leaveType || "IL",
+      startDate: lv.startDate || "",
+      endDate: lv.endDate || "",
+      reason: lv.reason || "",
+    });
+    setTimeout(() => {
+      editFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editLeave || !editForm) return;
+    setEditLoading(true);
+    try {
+      await adminService.updateLeave(editLeave.id, {
+        leaveType: editForm.leaveType,
+        startDate: editForm.startDate,
+        endDate: editForm.endDate,
+        reason: editForm.reason,
+      });
+      showToast("Leave request updated successfully", "success");
+      setEditLeave(null);
+      setEditForm(null);
+      loadPending();
+      loadHistory();
+    } catch (err) {
+      showToast("Failed to update: " + (err?.message || "Unknown error"), "error");
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Leave Approvals</h2>
-          <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
+          <h2 className="text-2xl font-bold">Leave Management</h2>
+          <Button onClick={() => { loadPending(); loadHistory(); }} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
         </div>
       </ScrollReveal>
-      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
-        <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-base">Pending Requests ({leaves.length})</CardTitle></CardHeader>
-          <CardContent>
-            {!leaves.length ? <p className="py-8 text-center text-muted-foreground">No pending requests.</p> : (
-              <Table>
-                <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Type</TableHead><TableHead>From</TableHead><TableHead>To</TableHead><TableHead>Days</TableHead><TableHead>Reason</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {leaves.map((lv) => (
-                    <TableRow key={lv.id}>
-                      <TableCell className="font-medium">{(lv.user || {}).firstName} {(lv.user || {}).lastName}</TableCell>
-                      <TableCell>{lv.leaveType}</TableCell><TableCell>{lv.startDate}</TableCell><TableCell>{lv.endDate}</TableCell><TableCell>{lv.totalDays}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{lv.reason}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <button onClick={() => approve(lv.id)} title="Approve" className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer"><Icon name="check" size={14} /></button>
-                          <button onClick={() => reject(lv.id)} title="Reject" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="x" size={14} /></button>
-                          <button onClick={() => adminService.getLeave(lv.id).then((r) => alert(JSON.stringify(r.data, null, 2)))} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+
+      {/* Tabs */}
+      <div className="relative flex gap-1 rounded-xl bg-gray-100 p-1">
+        <div
+          className="absolute rounded-lg pointer-events-none"
+          style={{
+            width: "calc(50% - 4px)",
+            height: "calc(100% - 8px)",
+            top: "4px",
+            left: activeTab === "pending" ? "4px" : "calc(50% + 4px)",
+            background: "#9a0002",
+            boxShadow: "0 4px 16px rgba(154,0,2,0.25), inset 0 1px 0 rgba(255,255,255,0.15)",
+            transition: "left 0.55s cubic-bezier(0.34, 1.56, 0.64, 1)",
+          }}
+        />
+        <button
+          onClick={() => setActiveTab("pending")}
+          className={`relative z-10 flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-300 cursor-pointer ${activeTab === "pending" ? "text-white" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          Pending {leaves.length > 0 && <span className={`ml-1.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${activeTab === "pending" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-600"}`}>{leaves.length}</span>}
+        </button>
+        <button
+          onClick={() => setActiveTab("history")}
+          className={`relative z-10 flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-300 cursor-pointer ${activeTab === "history" ? "text-white" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          History {historyLeaves.length > 0 && <span className={`ml-1.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${activeTab === "history" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-600"}`}>{historyLeaves.length}</span>}
+        </button>
+      </div>
+
+      {/* ═══ PENDING TAB ═══ */}
+      {activeTab === "pending" && (
+        <div className="space-y-6 tab-card-stagger animate-tab-slide-left" key="pending-tab">
+          <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
+            <Card>
+              <CardHeader className="pb-3"><CardTitle className="text-base">Pending Requests ({leaves.length})</CardTitle></CardHeader>
+              <CardContent>
+                {loading ? (
+                  <LeaveApprovalsSkeleton />
+                ) : !leaves.length ? (
+                  <div className="py-12 text-center">
+                    <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
+                      <Icon name="check" size={24} />
+                    </div>
+                    <p className="font-medium text-muted-foreground">All caught up!</p>
+                    <p className="text-xs text-muted-foreground">No pending leave requests.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Type</TableHead><TableHead>From</TableHead><TableHead>To</TableHead><TableHead>Days</TableHead><TableHead>Reason</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {leaves.map((lv) => (
+                        <TableRow key={lv.id} style={actionLoading === lv.id ? { opacity: 0.5 } : undefined}>
+                          <TableCell className="font-medium">{(lv.user || {}).firstName} {(lv.user || {}).lastName}</TableCell>
+                          <TableCell><Badge variant="outline">{lv.leaveType}</Badge></TableCell>
+                          <TableCell>{lv.startDate}</TableCell><TableCell>{lv.endDate}</TableCell><TableCell>{lv.totalDays}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{lv.reason}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <button onClick={() => approve(lv.id)} title="Approve" className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer"><Icon name="check" size={14} /></button>
+                              <button onClick={() => { setRejectTarget(lv.id); setRejectReason(""); }} title="Reject" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="x" size={14} /></button>
+                              <button onClick={() => openDetail(lv.id)} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </ScrollReveal>
+        </div>
+      )}
+
+      {/* ═══ HISTORY TAB ═══ */}
+      {activeTab === "history" && (
+        <div className="space-y-6 tab-card-stagger animate-tab-slide-right" key="history-tab">
+          <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
+            <Card>
+              <CardHeader className="pb-3"><CardTitle className="text-base">Leave History ({historyLeaves.length})</CardTitle></CardHeader>
+              <CardContent>
+                {historyLoading ? (
+                  <p className="py-8 text-center text-muted-foreground">Loading…</p>
+                ) : !historyLeaves.length ? (
+                  <div className="py-12 text-center">
+                    <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+                      <Icon name="calendar" size={24} />
+                    </div>
+                    <p className="font-medium text-muted-foreground">No history yet</p>
+                    <p className="text-xs text-muted-foreground">Approved and rejected leaves will appear here.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Type</TableHead><TableHead>From</TableHead><TableHead>To</TableHead><TableHead>Days</TableHead><TableHead>Status</TableHead><TableHead>Reason</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {historyLeaves.map((lv) => (
+                        <TableRow key={lv.id}>
+                          <TableCell className="font-medium">{(lv.user || {}).firstName} {(lv.user || {}).lastName}</TableCell>
+                          <TableCell><Badge variant="outline">{lv.leaveType}</Badge></TableCell>
+                          <TableCell>{lv.startDate}</TableCell><TableCell>{lv.endDate}</TableCell><TableCell>{lv.totalDays}</TableCell>
+                          <TableCell>
+                            <Badge variant={lv.status === "APPROVED" ? "success" : "destructive"}>{lv.status}</Badge>
+                          </TableCell>
+                          <TableCell className="max-w-[200px] truncate">{lv.reason}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <button onClick={() => openDetail(lv.id)} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
+                              <button onClick={() => openEdit(lv)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 cursor-pointer"><Icon name="edit" size={14} /></button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </ScrollReveal>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      <Modal
+        open={!!rejectTarget}
+        onClose={() => { setRejectTarget(null); setRejectReason(""); }}
+        title="Reject Leave Request"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => { setRejectTarget(null); setRejectReason(""); }}>Cancel</Button>
+            <Button onClick={reject} variant="destructive" disabled={!rejectReason.trim()}>Reject</Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">Please provide a reason for rejecting this leave request.</p>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Rejection Reason *</label>
+            <Textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Insufficient staffing during this period..."
+              rows={3}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Detail View Modal */}
+      <Modal
+        open={!!detailView}
+        onClose={() => setDetailView(null)}
+        title="Leave Request Details"
+        footer={
+          <Button variant="outline" onClick={() => setDetailView(null)}>Close</Button>
+        }
+      >
+        {detailView && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Employee</p><p className="font-semibold">{(detailView.user || {}).firstName} {(detailView.user || {}).lastName}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Status</p><Badge variant={detailView.status === "APPROVED" ? "success" : detailView.status === "REJECTED" ? "destructive" : "warning"}>{detailView.status}</Badge></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Type</p><p className="font-semibold">{detailView.leaveType}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Duration</p><p className="font-semibold">{detailView.totalDays} day{detailView.totalDays !== 1 ? "s" : ""}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">From</p><p className="font-semibold">{detailView.startDate}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">To</p><p className="font-semibold">{detailView.endDate}</p></div>
+            </div>
+            <div className="rounded-lg bg-gray-50 p-3"><p className="text-[10px] text-muted-foreground mb-1">Reason</p><p className="text-sm whitespace-pre-wrap">{detailView.reason}</p></div>
+            {detailView.rejectionReason && (
+              <div className="rounded-lg bg-red-50 p-3 border border-red-100"><p className="text-[10px] text-red-500 mb-1">Rejection Reason</p><p className="text-sm text-red-700 whitespace-pre-wrap">{detailView.rejectionReason}</p></div>
             )}
-          </CardContent>
-        </Card>
-      </ScrollReveal>
+            {(detailView.user?.ilLeaveEntitlement != null) && (
+              <div className="rounded-lg bg-blue-50/50 p-3 border border-blue-100">
+                <p className="text-[10px] text-muted-foreground mb-1.5 font-medium">Employee Leave Balance</p>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="text-center"><p className="text-blue-600 font-bold text-sm">{detailView.user.ilLeaveEntitlement - (detailView.user.ilLeaveUsed || 0)}</p><p className="text-[10px] text-muted-foreground">IL Left</p></div>
+                  <div className="text-center"><p className="text-amber-600 font-bold text-sm">{detailView.user.sickLeaveEntitlement - (detailView.user.sickLeaveUsed || 0)}</p><p className="text-[10px] text-muted-foreground">Sick Left</p></div>
+                  <div className="text-center"><p className="text-purple-600 font-bold text-sm">{detailView.user.specialLeaveEntitlement - (detailView.user.specialLeaveUsed || 0)}</p><p className="text-[10px] text-muted-foreground">Special Left</p></div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* Edit Leave Modal */}
+      <Modal
+        open={!!editLeave}
+        onClose={() => { setEditLeave(null); setEditForm(null); }}
+        title="Edit Leave Request"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => { setEditLeave(null); setEditForm(null); }}>Cancel</Button>
+            <Button onClick={handleEditSubmit} disabled={editLoading}>
+              {editLoading ? "Saving…" : "Save Changes"}
+            </Button>
+          </>
+        }
+      >
+        {editForm && (
+          <form ref={editFormRef} onSubmit={handleEditSubmit} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Leave Type</label>
+              <Select value={editForm.leaveType} onChange={(e) => setEditForm({ ...editForm, leaveType: e.target.value })} required>
+                <option value="IL">IL (Informed Leave)</option>
+                <option value="SICK">Sick Leave</option>
+                <option value="SPECIAL">Special Leave</option>
+                <option value="UNPAID">Unpaid</option>
+                <option value="EMERGENCY">Emergency</option>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Start Date</label>
+                <Input type="date" value={editForm.startDate} onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })} required />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">End Date</label>
+                <Input type="date" value={editForm.endDate} onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })} required />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Reason</label>
+              <Textarea value={editForm.reason} onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })} rows={3} required />
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -1231,26 +1587,107 @@ function LeaveApprovalsView() {
 /* ═══════════════════════════════════════════
    PAYROLL
    ═══════════════════════════════════════════ */
-function PayrollView() {
+function PayrollView({ showToast }) {
   const [payrolls, setPayrolls] = useLocalState("ap-payrolls", []);
   const [loading, setLoading] = useState(true);
+  const [filterUser, setFilterUser] = useState("");
   const [calcOpen, setCalcOpen] = useState(false);
   const [calcLoading, setCalcLoading] = useState(false);
   const [calcPreview, setCalcPreview] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [detailView, setDetailView] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [editPayroll, setEditPayroll] = useState(null);
+  const [editPayrollLoading, setEditPayrollLoading] = useState(false);
+  const [editPayrollForm, setEditPayrollForm] = useState({ taxDeduction: "", insuranceDeduction: "", otherDeductions: "", notes: "" });
+  const editPayrollRef = useRef(null);
   const [calcForm, setCalcForm] = useState({
     userId: "", fullTimeWorkHours: "", taxDeduction: "0", insuranceDeduction: "0", otherDeductions: "0",
     payPeriodStart: new Date().toISOString().slice(0, 7) + "-01",
     payPeriodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10),
   });
-  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getPayrolls().then((r) => setPayrolls(r.data.content || r.data)).catch((e) => console.error("[Payroll] API load failed:", e)).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
-  useEffect(() => { load(); }, []);
-  const processRec = (id) => adminService.processPayroll(id).then(load);
-  const payRec = (id) => adminService.payPayroll(id).then(load);
-  const deleteRec = (id) => { if (confirm("Delete?")) adminService.deletePayroll(id).then(load); };
+
+  const load = useCallback(() => {
+    setLoading(true);
+    adminService.getPayrolls()
+      .then((r) => setPayrolls(r.data.content || r.data))
+      .catch((e) => { console.error("[Payroll] API load failed:", e); showToast("Failed to load payroll records", "error"); })
+      .finally(() => setLoading(false));
+  }, [setPayrolls, showToast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filteredPayrolls = useMemo(() => {
+    if (!filterUser.trim()) return payrolls;
+    const q = filterUser.trim().toLowerCase();
+    return payrolls.filter((pr) => {
+      const u = pr.user || {};
+      if (u.employeeId && String(u.employeeId) === q) return true;
+      const name = ((u.firstName || "") + " " + (u.lastName || "")).toLowerCase();
+      if (name.includes(q)) return true;
+      if ((u.firstName || "").toLowerCase().includes(q)) return true;
+      if ((u.lastName || "").toLowerCase().includes(q)) return true;
+      return false;
+    });
+  }, [payrolls, filterUser]);
+
+  const processRec = async (id) => {
+    setActionLoading(id);
+    try {
+      await adminService.processPayroll(id);
+      showToast("Payroll processed successfully", "success");
+      load();
+    } catch (err) {
+      showToast("Failed to process: " + (err?.message || "Unknown error"), "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const payRec = async (id) => {
+    setActionLoading(id);
+    try {
+      await adminService.payPayroll(id);
+      showToast("Payroll marked as paid", "success");
+      load();
+    } catch (err) {
+      showToast("Failed to mark paid: " + (err?.message || "Unknown error"), "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const deleteRec = async (id) => {
+    setDeleteConfirm(null);
+    setActionLoading(id);
+    try {
+      await adminService.deletePayroll(id);
+      showToast("Payroll record deleted", "success");
+      load();
+    } catch (err) {
+      showToast("Failed to delete: " + (err?.message || "Unknown error"), "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleBulkProcess = async () => {
+    setBulkLoading(true);
+    try {
+      await adminService.bulkProcess();
+      showToast("Bulk payroll processed successfully", "success");
+      load();
+    } catch (err) {
+      showToast("Bulk process failed: " + (err?.message || "Unknown error"), "error");
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   const handleCalculate = async () => {
-    if (!calcForm.userId) { alert("Employee ID is required"); return; }
-    if (!calcForm.fullTimeWorkHours || Number(calcForm.fullTimeWorkHours) <= 0) { alert("Full-time work hours is required"); return; }
+    if (!calcForm.userId) { showToast("Employee ID is required", "warning"); return; }
+    if (!calcForm.fullTimeWorkHours || Number(calcForm.fullTimeWorkHours) <= 0) { showToast("Full-time work hours is required", "warning"); return; }
     setCalcLoading(true);
     setCalcPreview(null);
     try {
@@ -1264,11 +1701,54 @@ function PayrollView() {
         payPeriodEnd: calcForm.payPeriodEnd,
       });
       setCalcPreview(res.data);
+      showToast("Payroll calculated successfully", "success");
       load();
     } catch (err) {
-      alert("Failed: " + (err?.message || "Unknown error"));
+      showToast("Calculation failed: " + (err?.message || "Unknown error"), "error");
     } finally {
       setCalcLoading(false);
+    }
+  };
+
+  const openDetail = async (id) => {
+    try {
+      const r = await adminService.getPayroll(id);
+      setDetailView(r.data);
+    } catch (err) {
+      showToast("Failed to load details", "error");
+    }
+  };
+
+  const openEdit = (pr) => {
+    setEditPayroll(pr);
+    setEditPayrollForm({
+      taxDeduction: pr.taxDeduction != null ? String(pr.taxDeduction) : "",
+      insuranceDeduction: pr.insuranceDeduction != null ? String(pr.insuranceDeduction) : "",
+      otherDeductions: pr.otherDeductions != null ? String(pr.otherDeductions) : "",
+      notes: pr.notes || "",
+    });
+    setTimeout(() => {
+      editPayrollRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editPayroll) return;
+    setEditPayrollLoading(true);
+    try {
+      await adminService.updatePayroll(editPayroll.id, {
+        taxDeduction: Number(editPayrollForm.taxDeduction) || 0,
+        insuranceDeduction: Number(editPayrollForm.insuranceDeduction) || 0,
+        otherDeductions: Number(editPayrollForm.otherDeductions) || 0,
+        notes: editPayrollForm.notes,
+      });
+      showToast("Payroll updated successfully", "success");
+      setEditPayroll(null);
+      load();
+    } catch (err) {
+      showToast("Failed to update: " + (err?.message || "Unknown error"), "error");
+    } finally {
+      setEditPayrollLoading(false);
     }
   };
 
@@ -1289,31 +1769,54 @@ function PayrollView() {
           <div className="flex gap-2">
             <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
             <Button onClick={() => setCalcOpen(true)} size="sm"><Icon name="plus" size={14} /> Calculate</Button>
-            <Button onClick={() => adminService.bulkProcess().then(load)} variant="outline" size="sm"><Icon name="clock" size={14} /> Bulk Process</Button>
+            <Button onClick={handleBulkProcess} variant="outline" size="sm" disabled={bulkLoading}>
+              <Icon name="clock" size={14} /> {bulkLoading ? "Processing…" : "Bulk Process"}
+            </Button>
           </div>
         </div>
       </ScrollReveal>
       <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Payroll Records ({payrolls.length})</CardTitle></CardHeader>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <CardTitle className="text-base">Payroll Records ({filteredPayrolls.length})</CardTitle>
+            <div className="relative w-56">
+              <span className="pointer-events-none absolute left-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground">
+                <Icon name="search" size={13} />
+              </span>
+              <Input
+                placeholder="Search by ID or name…"
+                value={filterUser}
+                onChange={(e) => setFilterUser(e.target.value)}
+                className="h-8 w-full pl-8 pr-6 text-xs"
+              />
+              {filterUser && (
+                <button onClick={() => setFilterUser("")} className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+                  <Icon name="x" size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
         <CardContent>
-          {!payrolls.length ? <p className="py-8 text-center text-muted-foreground">No payroll records.</p> : (
+          {!filteredPayrolls.length ? <p className="py-8 text-center text-muted-foreground">{filterUser ? "No matching payroll records." : "No payroll records."}</p> : (
             <Table>
-              <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Period</TableHead><TableHead>Base</TableHead><TableHead>OT</TableHead><TableHead>Extra</TableHead><TableHead>Deductions</TableHead><TableHead>Gross</TableHead><TableHead>Net</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Period</TableHead><TableHead>Base</TableHead><TableHead>OT</TableHead><TableHead>Extra</TableHead><TableHead>IL Payout</TableHead><TableHead>Deductions</TableHead><TableHead>Gross</TableHead><TableHead>Net</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
               <TableBody>
-                {payrolls.map((pr) => (
-                  <TableRow key={pr.id}>
+                {filteredPayrolls.map((pr) => (
+                  <TableRow key={pr.id} style={actionLoading === pr.id ? { opacity: 0.6 } : undefined}>
                     <TableCell className="font-medium">{(pr.user || {}).firstName} {(pr.user || {}).lastName}</TableCell>
                     <TableCell>{pr.payPeriodStart}<br />{pr.payPeriodEnd}</TableCell>
-                    <TableCell>${pr.baseSalary}</TableCell><TableCell>${pr.overtimePay || 0}</TableCell><TableCell>${pr.extraSalary || 0}</TableCell><TableCell>${pr.totalDeductions}</TableCell>
+                    <TableCell>${pr.baseSalary}</TableCell><TableCell>${pr.overtimePay || 0}</TableCell><TableCell>${pr.extraSalary || 0}</TableCell><TableCell>{pr.ilPayout ? <span className="text-purple-600 font-semibold">${pr.ilPayout}</span> : "—"}</TableCell><TableCell>${pr.totalDeductions}</TableCell>
                     <TableCell className="font-semibold">${pr.grossSalary}</TableCell><TableCell className="font-semibold text-emerald-600">${pr.netSalary}</TableCell>
                     <TableCell><Badge variant={pr.status === "PAID" ? "success" : pr.status === "PROCESSED" ? "warning" : "default"}>{pr.status}</Badge></TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         {pr.status === "DRAFT" && <button onClick={() => processRec(pr.id)} title="Process" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="clock" size={14} /></button>}
                         {pr.status === "PROCESSED" && <button onClick={() => payRec(pr.id)} title="Mark Paid" className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer"><Icon name="check" size={14} /></button>}
-                        <button onClick={() => adminService.getPayroll(pr.id).then((r) => alert(JSON.stringify(r.data, null, 2)))} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
-                        <button onClick={() => deleteRec(pr.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="trash" size={14} /></button>
+                        <button onClick={() => openEdit(pr)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 cursor-pointer"><Icon name="edit" size={14} /></button>
+                        <button onClick={() => openDetail(pr.id)} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
+                        <button onClick={() => setDeleteConfirm(pr.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="trash" size={14} /></button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1325,6 +1828,7 @@ function PayrollView() {
       </Card>
       </ScrollReveal>
 
+      {/* Calculate Payroll Modal */}
       <Modal
         open={calcOpen}
         onClose={() => setCalcOpen(false)}
@@ -1381,6 +1885,10 @@ function PayrollView() {
                   <p className="font-semibold text-blue-600">${calcPreview.overtimePay}</p>
                 </div>
                 <div className="rounded-lg bg-white p-2 border border-gray-100">
+                  <p className="text-[10px] text-muted-foreground">IL Payout</p>
+                  <p className="font-semibold text-purple-600">${calcPreview.ilPayout || 0}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-gray-100">
                   <p className="text-[10px] text-muted-foreground">Late Deduction</p>
                   <p className="font-semibold text-orange-600">${calcPreview.lateDeduction || 0} <span className="text-[10px] font-normal">({calcPreview.lateMinutes || 0} min late)</span></p>
                 </div>
@@ -1404,6 +1912,109 @@ function PayrollView() {
           )}
         </div>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Delete Payroll Record"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button onClick={() => deleteRec(deleteConfirm)} variant="destructive">Delete</Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">Are you sure you want to delete this payroll record? This action cannot be undone.</p>
+      </Modal>
+
+      {/* Detail View Modal */}
+      <Modal
+        open={!!detailView}
+        onClose={() => setDetailView(null)}
+        title="Payroll Details"
+        footer={
+          <Button variant="outline" onClick={() => setDetailView(null)}>Close</Button>
+        }
+      >
+        {detailView && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Employee</p><p className="font-semibold">{(detailView.user || {}).firstName} {(detailView.user || {}).lastName}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Status</p><Badge variant={detailView.status === "PAID" ? "success" : detailView.status === "PROCESSED" ? "warning" : "default"}>{detailView.status}</Badge></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Period</p><p className="font-semibold">{detailView.payPeriodStart} — {detailView.payPeriodEnd}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Base Salary</p><p className="font-semibold">${detailView.baseSalary}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Full-Time Hours</p><p className="font-semibold">{detailView.fullTimeWorkHours}h</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Actual Hours</p><p className="font-semibold">{detailView.actualWorkHours}h</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Overtime</p><p className="font-semibold">{detailView.overtimeHours}h — ${detailView.overtimePay}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Extra Salary</p><p className="font-semibold text-blue-600">${detailView.extraSalary}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">IL Payout</p><p className="font-semibold text-purple-600">${detailView.ilPayout || 0}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Late</p><p className="font-semibold text-orange-600">{detailView.lateMinutes || 0} min — ${detailView.lateDeduction || 0}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Tax</p><p className="font-semibold">${detailView.taxDeduction}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Insurance</p><p className="font-semibold">${detailView.insuranceDeduction}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Other Deductions</p><p className="font-semibold">${detailView.otherDeductions}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Gross Salary</p><p className="font-semibold">${detailView.grossSalary}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Total Deductions</p><p className="font-semibold text-red-600">${detailView.totalDeductions}</p></div>
+              <div className="rounded-lg bg-emerald-50 p-2 border border-emerald-200 col-span-2"><p className="text-[10px] text-emerald-600">Net Salary</p><p className="text-lg font-bold text-emerald-700">${detailView.netSalary}</p></div>
+              {detailView.paymentDate && <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Payment Date</p><p className="font-semibold">{detailView.paymentDate}</p></div>}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Edit Payroll Modal */}
+      <Modal
+        open={!!editPayroll}
+        onClose={() => setEditPayroll(null)}
+        title={editPayroll ? `Edit Payroll — ${(editPayroll.user || {}).firstName} ${(editPayroll.user || {}).lastName}` : "Edit Payroll"}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setEditPayroll(null)}>Cancel</Button>
+            <Button onClick={handleEditSubmit} disabled={editPayrollLoading}>
+              {editPayrollLoading ? "Saving…" : "Save Changes"}
+            </Button>
+          </>
+        }
+      >
+        {editPayroll && (
+          <div ref={editPayrollRef} className="space-y-4">
+            <div className="rounded-lg bg-gray-50 p-3 space-y-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Read-Only Summary</h4>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div><span className="text-muted-foreground">Period:</span> <span className="font-medium">{editPayroll.payPeriodStart} — {editPayroll.payPeriodEnd}</span></div>
+                <div><span className="text-muted-foreground">Base Salary:</span> <span className="font-medium">${editPayroll.baseSalary}</span></div>
+                <div><span className="text-muted-foreground">Gross:</span> <span className="font-medium">${editPayroll.grossSalary}</span></div>
+                <div><span className="text-muted-foreground">OT Pay:</span> <span className="font-medium">${editPayroll.overtimePay || 0}</span></div>
+                <div><span className="text-muted-foreground">Extra:</span> <span className="font-medium">${editPayroll.extraSalary || 0}</span></div>
+                <div><span className="text-muted-foreground">IL Payout:</span> <span className="font-medium text-purple-600">${editPayroll.ilPayout || 0}</span></div>
+                <div><span className="text-muted-foreground">Late Ded.:</span> <span className="font-medium text-orange-600">${editPayroll.lateDeduction || 0}</span></div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Editable Fields</h4>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Tax Deduction ($)</label>
+                <Input type="number" value={editPayrollForm.taxDeduction} onChange={(e) => setEditPayrollForm({ ...editPayrollForm, taxDeduction: e.target.value })} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Insurance Deduction ($)</label>
+                <Input type="number" value={editPayrollForm.insuranceDeduction} onChange={(e) => setEditPayrollForm({ ...editPayrollForm, insuranceDeduction: e.target.value })} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Other Deductions ($)</label>
+                <Input type="number" value={editPayrollForm.otherDeductions} onChange={(e) => setEditPayrollForm({ ...editPayrollForm, otherDeductions: e.target.value })} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Notes</label>
+                <textarea className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" rows={3} value={editPayrollForm.notes} onChange={(e) => setEditPayrollForm({ ...editPayrollForm, notes: e.target.value })} placeholder="Add notes..." />
+              </div>
+            </div>
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-700">
+              <strong>Note:</strong> Changing deductions will automatically recalculate gross, total deductions, and net salary.
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -1411,9 +2022,10 @@ function PayrollView() {
 /* ═══════════════════════════════════════════
    PERFORMANCE REVIEWS
    ═══════════════════════════════════════════ */
-function PerformanceView() {
+function PerformanceView({ showToast }) {
   const [reviews, setReviews] = useLocalState("apr-reviews", []);
   const [loading, setLoading] = useState(true);
+  const [filterUser, setFilterUser] = useState("");
   const [perfOpen, setPerfOpen] = useState(false);
   const [perfLoading, setPerfLoading] = useState(false);
   const [perfResult, setPerfResult] = useState(null);
@@ -1422,11 +2034,135 @@ function PerformanceView() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [detailView, setDetailView] = useState(null);
+  const [editReview, setEditReview] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [empIds, setEmpIds] = useState([{ id: 1, value: "" }]);
   const nextIdRef = useRef(2);
-  const load = () => { setLoading(true); const d = new Promise((r) => setTimeout(r, 1200)); adminService.getReviews().then((r) => setReviews(r.data.content || r.data)).catch((e) => console.error("[Performance] API load failed:", e)).finally(() => { Promise.all([d]).then(() => setLoading(false)); }); };
-  useEffect(() => { load(); }, []);
-  const del = (id) => { if (confirm("Delete review?")) adminService.deleteReview(id).then(load); };
+  const editFormRef = useRef(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    adminService.getReviews()
+      .then((r) => setReviews(r.data.content || r.data))
+      .catch((e) => { console.error("[Performance] API load failed:", e); showToast("Failed to load reviews", "error"); })
+      .finally(() => setLoading(false));
+  }, [setReviews, showToast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filteredReviews = useMemo(() => {
+    if (!filterUser.trim()) return reviews;
+    const q = filterUser.trim().toLowerCase();
+    return reviews.filter((rw) => {
+      const emp = rw.employee || {};
+      if (emp.employeeId && String(emp.employeeId) === q) return true;
+      const name = ((emp.firstName || "") + " " + (emp.lastName || "")).toLowerCase();
+      if (name.includes(q)) return true;
+      if ((emp.firstName || "").toLowerCase().includes(q)) return true;
+      if ((emp.lastName || "").toLowerCase().includes(q)) return true;
+      return false;
+    });
+  }, [reviews, filterUser]);
+
+  const del = async (id) => {
+    setDeleteConfirm(null);
+    setActionLoading(id);
+    try {
+      await adminService.deleteReview(id);
+      showToast("Review deleted", "success");
+      load();
+    } catch (err) {
+      showToast("Failed to delete: " + (err?.message || "Unknown error"), "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const openDetail = async (id) => {
+    try {
+      const r = await adminService.getReview(id);
+      setDetailView(r.data);
+    } catch (err) {
+      showToast("Failed to load details", "error");
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const ids = empIds.map((e) => Number(e.value)).filter(Boolean);
+    if (!ids.length) { showToast("At least one employee ID is required", "warning"); return; }
+    setSubmitLoading(true);
+    try {
+      const reviewData = {
+        reviewPeriodStart: f.periodStart.value, reviewPeriodEnd: f.periodEnd.value,
+        qualityScore: Number(f.quality.value), productivityScore: Number(f.productivity.value),
+        communicationScore: Number(f.communication.value), teamworkScore: Number(f.teamwork.value),
+        punctualityScore: Number(f.punctuality.value), feedback: f.feedback.value, goals: f.goals.value,
+      };
+      const promises = ids.map((id) => adminService.createReview({ employeeId: id, ...reviewData }));
+      await Promise.all(promises);
+      showToast(`Review${ids.length > 1 ? "s" : ""} submitted successfully`, "success");
+      setEmpIds([{ id: 1, value: "" }]);
+      nextIdRef.current = 2;
+      f.reset();
+      load();
+    } catch (err) {
+      showToast("Failed to submit: " + (err?.message || "Unknown error"), "error");
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const openEdit = (rw) => {
+    setEditReview(rw);
+    setEditForm({
+      reviewPeriodStart: rw.reviewPeriodStart || "",
+      reviewPeriodEnd: rw.reviewPeriodEnd || "",
+      qualityScore: rw.qualityScore || 1,
+      productivityScore: rw.productivityScore || 1,
+      communicationScore: rw.communicationScore || 1,
+      teamworkScore: rw.teamworkScore || 1,
+      punctualityScore: rw.punctualityScore || 1,
+      feedback: rw.feedback || "",
+      goals: rw.goals || "",
+    });
+    setTimeout(() => {
+      editFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editReview || !editForm) return;
+    setEditLoading(true);
+    try {
+      await adminService.updateReview(editReview.id, {
+        reviewPeriodStart: editForm.reviewPeriodStart,
+        reviewPeriodEnd: editForm.reviewPeriodEnd,
+        qualityScore: Number(editForm.qualityScore),
+        productivityScore: Number(editForm.productivityScore),
+        communicationScore: Number(editForm.communicationScore),
+        teamworkScore: Number(editForm.teamworkScore),
+        punctualityScore: Number(editForm.punctualityScore),
+        feedback: editForm.feedback,
+        goals: editForm.goals,
+      });
+      showToast("Review updated successfully", "success");
+      setEditReview(null);
+      setEditForm(null);
+      load();
+    } catch (err) {
+      showToast("Failed to update: " + (err?.message || "Unknown error"), "error");
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
   const handleEmployeePerformance = async () => {
     if (!perfEmployeeId) { setPerfError("Employee ID is required"); return; }
@@ -1436,9 +2172,8 @@ function PerformanceView() {
     try {
       const res = await adminService.getEmployeePerformance(Number(perfEmployeeId));
       const data = res.data;
-      // API returns Page { content: [...] } or plain array
-      const reviews = Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : data);
-      setPerfResult(reviews);
+      const result = Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : data);
+      setPerfResult(result);
     } catch (err) {
       setPerfError(err?.message || "Failed to fetch performance data");
     } finally {
@@ -1452,9 +2187,11 @@ function PerformanceView() {
     try {
       const res = await adminService.bulkProcess();
       setBulkResult({ success: true, message: "Bulk payroll processed successfully", data: res.data });
+      showToast("Bulk payroll processed successfully", "success");
       load();
     } catch (err) {
       setBulkResult({ success: false, message: err?.response?.data?.message || err?.message || "Bulk process failed" });
+      showToast("Bulk process failed: " + (err?.message || "Unknown error"), "error");
     } finally {
       setBulkLoading(false);
     }
@@ -1471,7 +2208,7 @@ function PerformanceView() {
       <Card>
         <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Icon name="plus" size={16} className="text-primary" /> Submit Review</CardTitle></CardHeader>
         <CardContent>
-          <form onSubmit={(e) => { e.preventDefault(); const f = e.target; const ids = empIds.map((e) => Number(e.value)).filter(Boolean); const reviewData = { reviewPeriodStart: f.periodStart.value, reviewPeriodEnd: f.periodEnd.value, qualityScore: Number(f.quality.value), productivityScore: Number(f.productivity.value), communicationScore: Number(f.communication.value), teamworkScore: Number(f.teamwork.value), punctualityScore: Number(f.punctuality.value), feedback: f.feedback.value, goals: f.goals.value }; const promises = ids.map((id) => adminService.createReview({ employeeId: id, ...reviewData })); Promise.all(promises).then(() => { setEmpIds([{ id: 1, value: "" }]); nextIdRef.current = 2; f.reset(); load(); }); }}>
+          <form onSubmit={handleSubmit}>
             <div className="rounded-xl border border-primary/10 bg-primary/[0.03] p-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Icon name="users" size={14} /> Employee(s)</p>
@@ -1495,7 +2232,7 @@ function PerformanceView() {
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
               {[
                 { n: "periodStart", l: "Period Start", type: "date" }, { n: "periodEnd", l: "Period End", type: "date" },
                 { n: "quality", l: "Quality (1-5)", type: "number" }, { n: "productivity", l: "Productivity (1-5)", type: "number" }, { n: "communication", l: "Communication (1-5)", type: "number" },
@@ -1506,7 +2243,7 @@ function PerformanceView() {
             </div>
             <div className="mt-4"><label className="mb-1 block text-xs font-medium text-muted-foreground">Feedback</label><Textarea name="feedback" rows="3" required /></div>
             <div className="mt-4"><label className="mb-1 block text-xs font-medium text-muted-foreground">Goals / Areas of Improvement</label><Textarea name="goals" rows="2" /></div>
-            <Button type="submit" className="mt-4"><Icon name="check" size={14} /> Submit Review</Button>
+            <Button type="submit" className="mt-4" disabled={submitLoading}><Icon name="check" size={14} /> {submitLoading ? "Submitting…" : "Submit Review"}</Button>
           </form>
         </CardContent>
       </Card>
@@ -1515,19 +2252,39 @@ function PerformanceView() {
         <div className="flex gap-2">
           <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
           <Button onClick={() => { setPerfOpen(true); setPerfResult(null); setPerfError(""); setPerfEmployeeId(""); }} variant="outline" size="sm"><Icon name="users" size={14} /> Employee Performance</Button>
-          <Button onClick={() => { setBulkOpen(true); setBulkResult(null); }} variant="outline" size="sm"><Icon name="clock" size={14} /> Bulk Process</Button>
+          <Button onClick={() => { setBulkOpen(true); setBulkResult(null); }} variant="outline" size="sm" disabled={bulkLoading}><Icon name="clock" size={14} /> Bulk Process</Button>
         </div>
       </ScrollReveal>
       <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.45}>
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">All Reviews ({reviews.length})</CardTitle></CardHeader>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <CardTitle className="text-base">All Reviews ({filteredReviews.length})</CardTitle>
+            <div className="relative w-56">
+              <span className="pointer-events-none absolute left-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground">
+                <Icon name="search" size={13} />
+              </span>
+              <Input
+                placeholder="Search by ID or name…"
+                value={filterUser}
+                onChange={(e) => setFilterUser(e.target.value)}
+                className="h-8 w-full pl-8 pr-6 text-xs"
+              />
+              {filterUser && (
+                <button onClick={() => setFilterUser("")} className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+                  <Icon name="x" size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
         <CardContent>
-          {!reviews.length ? <p className="py-8 text-center text-muted-foreground">No reviews yet.</p> : (
+          {!filteredReviews.length ? <p className="py-8 text-center text-muted-foreground">{filterUser ? "No matching reviews." : "No reviews yet."}</p> : (
             <Table>
               <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Period</TableHead><TableHead>Quality</TableHead><TableHead>Productivity</TableHead><TableHead>Overall</TableHead><TableHead>Goals</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
               <TableBody>
-                {reviews.map((rw) => (
-                  <TableRow key={rw.id}>
+                {filteredReviews.map((rw) => (
+                  <TableRow key={rw.id} style={actionLoading === rw.id ? { opacity: 0.6 } : undefined}>
                     <TableCell className="font-medium">{(rw.employee || {}).firstName} {(rw.employee || {}).lastName}</TableCell>
                     <TableCell>{rw.reviewPeriodStart} — {rw.reviewPeriodEnd}</TableCell>
                     <TableCell>{rw.qualityScore}/5</TableCell><TableCell>{rw.productivityScore}/5</TableCell>
@@ -1535,8 +2292,9 @@ function PerformanceView() {
                     <TableCell className="max-w-[200px] truncate">{rw.goals}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <button onClick={() => adminService.getReview(rw.id).then((r) => alert(JSON.stringify(r.data, null, 2)))} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
-                        <button onClick={() => del(rw.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="trash" size={14} /></button>
+                        <button onClick={() => openDetail(rw.id)} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
+                        <button onClick={() => openEdit(rw)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 cursor-pointer"><Icon name="edit" size={14} /></button>
+                        <button onClick={() => setDeleteConfirm(rw.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="trash" size={14} /></button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1608,6 +2366,108 @@ function PerformanceView() {
             </div>
           )}
         </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Delete Review"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button onClick={() => del(deleteConfirm)} variant="destructive">Delete</Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">Are you sure you want to delete this performance review? This action cannot be undone.</p>
+      </Modal>
+
+      {/* Edit Review Modal */}
+      <Modal
+        open={!!editReview}
+        onClose={() => { setEditReview(null); setEditForm(null); }}
+        title="Edit Performance Review"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => { setEditReview(null); setEditForm(null); }}>Cancel</Button>
+            <Button onClick={handleEditSubmit} disabled={editLoading}>
+              {editLoading ? "Saving…" : "Save Changes"}
+            </Button>
+          </>
+        }
+      >
+        {editForm && (
+          <form ref={editFormRef} onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Period Start</label>
+                <Input type="date" value={editForm.reviewPeriodStart} onChange={(e) => setEditForm({ ...editForm, reviewPeriodStart: e.target.value })} required />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Period End</label>
+                <Input type="date" value={editForm.reviewPeriodEnd} onChange={(e) => setEditForm({ ...editForm, reviewPeriodEnd: e.target.value })} required />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Quality (1-5)</label>
+                <Input type="number" min={1} max={5} value={editForm.qualityScore} onChange={(e) => setEditForm({ ...editForm, qualityScore: e.target.value })} required />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Productivity (1-5)</label>
+                <Input type="number" min={1} max={5} value={editForm.productivityScore} onChange={(e) => setEditForm({ ...editForm, productivityScore: e.target.value })} required />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Communication (1-5)</label>
+                <Input type="number" min={1} max={5} value={editForm.communicationScore} onChange={(e) => setEditForm({ ...editForm, communicationScore: e.target.value })} required />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Teamwork (1-5)</label>
+                <Input type="number" min={1} max={5} value={editForm.teamworkScore} onChange={(e) => setEditForm({ ...editForm, teamworkScore: e.target.value })} required />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Punctuality (1-5)</label>
+                <Input type="number" min={1} max={5} value={editForm.punctualityScore} onChange={(e) => setEditForm({ ...editForm, punctualityScore: e.target.value })} required />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Feedback</label>
+              <Textarea value={editForm.feedback} onChange={(e) => setEditForm({ ...editForm, feedback: e.target.value })} rows={3} required />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Goals / Areas of Improvement</label>
+              <Textarea value={editForm.goals} onChange={(e) => setEditForm({ ...editForm, goals: e.target.value })} rows={2} />
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      {/* Detail View Modal */}
+      <Modal
+        open={!!detailView}
+        onClose={() => setDetailView(null)}
+        title="Review Details"
+        footer={
+          <Button variant="outline" onClick={() => setDetailView(null)}>Close</Button>
+        }
+      >
+        {detailView && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Employee</p><p className="font-semibold">{(detailView.employee || {}).firstName} {(detailView.employee || {}).lastName}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Period</p><p className="font-semibold">{detailView.reviewPeriodStart} — {detailView.reviewPeriodEnd}</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Quality</p><p className="font-semibold">{detailView.qualityScore}/5</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Productivity</p><p className="font-semibold">{detailView.productivityScore}/5</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Communication</p><p className="font-semibold">{detailView.communicationScore}/5</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Teamwork</p><p className="font-semibold">{detailView.teamworkScore}/5</p></div>
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Punctuality</p><p className="font-semibold">{detailView.punctualityScore}/5</p></div>
+              <div className="rounded-lg bg-primary/5 p-2"><p className="text-[10px] text-primary">Overall Score</p><p className="font-bold text-primary text-lg">{detailView.overallScore}/5</p></div>
+            </div>
+            <div className="rounded-lg bg-gray-50 p-3"><p className="text-[10px] text-muted-foreground mb-1">Feedback</p><p className="text-sm whitespace-pre-wrap">{detailView.feedback}</p></div>
+            {detailView.goals && <div className="rounded-lg bg-gray-50 p-3"><p className="text-[10px] text-muted-foreground mb-1">Goals / Areas of Improvement</p><p className="text-sm whitespace-pre-wrap">{detailView.goals}</p></div>}
+          </div>
+        )}
       </Modal>
 
       {/* Bulk Process Modal */}

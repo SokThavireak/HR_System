@@ -13,6 +13,7 @@ import java.util.Optional;
 
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     Optional<Attendance> findByUserIdAndDate(Long userId, LocalDate date);
+    boolean existsByUserIdAndDate(Long userId, LocalDate date);
     List<Attendance> findByUserIdAndDateBetweenOrderByDateDesc(Long userId, LocalDate from, LocalDate to);
     Page<Attendance> findByUserIdAndDateBetweenOrderByDateDesc(Long userId, LocalDate from, LocalDate to, Pageable pageable);
 

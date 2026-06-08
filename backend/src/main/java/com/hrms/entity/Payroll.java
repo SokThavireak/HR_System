@@ -32,6 +32,7 @@ public class Payroll {
     private Double overtimeHours;
     private BigDecimal overtimePay;
     private BigDecimal extraSalary;
+    private BigDecimal ilPayout;
     private BigDecimal lateDeduction;
     private Integer lateMinutes;
     private BigDecimal taxDeduction;
