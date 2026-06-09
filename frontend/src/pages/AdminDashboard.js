@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { adminService } from "../services/adminService";
 import AttendancePage from "./AttendancePage";
 import { ShaderAnimation } from "../components/ui/shader-animation";
-import { SEED_DEPARTMENTS, SEED_POSITIONS, SEED_USERS } from "../data/seedData";
+// No seed data — all data comes from the API/database
 import {
   Button, Input, Select, Textarea,
   Card, CardHeader, CardTitle, CardContent,
@@ -51,30 +51,6 @@ const Icon = ({ name, size = 18 }) => {
   };
   return icons[name] || null;
 };
-
-/* ─── localStorage-backed useState with seed support ─── */
-function useLocalState(key, initial, seed) {
-  const [v, setV] = React.useState(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        if (!Array.isArray(parsed) && typeof parsed === "object" && parsed !== null) return parsed;
-      }
-    } catch (e) {}
-    // If empty/missing and seed provided, seed localStorage
-    if (seed && Array.isArray(seed) && seed.length > 0) {
-      try { localStorage.setItem(key, JSON.stringify(seed)); } catch (e) {}
-      return seed;
-    }
-    return initial;
-  });
-  React.useEffect(() => { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }, [key, v]);
-  const isArrayMode = Array.isArray(initial);
-  const safeV = v != null ? v : (isArrayMode ? initial : initial);
-  return [safeV, setV];
-}
 
 /* ─── Stat Card ─── */
 function StatCard({ bg, value, label, iconName }) {
@@ -297,8 +273,8 @@ export default function AdminDashboard({ user }) {
    DEPARTMENT & POSITION MANAGEMENT
    ═══════════════════════════════════════════ */
 function CategoryView() {
-  const [departments, setDepartments] = useLocalState("cat-departments", [], SEED_DEPARTMENTS);
-  const [positions, setPositions] = useLocalState("cat-positions", [], SEED_POSITIONS);
+  const [departments, setDepartments] = useState([]);
+  const [positions, setPositions] = useState([]);
   const [activeTab, setActiveTab] = useState("departments");
   const [loading, setLoading] = useState(true);
 
@@ -341,7 +317,7 @@ function CategoryView() {
     try {
       await adminService.deleteDepartment(id);
       setDepartments(departments.filter((d) => d.id !== id));
-      setPositions(positions.filter((p) => p.departmentId !== id));
+      setPositions(positions.filter((p) => (typeof p.department === "object" ? p.department?.id : p.departmentId) !== id));
     } catch (err) { alert("Failed: " + (err.message || "Unknown error")); }
   };
 
@@ -356,13 +332,12 @@ function CategoryView() {
     try {
       if (editPosId !== null) {
         await adminService.updatePosition(editPosId, posForm);
-        setPositions(positions.map((p) => (p.id === editPosId ? { ...p, ...posForm, department: departments.find(d => d.id === Number(posForm.departmentId))?.name || p.department } : p)));
+        const deptObj = departments.find(d => d.id === Number(posForm.departmentId));
+        setPositions(positions.map((p) => (p.id === editPosId ? { ...p, ...posForm, department: deptObj ? { id: deptObj.id, name: deptObj.name } : p.department } : p)));
         setEditPosId(null);
       } else {
         const res = await adminService.createPosition(posForm);
-        const newPos = res.data;
-        newPos.department = departments.find(d => d.id === Number(posForm.departmentId))?.name || "";
-        setPositions([...positions, newPos]);
+        setPositions([...positions, res.data]);
       }
       setPosForm({ title: "", description: "", departmentId: "" });
     } catch (err) { alert("Failed: " + (err.message || "Unknown error")); }
@@ -378,7 +353,7 @@ function CategoryView() {
 
   const startEditPos = (pos) => {
     setEditPosId(pos.id);
-    setPosForm({ title: pos.title, description: pos.description, departmentId: String(pos.departmentId || "") });
+    setPosForm({ title: pos.title, description: pos.description, departmentId: String((typeof pos.department === "object" ? pos.department?.id : pos.departmentId) || "") });
   };
 
   if (loading) return <DeptPositionSkeleton />;
@@ -931,13 +906,13 @@ function DashboardView({ user }) {
    ═══════════════════════════════════════════ */
 function UserManagementView() {
   const [users, setUsers] = useState([]);
-  const [search, setSearch] = useLocalState("am-search", "");
-  const [filterEmployeeId, setFilterEmployeeId] = useLocalState("am-filterEmployeeId", "");
-  const [form, setForm] = useLocalState("am-form", { employeeId: "", firstName: "", lastName: "", email: "", phone: "", department: "", position: "", baseSalary: "", hireDate: "", role: "ROLE_EMPLOYEE", password: "changeme" });
+  const [search, setSearch] = useState("");
+  const [filterEmployeeId, setFilterEmployeeId] = useState("");
+  const [form, setForm] = useState({ employeeId: "", firstName: "", lastName: "", email: "", phone: "", department: "", position: "", baseSalary: "", hireDate: "", role: "ROLE_EMPLOYEE", password: "changeme" });
   const [loading, setLoading] = useState(true);
   const [editUserId, setEditUserId] = useState(null);
-  const [departments] = useLocalState("cat-departments", [], SEED_DEPARTMENTS);
-  const [positions] = useLocalState("cat-positions", [], SEED_POSITIONS);
+  const [departments, setDepartments] = useState([]);
+  const [positions, setPositions] = useState([]);
 
   const load = () => {
     setLoading(true);
@@ -952,9 +927,17 @@ function UserManagementView() {
   };
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    adminService.getDepartmentList().then((r) => setDepartments(Array.isArray(r.data) ? r.data : (r.data?.content || [])));
+    adminService.getPositionList().then((r) => setPositions(Array.isArray(r.data) ? r.data : (r.data?.content || [])));
+  }, []);
+
   // Filter positions by selected department
   const filteredPositions = form.department
-    ? positions.filter((p) => p.department === form.department)
+    ? positions.filter((p) => {
+        const pDeptName = typeof p.department === "object" ? p.department?.name : p.department;
+        return pDeptName === form.department;
+      })
     : positions;
 
   const resetForm = () => {
@@ -1245,8 +1228,8 @@ function UserManagementView() {
    LEAVE APPROVALS
    ═══════════════════════════════════════════ */
 function LeaveApprovalsView({ showToast }) {
-  const [leaves, setLeaves] = useLocalState("al-leaves", []);
-  const [historyLeaves, setHistoryLeaves] = useLocalState("al-leaves-history", []);
+  const [leaves, setLeaves] = useState([]);
+  const [historyLeaves, setHistoryLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("pending");
@@ -1262,8 +1245,15 @@ function LeaveApprovalsView({ showToast }) {
   const loadPending = useCallback(() => {
     setLoading(true);
     adminService.getLeaves("PENDING")
-      .then((r) => setLeaves(r.data.content || r.data))
-      .catch((e) => { console.error("[LeaveApprovals] API load failed:", e); showToast("Failed to load pending leaves", "error"); })
+      .then((r) => {
+        const data = r.data.content || r.data || [];
+        setLeaves(data);
+      })
+      .catch((e) => {
+        console.error("[LeaveApprovals] loadPending failed:", e);
+        setLeaves([]);
+        showToast("Failed to load pending leaves: " + (e?.message || "Server error"), "error");
+      })
       .finally(() => setLoading(false));
   }, [setLeaves, showToast]);
 
@@ -1283,7 +1273,11 @@ function LeaveApprovalsView({ showToast }) {
         all.sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""));
         setHistoryLeaves(all);
       })
-      .catch((e) => { console.error("[LeaveApprovals] History load failed:", e); showToast("Failed to load leave history", "error"); })
+      .catch((e) => {
+        console.error("[LeaveApprovals] loadHistory failed:", e);
+        setHistoryLeaves([]);
+        showToast("Failed to load history: " + (e?.message || "Server error"), "error");
+      })
       .finally(() => setHistoryLoading(false));
   }, [setHistoryLeaves, showToast]);
 
@@ -1321,13 +1315,13 @@ function LeaveApprovalsView({ showToast }) {
     }
   };
 
-  const openDetail = async (id) => {
-    try {
-      const r = await adminService.getLeave(id);
-      setDetailView(r.data);
-    } catch (err) {
-      showToast("Failed to load details", "error");
-    }
+  const openDetail = (id) => {
+    adminService.getLeave(id)
+      .then((r) => setDetailView(r.data))
+      .catch((err) => {
+        console.error("[LeaveApprovals] getLeave failed:", err);
+        showToast("Failed to load details: " + (err?.message || "Server error"), "error");
+      });
   };
 
   const openEdit = (lv) => {
@@ -1609,7 +1603,7 @@ function LeaveApprovalsView({ showToast }) {
    PAYROLL
    ═══════════════════════════════════════════ */
 function PayrollView({ showToast }) {
-  const [payrolls, setPayrolls] = useLocalState("ap-payrolls", []);
+  const [payrolls, setPayrolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterUser, setFilterUser] = useState("");
   const [calcOpen, setCalcOpen] = useState(false);
@@ -1621,7 +1615,7 @@ function PayrollView({ showToast }) {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [editPayroll, setEditPayroll] = useState(null);
   const [editPayrollLoading, setEditPayrollLoading] = useState(false);
-  const [editPayrollForm, setEditPayrollForm] = useState({ taxDeduction: "", insuranceDeduction: "", otherDeductions: "", notes: "" });
+  const [editPayrollForm, setEditPayrollForm] = useState({ id: null, taxDeduction: "", insuranceDeduction: "", otherDeductions: "", notes: "" });
   const editPayrollRef = useRef(null);
   const [calcForm, setCalcForm] = useState({
     userId: "", fullTimeWorkHours: "", taxDeduction: "0", insuranceDeduction: "0", otherDeductions: "0",
@@ -1632,8 +1626,21 @@ function PayrollView({ showToast }) {
   const load = useCallback(() => {
     setLoading(true);
     adminService.getPayrolls()
-      .then((r) => setPayrolls(r.data.content || r.data))
-      .catch((e) => { console.error("[Payroll] API load failed:", e); showToast("Failed to load payroll records", "error"); })
+      .then((r) => {
+        const raw = r.data;
+        let data = [];
+        if (Array.isArray(raw)) {
+          data = raw;
+        } else if (raw && Array.isArray(raw.content)) {
+          data = raw.content;
+        }
+        setPayrolls(data);
+      })
+      .catch((e) => {
+        console.error("[Payroll] API load failed:", e);
+        setPayrolls([]);
+        showToast("Failed to load payroll: " + (e?.message || "Unknown error"), "error");
+      })
       .finally(() => setLoading(false));
   }, [setPayrolls, showToast]);
 
@@ -1743,6 +1750,7 @@ function PayrollView({ showToast }) {
   const openEdit = (pr) => {
     setEditPayroll(pr);
     setEditPayrollForm({
+      id: pr.id,
       taxDeduction: pr.taxDeduction != null ? String(pr.taxDeduction) : "",
       insuranceDeduction: pr.insuranceDeduction != null ? String(pr.insuranceDeduction) : "",
       otherDeductions: pr.otherDeductions != null ? String(pr.otherDeductions) : "",
@@ -1758,6 +1766,7 @@ function PayrollView({ showToast }) {
     setEditPayrollLoading(true);
     try {
       await adminService.updatePayroll(editPayroll.id, {
+        id: editPayroll.id,
         taxDeduction: Number(editPayrollForm.taxDeduction) || 0,
         insuranceDeduction: Number(editPayrollForm.insuranceDeduction) || 0,
         otherDeductions: Number(editPayrollForm.otherDeductions) || 0,
@@ -1784,8 +1793,7 @@ function PayrollView({ showToast }) {
 
   return (
     <div className="space-y-7">
-      <ScrollReveal variant="fadeUp" stagger={0.08} delay={0}>
-        <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Payroll System</h2>
           <div className="flex gap-2">
             <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
@@ -1795,8 +1803,6 @@ function PayrollView({ showToast }) {
             </Button>
           </div>
         </div>
-      </ScrollReveal>
-      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -1821,17 +1827,36 @@ function PayrollView({ showToast }) {
         </CardHeader>
         <CardContent>
           {!filteredPayrolls.length ? <p className="py-8 text-center text-muted-foreground">{filterUser ? "No matching payroll records." : "No payroll records."}</p> : (
-            <Table>
-              <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Period</TableHead><TableHead>Base</TableHead><TableHead>OT</TableHead><TableHead>Extra</TableHead><TableHead>IL Payout</TableHead><TableHead>Deductions</TableHead><TableHead>Gross</TableHead><TableHead>Net</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
-              <TableBody>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="px-4 py-3 text-left font-semibold">ID</th>
+                    <th className="px-4 py-3 text-left font-semibold">Employee</th>
+                    <th className="px-4 py-3 text-left font-semibold">Emp ID</th>
+                    <th className="px-4 py-3 text-left font-semibold">Period</th>
+                    <th className="px-4 py-3 text-left font-semibold">Base</th>
+                    <th className="px-4 py-3 text-left font-semibold">OT</th>
+                    <th className="px-4 py-3 text-left font-semibold">Extra</th>
+                    <th className="px-4 py-3 text-left font-semibold">IL Payout</th>
+                    <th className="px-4 py-3 text-left font-semibold">Deductions</th>
+                    <th className="px-4 py-3 text-left font-semibold">Gross</th>
+                    <th className="px-4 py-3 text-left font-semibold">Net</th>
+                    <th className="px-4 py-3 text-left font-semibold">Status</th>
+                    <th className="px-4 py-3 text-left font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
                 {filteredPayrolls.map((pr) => (
-                  <TableRow key={pr.id} style={actionLoading === pr.id ? { opacity: 0.6 } : undefined}>
-                    <TableCell className="font-medium">{(pr.user || {}).firstName} {(pr.user || {}).lastName}</TableCell>
-                    <TableCell>{pr.payPeriodStart}<br />{pr.payPeriodEnd}</TableCell>
-                    <TableCell>${pr.baseSalary}</TableCell><TableCell>${pr.overtimePay || 0}</TableCell><TableCell>${pr.extraSalary || 0}</TableCell><TableCell>{pr.ilPayout ? <span className="text-purple-600 font-semibold">${pr.ilPayout}</span> : "—"}</TableCell><TableCell>${pr.totalDeductions}</TableCell>
-                    <TableCell className="font-semibold">${pr.grossSalary}</TableCell><TableCell className="font-semibold text-emerald-600">${pr.netSalary}</TableCell>
-                    <TableCell><Badge variant={pr.status === "PAID" ? "success" : pr.status === "PROCESSED" ? "warning" : "default"}>{pr.status}</Badge></TableCell>
-                    <TableCell>
+                  <tr key={pr.id} className="border-b border-gray-100 hover:bg-gray-50" style={actionLoading === pr.id ? { opacity: 0.6 } : undefined}>
+                    <td className="font-mono text-xs text-muted-foreground">{pr.id}</td>
+                    <td className="font-medium">{(pr.user || {}).firstName} {(pr.user || {}).lastName}</td>
+                    <td className="text-xs text-muted-foreground">{(pr.user || {}).employeeId || pr.userId || "—"}</td>
+                    <td className="px-4 py-3">{pr.payPeriodStart} — {pr.payPeriodEnd}</td>
+                    <td className="px-4 py-3">${pr.baseSalary}</td><td className="px-4 py-3">${pr.overtimePay || 0}</td><td className="px-4 py-3">${pr.extraSalary || 0}</td><td className="px-4 py-3">{pr.ilPayout ? <span className="text-purple-600 font-semibold">${pr.ilPayout}</span> : "—"}</td><td className="px-4 py-3">${pr.totalDeductions}</td>
+                    <td className="font-semibold">${pr.grossSalary}</td><td className="font-semibold text-emerald-600">${pr.netSalary}</td>
+                    <td className="px-4 py-3"><Badge variant={pr.status === "PAID" ? "success" : pr.status === "PROCESSED" ? "warning" : "default"}>{pr.status}</Badge></td>
+                    <td className="px-4 py-3">
                       <div className="flex gap-1">
                         {pr.status === "DRAFT" && <button onClick={() => processRec(pr.id)} title="Process" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="clock" size={14} /></button>}
                         {pr.status === "PROCESSED" && <button onClick={() => payRec(pr.id)} title="Mark Paid" className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer"><Icon name="check" size={14} /></button>}
@@ -1839,15 +1864,15 @@ function PayrollView({ showToast }) {
                         <button onClick={() => openDetail(pr.id)} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
                         <button onClick={() => setDeleteConfirm(pr.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="trash" size={14} /></button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
+            </div>
           )}
         </CardContent>
       </Card>
-      </ScrollReveal>
 
       {/* Calculate Payroll Modal */}
       <Modal
@@ -1953,7 +1978,7 @@ function PayrollView({ showToast }) {
       <Modal
         open={!!detailView}
         onClose={() => setDetailView(null)}
-        title="Payroll Details"
+        title={detailView ? `Payroll #${detailView.id} — Details` : "Payroll Details"}
         footer={
           <Button variant="outline" onClick={() => setDetailView(null)}>Close</Button>
         }
@@ -1961,6 +1986,7 @@ function PayrollView({ showToast }) {
         {detailView && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Payroll ID</p><p className="font-semibold">#{detailView.id}</p></div>
               <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Employee</p><p className="font-semibold">{(detailView.user || {}).firstName} {(detailView.user || {}).lastName}</p></div>
               <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Status</p><Badge variant={detailView.status === "PAID" ? "success" : detailView.status === "PROCESSED" ? "warning" : "default"}>{detailView.status}</Badge></div>
               <div className="rounded-lg bg-gray-50 p-2"><p className="text-[10px] text-muted-foreground">Period</p><p className="font-semibold">{detailView.payPeriodStart} — {detailView.payPeriodEnd}</p></div>
@@ -1987,7 +2013,7 @@ function PayrollView({ showToast }) {
       <Modal
         open={!!editPayroll}
         onClose={() => setEditPayroll(null)}
-        title={editPayroll ? `Edit Payroll — ${(editPayroll.user || {}).firstName} ${(editPayroll.user || {}).lastName}` : "Edit Payroll"}
+        title={editPayroll ? `Edit Payroll #${editPayroll.id} — ${(editPayroll.user || {}).firstName} ${(editPayroll.user || {}).lastName}` : "Edit Payroll"}
         footer={
           <>
             <Button variant="outline" onClick={() => setEditPayroll(null)}>Cancel</Button>
@@ -2002,6 +2028,7 @@ function PayrollView({ showToast }) {
             <div className="rounded-lg bg-gray-50 p-3 space-y-2">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Read-Only Summary</h4>
               <div className="grid grid-cols-3 gap-2 text-xs">
+                <div><span className="text-muted-foreground">Payroll ID:</span> <span className="font-medium">#{editPayroll.id}</span></div>
                 <div><span className="text-muted-foreground">Period:</span> <span className="font-medium">{editPayroll.payPeriodStart} — {editPayroll.payPeriodEnd}</span></div>
                 <div><span className="text-muted-foreground">Base Salary:</span> <span className="font-medium">${editPayroll.baseSalary}</span></div>
                 <div><span className="text-muted-foreground">Gross:</span> <span className="font-medium">${editPayroll.grossSalary}</span></div>
@@ -2044,7 +2071,7 @@ function PayrollView({ showToast }) {
    PERFORMANCE REVIEWS
    ═══════════════════════════════════════════ */
 function PerformanceView({ showToast }) {
-  const [reviews, setReviews] = useLocalState("apr-reviews", []);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterUser, setFilterUser] = useState("");
   const [perfOpen, setPerfOpen] = useState(false);

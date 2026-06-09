@@ -175,7 +175,13 @@ const EmployeeDashboard = ({ user }) => {
   };
 
   const openEditProfile = () => {
-    setProfileForm({ phone: user?.phone || "", department: user?.department || "", position: user?.position || "" });
+    setProfileForm({
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      phone: user?.phone || "",
+      department: user?.department || "",
+      position: user?.position || "",
+    });
     setEditProfile(true);
   };
 
@@ -309,15 +315,30 @@ const EmployeeDashboard = ({ user }) => {
 
                 {/* Clock Card */}
                 <StaggerItem>
-                  <Card className="overflow-hidden border-0 shadow-lg" style={{ background: "linear-gradient(135deg, #9a0002 0%, #6b0001 100%)" }}>
-                    <CardContent className="px-8 py-30 text-center text-white">
-                      <p className="mb-1 text-sm font-medium text-white/70">Today&apos;s Attendance</p>
-                      <p className="mb-6 text-5xl font-bold tracking-tight">{getCurrentTime()}</p>
-                      <button onClick={handleClock} disabled={isDoneToday} className="mx-auto flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-full border-4 transition-all hover:scale-105 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer" style={{ borderColor: isClockedIn ? "#fca5a5" : isDoneToday ? "#86efac" : "rgba(255,255,255,0.4)", background: isDoneToday ? "rgba(34,197,94,0.2)" : isClockedIn ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.1)" }}>
+                  <Card 
+                    className="overflow-hidden border-0 shadow-lg flex flex-col items-center justify-center min-h-[320px]" 
+                    style={{ background: "linear-gradient(135deg, #9a0002 0%, #6b0001 100%)" }}
+                  >
+                    <CardContent className="w-full p-6 flex flex-col items-center justify-center text-center text-white">
+                      <p className="mb-2 text-sm font-medium text-white/70">Today&apos;s Attendance</p>
+                      <p className="mb-8 text-5xl font-bold tracking-tight">{getCurrentTime()}</p>
+                      
+                      <button 
+                        onClick={handleClock} 
+                        disabled={isDoneToday} 
+                        className="mx-auto flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-full border-4 transition-all hover:scale-105 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer" 
+                        style={{ 
+                          borderColor: isClockedIn ? "#fca5a5" : isDoneToday ? "#86efac" : "rgba(255,255,255,0.4)", 
+                          background: isDoneToday ? "rgba(34,197,94,0.2)" : isClockedIn ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.1)" 
+                        }}
+                      >
                         {isDoneToday ? <Icon name="check" size={32} /> : <Icon name="clock" size={32} />}
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{isClockedIn ? "Clock Out" : isDoneToday ? "Done ✓" : "Clock In"}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">
+                          {isClockedIn ? "Clock Out" : isDoneToday ? "Done ✓" : "Clock In"}
+                        </span>
                       </button>
-                      <p className="mt-4 text-sm text-white/60">
+                      
+                      <p className="mt-6 text-sm text-white/60">
                         {todayRecord?.clockInTime ? `In: ${new Date(todayRecord.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Not clocked in yet"}
                         {todayRecord?.clockOutTime ? ` · Out: ${new Date(todayRecord.clockOutTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
                       </p>
@@ -329,7 +350,7 @@ const EmployeeDashboard = ({ user }) => {
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                   {[
                     { bg: "#9a0002", value: summary?.presentDays ?? 0, label: "Present Days", icon: "check" },
-                    { bg: "#b45309", value: `${summary?.overtimeHours ?? 0}h`, label: "Overtime", icon: "clock" },
+                    { bg: "#b45309", value: `${Number(summary?.overtimeHours ?? 0).toFixed(2)}h`, label: "Overtime", icon: "clock" },
                     { bg: "#c2410c", value: summary?.pendingLeaves ?? 0, label: "Pending Leaves", icon: "calendar" },
                     { bg: "#15803d", value: `$${summary?.lastPaySlip ?? 0}`, label: "Last Payslip", icon: "dollar" },
                   ].map((s) => (
@@ -348,44 +369,73 @@ const EmployeeDashboard = ({ user }) => {
                 </div>
 
                 {/* Secondary stats */}
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                  <StaggerItem>
-                    <Card className="border-0 shadow-md" style={{ background: "#fffbf7" }}>
-                      <CardContent className="px-6 py-6">
-                        <p className="text-xs font-semibold mb-3" style={{ color: "#8b7355" }}>Attendance Rate</p>
-                        <p className="text-3xl font-bold" style={{ color: "#3d2b1f" }}>{summary?.attendanceRate ?? 0}%</p>
-                        <div className="mt-3 h-2.5 w-full rounded-full overflow-hidden" style={{ background: "#ede0d4" }}>
-                          <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${summary?.attendanceRate ?? 0}%`, background: (summary?.attendanceRate ?? 0) > 80 ? "#15803d" : "#c2410c" }} />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </StaggerItem>
-                  <StaggerItem>
-                    <Card className="border-0 shadow-md" style={{ background: "#fffbf7" }}>
-                      <CardContent className="px-6 py-6">
-                        <p className="text-xs font-semibold mb-3" style={{ color: "#8b7355" }}>Leave Balance</p>
-                        <p className="text-3xl font-bold" style={{ color: "#3d2b1f" }}>{leaves.length} <span className="text-sm font-normal" style={{ color: "#8b7355" }}>requests</span></p>
-                        <div className="mt-3 flex gap-2">
-                          <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold" style={{ background: "#dcfce7", color: "#15803d" }}>{leaves.filter(l => l.status === "APPROVED").length} approved</span>
-                          <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold" style={{ background: "#fef3c7", color: "#b45309" }}>{leaves.filter(l => l.status === "PENDING").length} pending</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </StaggerItem>
-                  <StaggerItem>
-                    <Card className="border-0 shadow-md" style={{ background: "#fffbf7" }}>
-                      <CardContent className="px-6 py-6">
-                        <p className="text-xs font-semibold mb-3" style={{ color: "#8b7355" }}>Performance Score</p>
-                        <p className="text-3xl font-bold" style={{ color: "#3d2b1f" }}>{performance.length > 0 ? performance[0]?.overallScore?.toFixed(1) : "—"} <span className="text-sm font-normal" style={{ color: "#8b7355" }}>/ 5.0</span></p>
-                        <div className="mt-3 flex gap-1">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <div key={s} className="h-2.5 flex-1 rounded-full" style={{ background: s <= Math.round(performance[0]?.overallScore || 0) ? "#9a0002" : "#ede0d4" }} />
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </StaggerItem>
-                </div>
+<div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+  
+  {/* Card 1: Attendance */}
+  <StaggerItem className="h-full">
+    <Card className="border-0 shadow-md h-full flex flex-col" style={{ background: "#fffbf7" }}>
+      {/* Added pt-6 to override default CardContent behavior, and justify-center */}
+      <CardContent className="px-6 pb-6 pt-6 flex flex-col justify-center h-full flex-1">
+        <div>
+          <p className="text-xs font-semibold mb-1.5" style={{ color: "#8b7355" }}>Attendance Rate</p>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl font-bold" style={{ color: "#3d2b1f" }}>{summary?.attendanceRate ?? 0}%</span>
+          </div>
+        </div>
+        {/* Increased margin-top to mt-6 for clear separation */}
+        <div className="mt-6 h-2.5 w-full rounded-full overflow-hidden" style={{ background: "#ede0d4" }}>
+          <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${summary?.attendanceRate ?? 0}%`, background: (summary?.attendanceRate ?? 0) > 80 ? "#15803d" : "#c2410c" }} />
+        </div>
+      </CardContent>
+    </Card>
+  </StaggerItem>
+
+  {/* Card 2: Leave Balance */}
+  <StaggerItem className="h-full">
+    <Card className="border-0 shadow-md h-full flex flex-col" style={{ background: "#fffbf7" }}>
+      <CardContent className="px-6 pb-6 pt-6 flex flex-col justify-center h-full flex-1">
+        <div>
+          <p className="text-xs font-semibold mb-1.5" style={{ color: "#8b7355" }}>Leave Balance</p>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl font-bold" style={{ color: "#3d2b1f" }}>{leaves.length}</span>
+            <span className="text-sm font-normal" style={{ color: "#8b7355" }}>requests</span>
+          </div>
+        </div>
+        <div className="mt-6 flex gap-2">
+          <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold" style={{ background: "#dcfce7", color: "#15803d" }}>
+            {leaves.filter(l => l.status === "APPROVED").length} approved
+          </span>
+          <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold" style={{ background: "#fef3c7", color: "#b45309" }}>
+            {leaves.filter(l => l.status === "PENDING").length} pending
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  </StaggerItem>
+
+  {/* Card 3: Performance Score */}
+  <StaggerItem className="h-full">
+    <Card className="border-0 shadow-md h-full flex flex-col" style={{ background: "#fffbf7" }}>
+      <CardContent className="px-6 pb-6 pt-6 flex flex-col justify-center h-full flex-1">
+        <div>
+          <p className="text-xs font-semibold mb-1.5" style={{ color: "#8b7355" }}>Performance Score</p>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl font-bold" style={{ color: "#3d2b1f" }}>
+              {performance.length > 0 ? performance[0]?.overallScore?.toFixed(1) : "—"}
+            </span>
+            <span className="text-sm font-normal" style={{ color: "#8b7355" }}>/ 5.0</span>
+          </div>
+        </div>
+        <div className="mt-6 flex gap-1 w-full">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <div key={s} className="h-2.5 flex-1 rounded-full" style={{ background: s <= Math.round(performance[0]?.overallScore || 0) ? "#9a0002" : "#ede0d4" }} />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  </StaggerItem>
+
+</div>
 
                 {/* Recent leaves */}
                 <StaggerItem>
@@ -420,7 +470,7 @@ const EmployeeDashboard = ({ user }) => {
 
             {/* ═══ ATTENDANCE TAB ═══ */}
             {section === "attendance" && (
-              <AttendancePage showSidebar={false} />
+              <AttendancePage showSidebar={false} user={user} />
             )}
 
             {/* ═══ LEAVES TAB ═══ */}
@@ -560,37 +610,188 @@ const EmployeeDashboard = ({ user }) => {
                 </Card>
               </div>
             )}
-
+            
             {/* ═══ PROFILE TAB ═══ */}
             {section === "profile" && (
-              <div className="space-y-7">
+              <div className="space-y-6">
                 <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
                   <h2 className="text-2xl font-bold" style={{ color: "#3d2b1f" }}>My Profile</h2>
                 </ScrollReveal>
-                <Card className="border-0 shadow-md" style={{ background: "#fffbf7" }}>
-                  <CardContent className="px-8 py-8">
-                    <div className="mb-10 flex items-center gap-5">
-                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-lg" style={{ background: "linear-gradient(135deg, #9a0002, #6b0001)" }}>{initials}</div>
-                      <div>
-                        <h3 className="text-xl font-bold" style={{ color: "#3d2b1f" }}>{user?.firstName} {user?.lastName}</h3>
-                        <p className="text-sm" style={{ color: "#8b7355" }}>{user?.email}</p>
-                        {user?.employeeId && <p className="text-xs mt-1 font-semibold" style={{ color: "#9a0002" }}>ID: {user.employeeId}</p>}
+
+                {/* Profile Header Card */}
+                <StaggerItem>
+                  <Card className="border-0 shadow-md overflow-hidden" style={{ background: "#fffbf7" }}>
+                    <div className="h-2" style={{ background: "linear-gradient(90deg, #9a0002, #6b0001)" }} />
+                    <CardContent className="px-8 py-8">
+                      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+                        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl text-3xl font-black text-white" style={{ background: "linear-gradient(135deg, #9a0002, #6b0001)", boxShadow: "0 8px 24px rgba(154,0,2,0.25)" }}>
+                          {initials}
+                        </div>
+                        <div className="flex-1 text-center sm:text-left">
+                          <h3 className="text-2xl font-bold" style={{ color: "#3d2b1f" }}>
+                            {user?.firstName} {user?.lastName}
+                          </h3>
+                          <p className="mt-1 text-sm" style={{ color: "#8b7355" }}>{user?.email}</p>
+                          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                            {user?.employeeId && (
+                              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: "rgba(154,0,2,0.08)", color: "#9a0002" }}>
+                                ID: {String(user.employeeId).padStart(6, "0")}
+                              </span>
+                            )}
+                            {user?.department && (
+                              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: "#e8ddd0", color: "#5c4033" }}>
+                                {user.department}
+                              </span>
+                            )}
+                            {user?.position && (
+                              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: "#e8ddd0", color: "#5c4033" }}>
+                                {user.position}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Button onClick={openEditProfile} variant="outline" size="sm" style={{ borderColor: "#9a0002", color: "#9a0002" }}>
+                          Edit Profile
+                        </Button>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                      <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>First Name</label><Input defaultValue={user?.firstName} readOnly /></div>
-                      <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Last Name</label><Input defaultValue={user?.lastName} readOnly /></div>
-                      <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Email</label><Input defaultValue={user?.email} type="email" readOnly /></div>
-                      <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Phone</label><Input defaultValue={user?.phone || ""} /></div>
-                      <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Department</label><Input defaultValue={user?.department || "—"} readOnly /></div>
-                      <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Position</label><Input defaultValue={user?.position || "—"} readOnly /></div>
-                      <div className="md:col-span-2"><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Employee ID</label><Input defaultValue={user?.employeeId || "—"} readOnly /></div>
-                    </div>
-                    <div className="mt-6 flex gap-2">
-                      <Button variant="outline" size="sm" onClick={openEditProfile} style={{ borderColor: "#9a0002", color: "#9a0002" }}>Edit Profile</Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </StaggerItem>
+
+                {/* Personal Information */}
+                <StaggerItem>
+                  <Card className="border-0 shadow-md" style={{ background: "#fffbf7" }}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base font-bold" style={{ color: "#3d2b1f" }}>Personal Information</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>First Name</label>
+                          <Input readOnly value={user?.firstName || ""} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Last Name</label>
+                          <Input readOnly value={user?.lastName || ""} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Email</label>
+                          <Input readOnly value={user?.email || ""} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Phone</label>
+                          <Input readOnly value={user?.phone || "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </StaggerItem>
+
+                {/* Work Information */}
+                <StaggerItem>
+                  <Card className="border-0 shadow-md" style={{ background: "#fffbf7" }}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base font-bold" style={{ color: "#3d2b1f" }}>Work Information</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Employee ID</label>
+                          <Input readOnly value={user?.employeeId ? String(user.employeeId).padStart(6, "0") : "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Department</label>
+                          <Input readOnly value={user?.department || "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Position</label>
+                          <Input readOnly value={user?.position || "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Hire Date</label>
+                          <Input readOnly value={user?.hireDate || "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Work Hours / Day</label>
+                          <Input readOnly value={user?.workHoursPerDay != null ? `${user.workHoursPerDay}h` : "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Working Days / Month</label>
+                          <Input readOnly value={user?.workingDaysPerMonth != null ? `${user.workingDaysPerMonth} days` : "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </StaggerItem>
+
+                {/* Leave Balances */}
+                <StaggerItem>
+                  <Card className="border-0 shadow-md" style={{ background: "#fffbf7" }}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base font-bold" style={{ color: "#3d2b1f" }}>Leave Balances</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        {[
+                          { label: "Annual Leave", used: user?.ilLeaveUsed ?? 0, total: user?.ilLeaveEntitlement ?? 18, color: "#3b82f6" },
+                          { label: "Sick Leave", used: user?.sickLeaveUsed ?? 0, total: user?.sickLeaveEntitlement ?? 7, color: "#f59e0b" },
+                          { label: "Special Leave", used: user?.specialLeaveUsed ?? 0, total: user?.specialLeaveEntitlement ?? 0, color: "#8b5cf6" },
+                        ].map((lb) => {
+                          const remaining = lb.total - lb.used;
+                          const pct = lb.total > 0 ? Math.round((lb.used / lb.total) * 100) : 0;
+                          return (
+                            <div key={lb.label} className="rounded-xl p-4" style={{ background: "#f5efe8", border: "1px solid #e8ddd0" }}>
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-xs font-semibold" style={{ color: "#8b7355" }}>{lb.label}</span>
+                                <span className="text-xs font-bold" style={{ color: lb.color }}>{remaining} left</span>
+                              </div>
+                              <div className="flex items-baseline gap-1.5 mb-2">
+                                <span className="text-2xl font-bold" style={{ color: "#3d2b1f" }}>{remaining}</span>
+                                <span className="text-xs" style={{ color: "#8b7355" }}>/ {lb.total} days</span>
+                              </div>
+                              <div className="h-2 w-full rounded-full overflow-hidden" style={{ background: "#ede0d4" }}>
+                                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: lb.color }} />
+                              </div>
+                              <p className="mt-1.5 text-[10px]" style={{ color: "#8b7355" }}>{lb.used} used · {pct}% consumed</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </StaggerItem>
+
+                {/* Account Details */}
+                <StaggerItem>
+                  <Card className="border-0 shadow-md" style={{ background: "#fffbf7" }}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base font-bold" style={{ color: "#3d2b1f" }}>Account Details</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Role</label>
+                          <Input readOnly value={(user?.roles || []).map((r) => typeof r === "object" ? r.name : r).join(", ") || "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Status</label>
+                          <div className="flex items-center gap-2 rounded-lg border px-3 py-2" style={{ borderColor: "#e8ddd0", background: "#f5efe8" }}>
+                            <span className="inline-block h-2 w-2 rounded-full" style={{ background: user?.active === false ? "#ef4444" : "#10b981" }} />
+                            <span className="text-sm" style={{ color: "#5c4033" }}>{user?.active === false ? "Inactive" : "Active"}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Member Since</label>
+                          <Input readOnly value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Last Updated</label>
+                          <Input readOnly value={user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </StaggerItem>
               </div>
             )}
 
@@ -608,9 +809,15 @@ const EmployeeDashboard = ({ user }) => {
         </>
       }>
         <div className="space-y-4">
-          <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Phone</label><Input value={profileForm.phone || ""} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} /></div>
-          <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Department</label><Input value={profileForm.department || ""} onChange={(e) => setProfileForm({ ...profileForm, department: e.target.value })} /></div>
-          <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Position</label><Input value={profileForm.position || ""} onChange={(e) => setProfileForm({ ...profileForm, position: e.target.value })} /></div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>First Name</label><Input value={profileForm.firstName || ""} onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })} /></div>
+            <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Last Name</label><Input value={profileForm.lastName || ""} onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })} /></div>
+          </div>
+          <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Phone</label><Input value={profileForm.phone || ""} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} placeholder="Enter phone number" /></div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Department</label><Input value={profileForm.department || ""} onChange={(e) => setProfileForm({ ...profileForm, department: e.target.value })} /></div>
+            <div><label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Position</label><Input value={profileForm.position || ""} onChange={(e) => setProfileForm({ ...profileForm, position: e.target.value })} /></div>
+          </div>
         </div>
       </Modal>
     </div>

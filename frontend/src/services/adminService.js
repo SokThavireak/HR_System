@@ -36,7 +36,7 @@ export const adminService = {
   /* =================================================================
      PAYROLL  —  list · get · calculate · create · process · pay · delete
      ================================================================= */
-  getPayrolls: (page = 0, size = 20, userId, status) =>
+  getPayrolls: (page = 0, size = 200, userId, status) =>
     api.get('/admin/payroll', { params: { page, size, userId, status } }),
   getPayroll: (id) => api.get(`/admin/payroll/${id}`),
   calculatePayroll: (data) => api.post('/admin/payroll/calculate', data),

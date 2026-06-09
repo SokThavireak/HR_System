@@ -116,7 +116,7 @@ function buildSeedData() {
 /* ═══════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════ */
-const AttendancePage = ({ showSidebar = true, standalone = false, admin = false }) => {
+const AttendancePage = ({ showSidebar = true, standalone = false, admin = false, user = null }) => {
   const { toasts, showToast, removeToast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -127,36 +127,61 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
   const [usingApiData, setUsingApiData] = useState(false);
   const lastFetchedRange = useRef(null);
 
+  // ─── Employee detection (must be before filter state init) ───
+  const isEmployee = !admin && !!user?.employeeId;
+
+  // Initialize admin-only filters empty for employees (skip localStorage)
+  const initFilter = (key, defaultVal) => {
+    if (isEmployee) return "";
+    return localStorage.getItem(key) || defaultVal;
+  };
+
   // ─── Filter state ───
   const today = new Date().toISOString().slice(0, 10);
   const curYear = new Date().getFullYear();
   const curMonth = new Date().getMonth() + 1;
 
-  const [filterType, setFilterType] = useState(() => localStorage.getItem("att_filterType") || "year");
+  const [filterType, setFilterType] = useState(() => {
+    // Clear stale filter keys and default to "all"
+    localStorage.setItem("att_filterType", "all");
+    localStorage.removeItem("att_filterUserId");
+    localStorage.removeItem("att_filterName");
+    localStorage.removeItem("att_filterStatus");
+    localStorage.removeItem("att_filterDept");
+    return "all";
+  });
   const [filterDay, setFilterDay] = useState(() => localStorage.getItem("att_filterDay") || today);
   const [filterMonth, setFilterMonth] = useState(() => localStorage.getItem("att_filterMonth") || String(curMonth));
   const [filterYear, setFilterYear] = useState(() => localStorage.getItem("att_filterYear") || String(curYear));
-  const [filterName, setFilterName] = useState(() => localStorage.getItem("att_filterName") || "");
-  const [filterId, setFilterId] = useState(() => localStorage.getItem("att_filterId") || "");
-  const [filterUserId, setFilterUserId] = useState(() => localStorage.getItem("att_filterUserId") || "");
-  const [filterLetter, setFilterLetter] = useState(() => localStorage.getItem("att_filterLetter") || "");
-  const [filterStatus, setFilterStatus] = useState(() => localStorage.getItem("att_filterStatus") || "");
-  const [filterDept, setFilterDept] = useState(() => localStorage.getItem("att_filterDept") || "");
+  const [filterName, setFilterName] = useState(() => initFilter("att_filterName", ""));
+  const [filterId, setFilterId] = useState(() => initFilter("att_filterId", ""));
+  const [filterIdInput, setFilterIdInput] = useState(() => initFilter("att_filterId", ""));
+  const [filterUserId, setFilterUserId] = useState(() => initFilter("att_filterUserId", ""));
+  const [filterUserIdInput, setFilterUserIdInput] = useState(() => initFilter("att_filterUserId", ""));
+  const [filterLetter, setFilterLetter] = useState(() => initFilter("att_filterLetter", ""));
+  const [filterStatus, setFilterStatus] = useState(() => initFilter("att_filterStatus", ""));
+  const [filterDept, setFilterDept] = useState(() => initFilter("att_filterDept", ""));
+
+  // Auto-filter for non-admin employees — lock to their own record
+  const effectiveFilterUserId = isEmployee ? String(user.employeeId) : filterUserId;
 
   const [manual, setManual] = useState({ employeeId: "", date: today, clockIn: "09:00", clockOut: "17:00", status: "PRESENT", note: "" });
   const [editRecord, setEditRecord] = useState(null);
 
-  // ─── Persist filter state to localStorage ───
+  // ─── Persist filter state to localStorage (date filters only for employees) ───
   useEffect(() => { localStorage.setItem("att_filterType", filterType); }, [filterType]);
   useEffect(() => { localStorage.setItem("att_filterDay", filterDay); }, [filterDay]);
   useEffect(() => { localStorage.setItem("att_filterMonth", filterMonth); }, [filterMonth]);
   useEffect(() => { localStorage.setItem("att_filterYear", filterYear); }, [filterYear]);
-  useEffect(() => { localStorage.setItem("att_filterName", filterName); }, [filterName]);
-  useEffect(() => { localStorage.setItem("att_filterId", filterId); }, [filterId]);
-  useEffect(() => { localStorage.setItem("att_filterUserId", filterUserId); }, [filterUserId]);
-  useEffect(() => { localStorage.setItem("att_filterLetter", filterLetter); }, [filterLetter]);
-  useEffect(() => { localStorage.setItem("att_filterStatus", filterStatus); }, [filterStatus]);
-  useEffect(() => { localStorage.setItem("att_filterDept", filterDept); }, [filterDept]);
+  useEffect(() => { if (!isEmployee) localStorage.setItem("att_filterName", filterName); }, [filterName, isEmployee]);
+  useEffect(() => { if (!isEmployee) localStorage.setItem("att_filterId", filterId); }, [filterId, isEmployee]);
+  useEffect(() => { if (!isEmployee) localStorage.setItem("att_filterUserId", filterUserId); }, [filterUserId, isEmployee]);
+  // Sync committed filter values → input fields (for initial load from localStorage)
+  useEffect(() => { setFilterIdInput(filterId); }, [filterId]);
+  useEffect(() => { setFilterUserIdInput(filterUserId); }, [filterUserId]);
+  useEffect(() => { if (!isEmployee) localStorage.setItem("att_filterLetter", filterLetter); }, [filterLetter, isEmployee]);
+  useEffect(() => { if (!isEmployee) localStorage.setItem("att_filterStatus", filterStatus); }, [filterStatus, isEmployee]);
+  useEffect(() => { if (!isEmployee) localStorage.setItem("att_filterDept", filterDept); }, [filterDept, isEmployee]);
 
   // ─── Build seed data ONCE ───
   const seedData = useMemo(() => buildSeedData(), []);
@@ -184,41 +209,58 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
   const [records, setRecords] = useState([]);
 
   useEffect(() => {
-    const rangeKey = `${dateRange.from}_${dateRange.to}`;
+    const rangeKey = `${dateRange.from}_${dateRange.to}_${effectiveFilterUserId}_${filterId}`;
     if (lastFetchedRange.current === rangeKey) return;
     lastFetchedRange.current = rangeKey;
 
     let cancelled = false;
     setApiLoading(true);
+    setLoading(true);
 
-    attendanceService.getAllAttendance(dateRange.from, dateRange.to, null, 0, 2000, filterId || null, filterUserId || null)
+    attendanceService.getAllAttendance(dateRange.from, dateRange.to, null, 0, 2000, filterId || null, effectiveFilterUserId || null)
       .then((res) => {
         if (cancelled) return;
         const data = res.data?.content || res.data || [];
-        setRecords(data);
-        setUsingApiData(data.length > 0);
+        if (data.length > 0) {
+          setRecords(data);
+          setUsingApiData(true);
+        } else if (isEmployee) {
+          const myRecords = seedData.filter((r) => String(r.user?.employeeId || "") === effectiveFilterUserId);
+          setRecords(myRecords);
+          setUsingApiData(false);
+        } else {
+          setRecords(seedData);
+          setUsingApiData(false);
+        }
       })
       .catch(() => {
         if (cancelled) return;
-        setRecords(seedData);
+        if (isEmployee) {
+          const myRecords = seedData.filter((r) => String(r.user?.employeeId || "") === effectiveFilterUserId);
+          setRecords(myRecords);
+        } else {
+          setRecords(seedData);
+        }
         setUsingApiData(false);
       })
       .finally(() => {
-        if (!cancelled) setApiLoading(false);
+        if (cancelled) return;
+        setApiLoading(false);
+        setLoading(false);
       });
 
     return () => { cancelled = true; };
-  }, [dateRange, seedData]);
+  }, [dateRange, seedData, effectiveFilterUserId, filterId]);
 
   // ─── Filter + Sort records ───
   const filtered = useMemo(() => {
     let result = records.filter((a) => {
       const d = a.date;
-      if (d < dateRange.from || d > dateRange.to) return false;
+      if (dateRange.from && dateRange.to && (d < dateRange.from || d > dateRange.to)) return false;
       if (filterStatus && a.status !== filterStatus) return false;
       if (filterDept && a.user?.department !== filterDept) return false;
       if (filterId && String(a.id) !== String(filterId)) return false;
-      if (filterUserId && a.user?.employeeId !== filterUserId) return false;
+      if (effectiveFilterUserId && String(a.user?.employeeId || "") !== effectiveFilterUserId) return false;
       if (filterName) {
         const name = ((a.user?.firstName || '') + ' ' + (a.user?.lastName || '')).toLowerCase();
         if (!name.includes(filterName.toLowerCase())) return false;
@@ -231,19 +273,22 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
     });
 
     result.sort((a, b) => {
+      const dateCmp = (b.date || "").localeCompare(a.date || "");
+      if (dateCmp !== 0) return dateCmp;
       const nameA = ((a.user?.firstName || '') + ' ' + (a.user?.lastName || '')).toLowerCase();
       const nameB = ((b.user?.firstName || '') + ' ' + (b.user?.lastName || '')).toLowerCase();
       return nameA.localeCompare(nameB);
     });
 
     return result;
-  }, [records, dateRange, filterStatus, filterDept, filterName, filterId, filterUserId, filterLetter]);
+  }, [records, dateRange, filterStatus, filterDept, filterName, filterId, effectiveFilterUserId, filterLetter]);
 
   // ─── Loading + pagination ───
   useEffect(() => {
     setTotalPages(Math.ceil(filtered.length / 20));
     setPage(0);
-    setLoading(false);
+    // Safety: always stop loading after filters produce a result
+    if (loading) setLoading(false);
   }, [filtered]);
 
   // ─── Determine if viewing a single user ───
@@ -336,6 +381,16 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
     });
   };
 
+  // Commit ID filters (called on Enter key or button click)
+  const commitIdFilters = () => {
+    setFilterId(filterIdInput.trim());
+    setFilterUserId(filterUserIdInput.trim());
+  };
+
+  const handleIdKeyDown = (e) => {
+    if (e.key === "Enter") commitIdFilters();
+  };
+
   const resetFilters = () => {
     setFilterType("month");
     setFilterDay(today);
@@ -343,7 +398,9 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
     setFilterYear(String(curYear));
     setFilterName("");
     setFilterId("");
+    setFilterIdInput("");
     setFilterUserId("");
+    setFilterUserIdInput("");
     setFilterLetter("");
     setFilterStatus("");
     setFilterDept("");
@@ -354,7 +411,9 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
     setFilterType("all");
     setFilterName("");
     setFilterId("");
+    setFilterIdInput("");
     setFilterUserId("");
+    setFilterUserIdInput("");
     setFilterLetter("");
     setFilterStatus("");
     setFilterDept("");
@@ -363,8 +422,8 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
 
   const removeChip = (key) => {
     if (key === "name") setFilterName("");
-    if (key === "id") setFilterId("");
-    if (key === "userId") setFilterUserId("");
+    if (key === "id") { setFilterId(""); setFilterIdInput(""); }
+    if (key === "userId") { setFilterUserId(""); setFilterUserIdInput(""); }
     if (key === "letter") setFilterLetter("");
     if (key === "status") setFilterStatus("");
     if (key === "dept") setFilterDept("");
@@ -469,13 +528,15 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
               {usingApiData && (
                 <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600">Live Data</span>
               )}
-              <button
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                Advanced
-                <Icon name="chevronDown" size={12} className={`transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
-              </button>
+              {!isEmployee && (
+                <button
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  Advanced
+                  <Icon name="chevronDown" size={12} className={`transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -523,72 +584,89 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
               </Select>
             )}
 
-            {/* Divider */}
-            <div className="mx-1 h-5 w-px bg-gray-200" />
+            {/* Divider — admin only */}
+            {!isEmployee && <div className="mx-1 h-5 w-px bg-gray-200" />}
 
-            {/* Status */}
-            <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-8 w-auto min-w-[110px] text-xs">
-              <option value="">All Status</option>
-              <option value="PRESENT">Present</option>
-              <option value="LATE">Late</option>
-              <option value="ABSENT">Absent</option>
-              <option value="HALF_DAY">Half Day</option>
-              <option value="ON_LEAVE">On Leave</option>
-            </Select>
+            {/* Status — admin only */}
+            {!isEmployee && (
+              <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-8 w-auto min-w-[110px] text-xs">
+                <option value="">All Status</option>
+                <option value="PRESENT">Present</option>
+                <option value="LATE">Late</option>
+                <option value="ABSENT">Absent</option>
+                <option value="HALF_DAY">Half Day</option>
+                <option value="ON_LEAVE">On Leave</option>
+              </Select>
+            )}
 
-            {/* Department */}
-            <Select value={filterDept} onChange={(e) => setFilterDept(e.target.value)} className="h-8 w-auto min-w-[130px] text-xs">
-              <option value="">All Departments</option>
-              <option value="Engineering">Engineering</option>
-              <option value="Marketing">Marketing</option>
-              <option value="Finance">Finance</option>
-              <option value="Human Resources">Human Resources</option>
-              <option value="Sales">Sales</option>
-              <option value="Operations">Operations</option>
-              <option value="Design">Design</option>
-              <option value="Legal">Legal</option>
-              <option value="Customer Support">Customer Support</option>
-            </Select>
+            {/* Department — admin only */}
+            {!isEmployee && (
+              <Select value={filterDept} onChange={(e) => setFilterDept(e.target.value)} className="h-8 w-auto min-w-[130px] text-xs">
+                <option value="">All Departments</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Finance">Finance</option>
+                <option value="Human Resources">Human Resources</option>
+                <option value="Sales">Sales</option>
+                <option value="Operations">Operations</option>
+                <option value="Design">Design</option>
+                <option value="Legal">Legal</option>
+                <option value="Customer Support">Customer Support</option>
+              </Select>
+            )}
 
-            {/* Divider */}
-            <div className="mx-1 h-5 w-px bg-gray-200" />
+            {/* Divider — admin only */}
+            {!isEmployee && <div className="mx-1 h-5 w-px bg-gray-200" />}
 
-            {/* User ID */}
-            <div className="relative w-36">
-              <span className="pointer-events-none absolute left-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground">
-                <Icon name="search" size={13} />
-              </span>
-              <Input
-                placeholder="User ID…"
-                value={filterUserId}
-                onChange={(e) => setFilterUserId(e.target.value)}
-                className="h-8 w-full pl-8 pr-6 text-xs"
-              />
-              {filterUserId && (
-                <button onClick={() => setFilterUserId("")} className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
-                  <Icon name="x" size={12} />
-                </button>
-              )}
-            </div>
+            {/* User ID — admin only (commits on Enter or Search button) */}
+            {!isEmployee && (
+              <div className="relative w-36">
+                <span className="pointer-events-none absolute left-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground">
+                  <Icon name="search" size={13} />
+                </span>
+                <Input
+                  placeholder="User ID…"
+                  value={filterUserIdInput}
+                  onChange={(e) => setFilterUserIdInput(e.target.value)}
+                  onKeyDown={handleIdKeyDown}
+                  className="h-8 w-full pl-8 pr-6 text-xs"
+                />
+                {filterUserIdInput && (
+                  <button onClick={() => { setFilterUserIdInput(""); setFilterUserId(""); }} className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+                    <Icon name="x" size={12} />
+                  </button>
+                )}
+              </div>
+            )}
 
-            {/* Record ID */}
-            <div className="relative w-36">
-              <span className="pointer-events-none absolute left-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground">
-                <Icon name="search" size={13} />
-              </span>
-              <Input
-                type="number"
-                placeholder="Record ID…"
-                value={filterId}
-                onChange={(e) => setFilterId(e.target.value)}
-                className="h-8 w-full pl-8 pr-6 text-xs"
-              />
-              {filterId && (
-                <button onClick={() => setFilterId("")} className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
-                  <Icon name="x" size={12} />
-                </button>
-              )}
-            </div>
+            {/* Record ID — admin only (commits on Enter or Search button) */}
+            {!isEmployee && (
+              <div className="relative w-36">
+                <span className="pointer-events-none absolute left-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground">
+                  <Icon name="search" size={13} />
+                </span>
+                <Input
+                  type="number"
+                  placeholder="Record ID…"
+                  value={filterIdInput}
+                  onChange={(e) => setFilterIdInput(e.target.value)}
+                  onKeyDown={handleIdKeyDown}
+                  className="h-8 w-full pl-8 pr-6 text-xs"
+                />
+                {filterIdInput && (
+                  <button onClick={() => { setFilterIdInput(""); setFilterId(""); }} className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+                    <Icon name="x" size={12} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Search button — commits ID filters */}
+            {!isEmployee && (
+              <Button onClick={commitIdFilters} variant="primary" size="sm" className="h-8 text-xs">
+                <Icon name="search" size={13} className="mr-1" /> Search
+              </Button>
+            )}
 
             {/* Spacer */}
             <div className="flex-1" />
@@ -683,65 +761,6 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
         </div>
       </ScrollReveal>
 
-      {/* Manual Entry / Edit Form */}
-      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name={editRecord ? "edit" : "plus"} size={16} className="text-primary" />
-              {editRecord ? "Edit Attendance Record" : "Manual Clock Entry"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={editRecord ? handleUpdate : handleManual} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Employee ID</label>
-                  <Input type="number" required value={editRecord ? editRecord.employeeId || "" : manual.employeeId}
-                    onChange={(e) => editRecord ? setEditRecord({ ...editRecord, employeeId: e.target.value }) : setManual({ ...manual, employeeId: e.target.value })}
-                    disabled={!!editRecord} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Date</label>
-                  <Input type="date" required value={editRecord ? editRecord.date : manual.date}
-                    onChange={(e) => editRecord ? setEditRecord({ ...editRecord, date: e.target.value }) : setManual({ ...manual, date: e.target.value })} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Clock In</label>
-                  <Input type="time" value={editRecord ? editRecord.clockIn : manual.clockIn}
-                    onChange={(e) => editRecord ? setEditRecord({ ...editRecord, clockIn: e.target.value }) : setManual({ ...manual, clockIn: e.target.value })} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Clock Out</label>
-                  <Input type="time" value={editRecord ? editRecord.clockOut : manual.clockOut}
-                    onChange={(e) => editRecord ? setEditRecord({ ...editRecord, clockOut: e.target.value }) : setManual({ ...manual, clockOut: e.target.value })} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
-                  <Select value={editRecord ? editRecord.status : manual.status}
-                    onChange={(e) => editRecord ? setEditRecord({ ...editRecord, status: e.target.value }) : setManual({ ...manual, status: e.target.value })}>
-                    <option value="PRESENT">Present</option>
-                    <option value="LATE">Late</option>
-                    <option value="ABSENT">Absent</option>
-                    <option value="HALF_DAY">Half Day</option>
-                    <option value="ON_LEAVE">On Leave</option>
-                  </Select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Note</label>
-                  <Input placeholder="Reason / note…" value={editRecord ? editRecord.note || "" : manual.note}
-                    onChange={(e) => editRecord ? setEditRecord({ ...editRecord, note: e.target.value }) : setManual({ ...manual, note: e.target.value })} />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit">{editRecord ? <><Icon name="check" size={14} /> Save Changes</> : <><Icon name="plus" size={14} /> Save Entry</>}</Button>
-                {editRecord && <Button type="button" variant="outline" onClick={() => setEditRecord(null)}>Cancel</Button>}
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </ScrollReveal>
-
       {/* Attendance Table */}
       <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.2}>
         <Card>
@@ -767,7 +786,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
                       <TableHead style={{ minWidth: "120px" }}>Clock Out</TableHead>
                       <TableHead>Worked (hrs)</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-[120px]">Actions</TableHead>
+                      {!isEmployee && <TableHead className="w-[120px]">Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -786,12 +805,14 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false 
                         </TableCell>
                         <TableCell className="font-semibold">{r.hoursWorked != null ? r.hoursWorked : "—"}</TableCell>
                         <TableCell><StatusBadge status={r.status} /></TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <button title="Edit" onClick={() => startEdit(r)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
-                            <button title="Delete" onClick={() => handleDelete(r.id)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
-                          </div>
-                        </TableCell>
+                        {!isEmployee && (
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <button title="Edit" onClick={() => startEdit(r)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
+                              <button title="Delete" onClick={() => handleDelete(r.id)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
