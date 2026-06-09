@@ -2,6 +2,7 @@ package com.hrms.controller;
 
 import com.hrms.entity.Attendance;
 import com.hrms.entity.User;
+import com.hrms.repository.AttendanceRepository;
 import com.hrms.repository.UserRepository;
 import com.hrms.service.AttendanceService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class EmployeeAttendanceController {
 
     private final AttendanceService attendanceService;
     private final UserRepository userRepo;
+    private final AttendanceRepository attendanceRepo;
 
     private User currentUser(UserDetails ud) {
         return userRepo.findByEmail(ud.getUsername()).orElseThrow();
@@ -43,10 +45,13 @@ public class EmployeeAttendanceController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> getMyAttendance(
+    public ResponseEntity<List<Attendance>> getMyAttendance(
             @AuthenticationPrincipal UserDetails ud,
             @RequestParam(defaultValue = "2025-01-01") LocalDate from,
             @RequestParam(defaultValue = "2027-12-31") LocalDate to) {
-        return ResponseEntity.ok(List.of());
+        User user = currentUser(ud);
+        return ResponseEntity.ok(
+            attendanceRepo.findByUserIdAndDateBetweenOrderByDateDesc(user.getId(), from, to)
+        );
     }
 }

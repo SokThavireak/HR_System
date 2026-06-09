@@ -9,14 +9,12 @@ import com.hrms.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -26,9 +24,8 @@ public class PayrollService {
     private final UserRepository userRepo;
     private final AttendanceRepository attendanceRepo;
 
-    @Async
     @Transactional
-    public CompletableFuture<Payroll> calculateAndCreate(Long userId, Double fullTimeWorkHours, BigDecimal tax,
+    public Payroll calculateAndCreate(Long userId, Double fullTimeWorkHours, BigDecimal tax,
                                       BigDecimal insurance, BigDecimal otherDeductions,
                                       java.time.LocalDate periodStart, java.time.LocalDate periodEnd) {
         User user = userRepo.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
@@ -37,8 +34,8 @@ public class PayrollService {
         if (fullTimeWorkHours == null || fullTimeWorkHours <= 0)
             throw new RuntimeException("Full-time work hours must be greater than 0");
 
-        if (payrollRepo.findByUserIdAndPayPeriodStartAndPayPeriodEnd(userId, periodStart, periodEnd).isPresent())
-            throw new RuntimeException("Payroll already exists for this period");
+        var existing = payrollRepo.findByUserIdAndPayPeriodStartAndPayPeriodEnd(userId, periodStart, periodEnd);
+        if (existing.isPresent()) return existing.get();
 
         // Monthly salary = annual / 12
         BigDecimal monthlySalary = user.getBaseSalary()
@@ -108,7 +105,7 @@ public class PayrollService {
             .netSalary(net)
             .status(PayrollStatus.DRAFT)
             .build();
-        return CompletableFuture.completedFuture(payrollRepo.save(p));
+        return payrollRepo.save(p);
     }
 
     private double calculateActualWorkHours(Long userId, java.time.LocalDate start, java.time.LocalDate end) {
@@ -143,79 +140,65 @@ public class PayrollService {
         return deductionPerDay.multiply(BigDecimal.valueOf(lateDays)).setScale(2, RoundingMode.HALF_UP);
     }
 
-    @Async
-    public CompletableFuture<Page<Payroll>> getAll(Pageable page) {
-        return CompletableFuture.completedFuture(payrollRepo.findAllByOrderByPayPeriodEndDesc(page));
+    public Page<Payroll> getAll(Pageable page) {
+        return payrollRepo.findAllByOrderByPayPeriodEndDesc(page);
     }
 
-    @Async
-    public CompletableFuture<List<Payroll>> getByUser(Long userId) {
-        return CompletableFuture.completedFuture(payrollRepo.findByUserIdOrderByPayPeriodEndDesc(userId));
+    public List<Payroll> getByUser(Long userId) {
+        return payrollRepo.findByUserIdOrderByPayPeriodEndDesc(userId);
     }
 
-    @Async
     @Transactional
-    public CompletableFuture<Payroll> processPayroll(Long id) {
-        Payroll p = payrollRepo.findByIdWithUser(id).orElseThrow();
+    public Payroll processPayroll(Long id) {
+        Payroll p = payrollRepo.findByIdWithUser(id).orElseThrow(() -> new RuntimeException("Payroll not found"));
         p.setStatus(PayrollStatus.PROCESSED);
-        return CompletableFuture.completedFuture(payrollRepo.save(p));
+        return payrollRepo.save(p);
     }
 
-    @Async
     @Transactional
-    public CompletableFuture<Payroll> markPaid(Long id) {
-        Payroll p = payrollRepo.findByIdWithUser(id).orElseThrow();
+    public Payroll markPaid(Long id) {
+        Payroll p = payrollRepo.findByIdWithUser(id).orElseThrow(() -> new RuntimeException("Payroll not found"));
         p.setStatus(PayrollStatus.PAID);
         p.setPaymentDate(java.time.LocalDate.now());
-        return CompletableFuture.completedFuture(payrollRepo.save(p));
+        return payrollRepo.save(p);
     }
 
-    @Async
-    public CompletableFuture<Payroll> getById(Long id) {
-        return CompletableFuture.completedFuture(
-            payrollRepo.findByIdWithUser(id).orElseThrow(() -> new RuntimeException("Payroll not found"))
-        );
+    public Payroll getById(Long id) {
+        return payrollRepo.findByIdWithUser(id).orElseThrow(() -> new RuntimeException("Payroll not found"));
     }
 
-    @Async
     @Transactional
-    public CompletableFuture<Void> delete(Long id) {
+    public void delete(Long id) {
         payrollRepo.deleteById(id);
-        return CompletableFuture.completedFuture(null);
     }
 
-    @Async
     @Transactional
-    public CompletableFuture<Void> bulkProcess() {
+    public void bulkProcess() {
         payrollRepo.findAllByStatus(PayrollStatus.DRAFT).forEach(p -> {
             p.setStatus(PayrollStatus.PROCESSED);
             payrollRepo.save(p);
         });
-        return CompletableFuture.completedFuture(null);
     }
 
-    @Async
     @Transactional
-    public CompletableFuture<Payroll> updatePayroll(Long id, BigDecimal taxDeduction, BigDecimal insuranceDeduction,
-                                                    BigDecimal otherDeductions, String notes) {
+    public Payroll updatePayroll(Long id, BigDecimal taxDeduction, BigDecimal insuranceDeduction,
+                                 BigDecimal otherDeductions, String notes) {
         Payroll p = payrollRepo.findByIdWithUser(id).orElseThrow(() -> new RuntimeException("Payroll not found"));
         if (taxDeduction != null) p.setTaxDeduction(taxDeduction);
         if (insuranceDeduction != null) p.setInsuranceDeduction(insuranceDeduction);
         if (otherDeductions != null) p.setOtherDeductions(otherDeductions);
         if (notes != null) p.setNotes(notes);
 
-        // Recalculate gross, total deductions, net
         BigDecimal totalDed = p.getTaxDeduction().add(p.getInsuranceDeduction()).add(p.getOtherDeductions()).add(p.getLateDeduction() != null ? p.getLateDeduction() : BigDecimal.ZERO);
         BigDecimal gross = p.getBaseSalary().add(p.getExtraSalary() != null ? p.getExtraSalary() : BigDecimal.ZERO).add(p.getOvertimePay() != null ? p.getOvertimePay() : BigDecimal.ZERO).add(p.getIlPayout() != null ? p.getIlPayout() : BigDecimal.ZERO);
         p.setGrossSalary(gross);
         p.setTotalDeductions(totalDed);
         p.setNetSalary(gross.subtract(totalDed));
 
-        return CompletableFuture.completedFuture(payrollRepo.save(p));
+        return payrollRepo.save(p);
     }
 
-    @Async
-    public CompletableFuture<BigDecimal> sumPaidNet() {
-        return CompletableFuture.completedFuture(payrollRepo.sumPaidNet());
+    public BigDecimal sumPaidNet() {
+        return payrollRepo.sumPaidNet();
     }
 }

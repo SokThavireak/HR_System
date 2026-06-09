@@ -23,7 +23,7 @@ public class AttendanceService {
         User user = userRepo.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         LocalDate today = LocalDate.now();
         Attendance existing = attendanceRepo.findByUserIdAndDate(userId, today).orElse(null);
-        if (existing != null && existing.getClockInTime() != null)
+        if (existing != null && existing.getClockInTime() != null && existing.getClockOutTime() == null)
             throw new RuntimeException("Already clocked in today");
 
         LocalDateTime now = LocalDateTime.now();

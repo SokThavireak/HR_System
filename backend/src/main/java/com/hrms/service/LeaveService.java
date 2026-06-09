@@ -52,6 +52,10 @@ public class LeaveService {
         return leaveRepo.save(leave);
     }
 
+    public LeaveRequest getById(Long id) {
+        return leaveRepo.findById(id).orElseThrow(() -> new RuntimeException("Leave not found"));
+    }
+
     public List<LeaveRequest> getMyLeaves(Long userId) {
         return leaveRepo.findByUserIdOrderByCreatedAtDesc(userId);
     }

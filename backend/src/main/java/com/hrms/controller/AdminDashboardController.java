@@ -39,7 +39,7 @@ public class AdminDashboardController {
             "totalEmployees", totalEmployees,
             "attendanceRate", attendanceRate,
             "pendingLeaves", leaveService.countPending(),
-            "totalPayroll", payrollService.sumPaidNet().join(),
+            "totalPayroll", payrollService.sumPaidNet(),
             "departmentBreakdown", userRepo.countByDepartment()
         );
     }

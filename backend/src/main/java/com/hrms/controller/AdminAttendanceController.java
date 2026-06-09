@@ -182,15 +182,15 @@ public class AdminAttendanceController {
         long sickDays = leaveRepo.countByUserAndTypeAndDateRange(userId, com.hrms.entity.LeaveRequest.LeaveType.SICK, from, to);
         long specialDays = leaveRepo.countByUserAndTypeAndDateRange(userId, com.hrms.entity.LeaveRequest.LeaveType.SPECIAL, from, to);
 
-        // Fetch entitlements from user
+        // Fetch entitlements from user; compute used counts dynamically from approved leaves
         User user = userRepo.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
         return new AttendanceSummary(
             totalHours, totalOvertime, presentDays, totalLateMinutes, lateDays,
             ilDays, sickDays, specialDays,
-            user.getIlLeaveEntitlement(), user.getIlLeaveUsed(),
-            user.getSickLeaveEntitlement(), user.getSickLeaveUsed(),
-            user.getSpecialLeaveEntitlement(), user.getSpecialLeaveUsed()
+            user.getIlLeaveEntitlement(), (int) ilDays,
+            user.getSickLeaveEntitlement(), (int) sickDays,
+            user.getSpecialLeaveEntitlement(), (int) specialDays
         );
     }
 

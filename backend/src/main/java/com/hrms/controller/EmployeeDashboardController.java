@@ -3,6 +3,7 @@ package com.hrms.controller;
 import com.hrms.entity.User;
 import com.hrms.repository.AttendanceRepository;
 import com.hrms.repository.PayrollRepository;
+import com.hrms.repository.PerformanceReviewRepository;
 import com.hrms.repository.UserRepository;
 import com.hrms.service.LeaveService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class EmployeeDashboardController {
     private final PayrollRepository payrollRepo;
     private final AttendanceRepository attendanceRepo;
     private final LeaveService leaveService;
+    private final PerformanceReviewRepository repo;
 
     private User currentUser(UserDetails ud) {
         return userRepo.findByEmail(ud.getUsername()).orElseThrow();
@@ -55,7 +57,10 @@ public class EmployeeDashboardController {
 
     @GetMapping("/performance")
     public ResponseEntity<?> getPerformance(@AuthenticationPrincipal UserDetails ud) {
-        return ResponseEntity.ok(java.util.List.of());
+        User user = currentUser(ud);
+        return ResponseEntity.ok(
+            repo.findByEmployeeIdOrderByCreatedAtDesc(user.getId(), org.springframework.data.domain.PageRequest.of(0, 20))
+        );
     }
 
     @GetMapping("/profile")

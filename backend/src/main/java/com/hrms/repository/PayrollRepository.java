@@ -8,8 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 public interface PayrollRepository extends JpaRepository<Payroll, Long> {
     @Query("SELECT p FROM Payroll p JOIN FETCH p.user ORDER BY p.payPeriodEnd DESC")

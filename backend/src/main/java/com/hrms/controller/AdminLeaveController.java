@@ -28,6 +28,11 @@ public class AdminLeaveController {
         return leaveService.getByStatus(status, PageRequest.of(page, 10));
     }
 
+    @GetMapping("/{id}")
+    public LeaveRequest getLeave(@PathVariable Long id) {
+        return leaveService.getById(id);
+    }
+
     @PutMapping("/{id}/approve")
     public LeaveRequest approve(@PathVariable Long id, @AuthenticationPrincipal UserDetails ud) {
         Long approverId = userRepo.findByEmail(ud.getUsername()).orElseThrow().getId();

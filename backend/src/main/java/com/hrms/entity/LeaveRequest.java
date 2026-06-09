@@ -14,7 +14,7 @@ public class LeaveRequest {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "roles"})
     private User user;
@@ -40,7 +40,7 @@ public class LeaveRequest {
     @Builder.Default
     private LeaveStatus status = LeaveStatus.PENDING;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "approved_by")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "roles"})
     private User approvedBy;
