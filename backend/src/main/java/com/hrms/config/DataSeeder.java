@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
@@ -35,6 +36,7 @@ public class DataSeeder {
     private final PerformanceReviewRepository reviewRepo;
 
     @Bean
+    @Order(1)
     CommandLineRunner seedDatabase() {
         return args -> {
             // Init employeeId counter from existing data
@@ -58,20 +60,44 @@ public class DataSeeder {
                 System.out.println("[DataSeeder] Backfilled employeeId for " + usersWithoutId.size() + " existing users");
             }
 
-            boolean alreadySeeded = userRepo.count() > 1 && attendanceRepo.count() > 0;
-            if (alreadySeeded) {
-                System.out.println("[DataSeeder] Data already exists — skipping initial seed");
-            }
+            // ── 0. Seed Roles (idempotent) ──
+            Role employeeRole = roleRepo.findByName(RoleName.ROLE_EMPLOYEE).orElseGet(() -> {
+                Role r = new Role(RoleName.ROLE_EMPLOYEE, "Standard employee role");
+                return roleRepo.save(r);
+            });
+            Role adminRole = roleRepo.findByName(RoleName.ROLE_HR_ADMIN).orElseGet(() -> {
+                Role r = new Role(RoleName.ROLE_HR_ADMIN, "HR Administrator with full access");
+                return roleRepo.save(r);
+            });
+            System.out.println("[DataSeeder] Roles: " + roleRepo.count());
 
-            if (!alreadySeeded) {
-
-            Role employeeRole = roleRepo.findByName(RoleName.ROLE_EMPLOYEE)
-                .orElseThrow(() -> new RuntimeException("ROLE_EMPLOYEE not found"));
-            Role adminRole = roleRepo.findByName(RoleName.ROLE_HR_ADMIN).orElse(null);
-
+            // ── 0.5. Seed Admin User (idempotent) ──
             String hash = passwordEncoder.encode("changeme");
+            userRepo.findByEmail("admin@hrms.local").orElseGet(() -> {
+                User admin = User.builder()
+                    .employeeId("000001")
+                    .email("admin@hrms.local")
+                    .password(hash)
+                    .firstName("Admin")
+                    .lastName("User")
+                    .phone("+1-555-0100")
+                    .department("Human Resources")
+                    .position("HR Manager")
+                    .baseSalary(java.math.BigDecimal.valueOf(100000))
+                    .hireDate(java.time.LocalDate.of(2022, 1, 1))
+                    .active(true)
+                    .ilLeaveEntitlement(18)
+                    .sickLeaveEntitlement(7)
+                    .specialLeaveEntitlement(0)
+                    .roles(new java.util.HashSet<>(java.util.Set.of(adminRole)))
+                    .createdAt(java.time.LocalDateTime.now())
+                    .updatedAt(java.time.LocalDateTime.now())
+                    .build();
+                return userRepo.save(admin);
+            });
 
-            // ── 1. Seed Departments ──
+            // ── 1. Seed Departments (idempotent) ──
+            Map<Integer, Department> departments = new HashMap<>();
             String[][] deptData = {
                 {"Engineering", "Software development, DevOps, and QA"},
                 {"Marketing", "Brand, content, SEO, and social media"},
@@ -83,17 +109,18 @@ public class DataSeeder {
                 {"Legal", "Compliance, contracts, and legal counsel"},
                 {"Customer Support", "Customer success and technical support"},
             };
-            Map<Integer, Department> departments = new HashMap<>();
             for (int i = 0; i < deptData.length; i++) {
-                Department d = deptRepo.save(Department.builder()
-                    .name(deptData[i][0])
-                    .description(deptData[i][1])
-                    .build());
+                final int idx = i;
+                Department d = deptRepo.findByName(deptData[i][0]).orElseGet(() ->
+                    deptRepo.save(Department.builder()
+                        .name(deptData[idx][0])
+                        .description(deptData[idx][1])
+                        .build()));
                 departments.put(i + 1, d);
             }
-            System.out.println("[DataSeeder] Seeded " + departments.size() + " departments");
+            System.out.println("[DataSeeder] Departments: " + departments.size());
 
-            // ── 2. Seed Positions ──
+            // ── 2. Seed Positions (idempotent) ──
             Object[][] posData = {
                 {"Senior Software Engineer", "Lead developer for core platform", 1, 90000, 120000},
                 {"Software Engineer", "Full-stack development", 1, 65000, 90000},
@@ -126,20 +153,21 @@ public class DataSeeder {
                 {"Support Manager", "Support team leadership", 9, 60000, 85000},
                 {"Support Specialist", "Customer issue resolution", 9, 40000, 58000},
             };
-            Map<Integer, Position> positions = new HashMap<>();
             for (int i = 0; i < posData.length; i++) {
-                Position p = posRepo.save(Position.builder()
-                    .title((String) posData[i][0])
-                    .description((String) posData[i][1])
-                    .department(departments.get((int) posData[i][2]))
-                    .minSalary(BigDecimal.valueOf((int) posData[i][3]))
-                    .maxSalary(BigDecimal.valueOf((int) posData[i][4]))
-                    .build());
-                positions.put(i + 1, p);
+                Department dept = departments.get((int) posData[i][2]);
+                final int idx = i;
+                posRepo.findByTitleAndDepartmentId((String) posData[i][0], dept.getId()).orElseGet(() ->
+                    posRepo.save(Position.builder()
+                        .title((String) posData[idx][0])
+                        .description((String) posData[idx][1])
+                        .department(dept)
+                        .minSalary(BigDecimal.valueOf((int) posData[idx][3]))
+                        .maxSalary(BigDecimal.valueOf((int) posData[idx][4]))
+                        .build()));
             }
-            System.out.println("[DataSeeder] Seeded " + positions.size() + " positions");
+            System.out.println("[DataSeeder] Positions: " + posData.length);
 
-            // ── 3. Seed Users (30 employees) ──
+            // ── 3. Seed Users (idempotent) ──
             Object[][] empData = {
                 {"sophia.chen@hrms.local",    "Sophia",   "Chen",     "+1-555-0201", 1, 1, 95000, "2023-01-09"},
                 {"marcus.johnson@hrms.local", "Marcus",   "Johnson",  "+1-555-0202", 1, 2, 75000, "2023-04-17"},
@@ -175,48 +203,49 @@ public class DataSeeder {
 
             List<User> users = new ArrayList<>();
             for (int i = 0; i < empData.length; i++) {
-                Object[] e = empData[i];
-                int deptIdx = (int) e[4];
-                int posIdx = (int) e[5];
-                User user = User.builder()
-                    .employeeId(String.format("%06d", i + 1))
-                    .email((String) e[0])
-                    .password(hash)
-                    .firstName((String) e[1])
-                    .lastName((String) e[2])
-                    .phone((String) e[3])
-                    .department(deptData[deptIdx - 1][0])
-                    .position((String) posData[posIdx - 1][0])
-                    .baseSalary(BigDecimal.valueOf((Integer) e[6]))
-                    .hireDate(LocalDate.parse((String) e[7]))
-                    .active(true)
-                    .ilLeaveEntitlement(18)
-                    .sickLeaveEntitlement(7)
-                    .specialLeaveEntitlement(0)
-                    .roles(new HashSet<>(Set.of(employeeRole)))
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .build();
-                users.add(userRepo.save(user));
+                final int empIdx = i;
+                final Object[] e = empData[i];
+                final int deptIdx = (int) e[4];
+                final int posIdx = (int) e[5];
+                User user = userRepo.findByEmail((String) e[0]).orElseGet(() -> {
+                    User u = User.builder()
+                        .employeeId(String.format("%06d", empIdx + 1))
+                        .email((String) e[0])
+                        .password(hash)
+                        .firstName((String) e[1])
+                        .lastName((String) e[2])
+                        .phone((String) e[3])
+                        .department(deptData[deptIdx - 1][0])
+                        .position((String) posData[posIdx - 1][0])
+                        .baseSalary(BigDecimal.valueOf((Integer) e[6]))
+                        .hireDate(LocalDate.parse((String) e[7]))
+                        .active(true)
+                        .ilLeaveEntitlement(18)
+                        .sickLeaveEntitlement(7)
+                        .specialLeaveEntitlement(0)
+                        .roles(new HashSet<>(Set.of(employeeRole)))
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
+                    return userRepo.save(u);
+                });
+                users.add(user);
             }
-            System.out.println("[DataSeeder] Seeded " + users.size() + " employees");
+            System.out.println("[DataSeeder] Employees: " + users.size());
 
-            // ── 4. Seed Attendance (current month, all work days) ──
+            // ── 4. Seed Attendance (idempotent — skip if user already has records this month) ──
             LocalDate today = LocalDate.now();
             LocalDate monthStart = today.withDayOfMonth(1);
             LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
             List<LocalDate> workDayList = new ArrayList<>();
             for (LocalDate d = monthStart; !d.isAfter(monthEnd); d = d.plusDays(1)) {
-                int dow = d.getDayOfWeek().getValue(); // 1=Mon ... 7=Sun
-                if (dow <= 5) workDayList.add(d);
+                if (d.getDayOfWeek().getValue() <= 5) workDayList.add(d);
             }
-            LocalDate[] workDays = workDayList.toArray(new LocalDate[0]);
-
-            List<Attendance> attendances = new ArrayList<>();
             Random rng = new Random(42);
+            int attendanceCount = 0;
             for (User u : users) {
-                for (int d = 0; d < workDays.length; d++) {
-                    LocalDate date = workDays[d];
+                for (LocalDate date : workDayList) {
+                    if (attendanceRepo.existsByUserIdAndDate(u.getId(), date)) continue;
                     int roll = rng.nextInt(100);
                     AttendanceStatus status;
                     double hours;
@@ -225,61 +254,45 @@ public class DataSeeder {
                     LocalDateTime clockOut;
 
                     if (roll < 5) {
-                        status = AttendanceStatus.ABSENT;
-                        hours = 0;
-                        lateMin = 0;
-                        clockIn = null;
-                        clockOut = null;
+                        status = AttendanceStatus.ABSENT; hours = 0; lateMin = 0; clockIn = null; clockOut = null;
                     } else if (roll < 15) {
                         status = AttendanceStatus.LATE;
                         lateMin = 10 + rng.nextInt(35);
                         clockIn = LocalDateTime.of(date, LocalTime.of(9, lateMin));
                         clockOut = LocalDateTime.of(date, LocalTime.of(17, 10 + rng.nextInt(20)));
-                        hours = 8.0 - (lateMin / 60.0);
+                        hours = Math.max(0, 8.0 - (lateMin / 60.0));
                     } else if (roll < 20) {
-                        status = AttendanceStatus.HALF_DAY;
-                        hours = 4.0;
-                        lateMin = 0;
+                        status = AttendanceStatus.HALF_DAY; hours = 4.0; lateMin = 0;
                         clockIn = LocalDateTime.of(date, LocalTime.of(9, 0));
                         clockOut = LocalDateTime.of(date, LocalTime.of(13, 0));
                     } else {
                         status = AttendanceStatus.PRESENT;
-                        hours = 8.0 + rng.nextDouble() * 0.5;
-                        lateMin = 0;
+                        hours = 8.0 + rng.nextDouble() * 0.5; lateMin = 0;
                         clockIn = LocalDateTime.of(date, LocalTime.of(8, 45 + rng.nextInt(15)));
                         clockOut = LocalDateTime.of(date, LocalTime.of(17, 5 + rng.nextInt(25)));
                     }
 
                     double ot = Math.max(0, hours - 8.0);
-                    attendances.add(Attendance.builder()
-                        .user(u)
-                        .date(date)
-                        .clockInTime(clockIn)
-                        .clockOutTime(clockOut)
+                    attendanceRepo.save(Attendance.builder()
+                        .user(u).date(date).clockInTime(clockIn).clockOutTime(clockOut)
                         .status(status)
                         .hoursWorked(Math.round(hours * 100.0) / 100.0)
                         .overtimeHours(Math.round(ot * 100.0) / 100.0)
-                        .lateMinutes(lateMin)
-                        .build());
+                        .lateMinutes(lateMin).build());
+                    attendanceCount++;
                 }
             }
-            attendanceRepo.saveAll(attendances);
-            System.out.println("[DataSeeder] Seeded " + attendances.size() + " attendance records");
+            System.out.println("[DataSeeder] Attendance records: " + attendanceCount);
 
-            // ── 5. Seed Leave Requests (current month so they appear in attendance summary) ──
-            User adminUser = userRepo.findByEmail("admin@hrms.local").orElse(users.get(0));
-            // Use current month dates so leave counts show up in attendance summary
-            // ── 6. Seed Payroll (current month) ──
-            LocalDate periodStart = monthStart;
-            LocalDate periodEnd = monthEnd;
+            // ── 5. Seed Payroll (idempotent) ──
             int[] extras = {500, 300, 400, 200, 250, 350, 400, 150, 100, 200, 500, 300, 200, 350, 150, 100, 1000, 500, 200, 300, 400, 200, 250, 400, 250, 150, 600, 300, 350, 150};
             int[] otHoursArr = {10, 5, 8, 3, 4, 6, 5, 2, 0, 3, 4, 3, 2, 3, 1, 0, 5, 3, 2, 4, 4, 2, 3, 5, 2, 1, 2, 1, 4, 1};
             int[] others = {100, 50, 75, 25, 30, 60, 50, 20, 15, 25, 80, 40, 30, 50, 20, 15, 100, 40, 20, 30, 60, 25, 30, 55, 30, 20, 100, 35, 40, 15};
             PayrollStatus[] payrollStatuses = {PayrollStatus.PAID, PayrollStatus.PAID, PayrollStatus.PAID, PayrollStatus.PROCESSED, PayrollStatus.PROCESSED, PayrollStatus.DRAFT, PayrollStatus.PAID, PayrollStatus.PAID, PayrollStatus.PROCESSED, PayrollStatus.DRAFT, PayrollStatus.PAID, PayrollStatus.PROCESSED, PayrollStatus.DRAFT, PayrollStatus.PAID, PayrollStatus.PROCESSED, PayrollStatus.DRAFT, PayrollStatus.PAID, PayrollStatus.PAID, PayrollStatus.PROCESSED, PayrollStatus.DRAFT, PayrollStatus.PAID, PayrollStatus.PROCESSED, PayrollStatus.DRAFT, PayrollStatus.PAID, PayrollStatus.PROCESSED, PayrollStatus.DRAFT, PayrollStatus.PAID, PayrollStatus.PROCESSED, PayrollStatus.PAID, PayrollStatus.DRAFT};
-
-            List<Payroll> payrolls = new ArrayList<>();
+            int payrollCount = 0;
             for (int i = 0; i < users.size(); i++) {
                 User u = users.get(i);
+                if (payrollRepo.findByUserIdAndPayPeriodStartAndPayPeriodEnd(u.getId(), monthStart, monthEnd).isPresent()) continue;
                 BigDecimal base = u.getBaseSalary().divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
                 BigDecimal extra = BigDecimal.valueOf(extras[i]);
                 BigDecimal hourlyRate = base.divide(BigDecimal.valueOf(160), 2, RoundingMode.HALF_UP);
@@ -291,33 +304,23 @@ public class DataSeeder {
                 BigDecimal totalDed = tax.add(insurance).add(otherDed);
                 BigDecimal net = gross.subtract(totalDed);
                 BigDecimal lateDed = (i % 4 == 0) ? BigDecimal.valueOf(25) : BigDecimal.ZERO;
-
-                payrolls.add(Payroll.builder()
-                    .user(u)
-                    .payPeriodStart(periodStart)
-                    .payPeriodEnd(periodEnd)
-                    .baseSalary(base)
-                    .fullTimeWorkHours(160.0)
+                payrollRepo.save(Payroll.builder()
+                    .user(u).payPeriodStart(monthStart).payPeriodEnd(monthEnd)
+                    .baseSalary(base).fullTimeWorkHours(160.0)
                     .actualWorkHours(160.0 + otHoursArr[i] - (i % 3 == 0 ? 2 : 0))
-                    .overtimeHours((double) otHoursArr[i])
-                    .overtimePay(otPay)
-                    .extraSalary(extra)
-                    .lateDeduction(lateDed)
-                    .lateMinutes(i % 4 == 0 ? 15 : 0)
-                    .taxDeduction(tax)
-                    .insuranceDeduction(insurance)
-                    .otherDeductions(otherDed)
-                    .grossSalary(gross)
-                    .totalDeductions(totalDed)
-                    .netSalary(net)
+                    .overtimeHours((double) otHoursArr[i]).overtimePay(otPay).extraSalary(extra)
+                    .lateDeduction(lateDed).lateMinutes(i % 4 == 0 ? 15 : 0)
+                    .taxDeduction(tax).insuranceDeduction(insurance).otherDeductions(otherDed)
+                    .grossSalary(gross).totalDeductions(totalDed).netSalary(net)
                     .status(payrollStatuses[i])
                     .paymentDate(payrollStatuses[i] == PayrollStatus.PAID ? LocalDate.of(2025, 7, 5) : null)
                     .build());
+                payrollCount++;
             }
-            payrollRepo.saveAll(payrolls);
-            System.out.println("[DataSeeder] Seeded " + payrolls.size() + " payroll records");
+            System.out.println("[DataSeeder] Payroll records: " + payrollCount);
 
-            // ── 7. Seed Performance Reviews (H1 2025) ──
+            // ── 6. Seed Performance Reviews (idempotent) ──
+            User adminUser = userRepo.findByEmail("admin@hrms.local").orElse(users.get(0));
             double[] overallScores = {4.8, 4.2, 4.2, 4.2, 4.0, 4.2, 4.8, 4.4, 4.2, 4.2, 4.6, 4.2, 4.0, 4.6, 4.4, 4.4, 4.6, 4.4, 4.0, 4.2, 4.6, 4.4, 4.2, 4.6, 4.2, 4.2, 4.8, 4.2, 4.6, 4.6};
             String[] feedbacks = {
                 "Exceptional technical leadership. Drove the microservices migration ahead of schedule.",
@@ -383,38 +386,29 @@ public class DataSeeder {
                 "Implement AI-assisted ticket routing",
                 "Mentor new support team members",
             };
-
-            List<PerformanceReview> reviews = new ArrayList<>();
+            int reviewCount = 0;
             LocalDate reviewStart = LocalDate.of(2025, 1, 1);
             LocalDate reviewEnd = LocalDate.of(2025, 6, 30);
             for (int i = 0; i < users.size(); i++) {
                 User u = users.get(i);
+                if (reviewRepo.existsByEmployeeIdAndReviewPeriodStartAndReviewPeriodEnd(u.getId(), reviewStart, reviewEnd)) continue;
                 int q = 4 + (i % 3 == 0 ? 1 : 0);
                 int p = 4 + (i % 4 == 0 ? 1 : 0);
                 int c = 3 + (i % 3 == 0 ? 2 : 1);
                 int t = 4 + (i % 5 == 0 ? 1 : 0);
                 int pu = 4 + (i % 7 == 0 ? 1 : 0);
-                reviews.add(PerformanceReview.builder()
-                    .employee(u)
-                    .reviewer(adminUser)
-                    .reviewPeriodStart(reviewStart)
-                    .reviewPeriodEnd(reviewEnd)
-                    .qualityScore(q)
-                    .productivityScore(p)
-                    .communicationScore(c)
-                    .teamworkScore(t)
-                    .punctualityScore(pu)
-                    .overallScore(overallScores[i])
-                    .feedback(feedbacks[i])
-                    .goals(goals[i])
-                    .createdAt(LocalDateTime.now().minusDays(60))
-                    .build());
+                reviewRepo.save(PerformanceReview.builder()
+                    .employee(u).reviewer(adminUser)
+                    .reviewPeriodStart(reviewStart).reviewPeriodEnd(reviewEnd)
+                    .qualityScore(q).productivityScore(p).communicationScore(c)
+                    .teamworkScore(t).punctualityScore(pu).overallScore(overallScores[i])
+                    .feedback(feedbacks[i]).goals(goals[i])
+                    .createdAt(LocalDateTime.now().minusDays(60)).build());
+                reviewCount++;
             }
-            reviewRepo.saveAll(reviews);
-            System.out.println("[DataSeeder] Seeded " + reviews.size() + " performance reviews");
+            System.out.println("[DataSeeder] Performance reviews: " + reviewCount);
 
-            System.out.println("[DataSeeder] ✅ All seed data complete!");
-            }
+            System.out.println("[DataSeeder] ✅ Seed data check complete!");
         };
     }
 
@@ -423,6 +417,7 @@ public class DataSeeder {
      * Existing attendance from prior months is preserved.
      */
     @Bean
+    @Order(2)
     CommandLineRunner seedAttendance() {
         return args -> {
             if (userRepo.count() <= 1) return;
@@ -513,6 +508,7 @@ public class DataSeeder {
      * Called on every startup to ensure leave data is fresh even when attendance already exists.
      */
     @Bean
+    @Order(3)
     CommandLineRunner seedLeaves() {
         return args -> {
             if (userRepo.count() <= 1) return;
