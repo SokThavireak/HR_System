@@ -23,18 +23,25 @@ public class AdminPerformanceController {
     @GetMapping
     public Page<PerformanceReview> getReviews(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(required = false) Long employeeId) {
-        if (employeeId != null) {
-            return repo.findByEmployeeIdOrderByCreatedAtDesc(employeeId, PageRequest.of(page, 20));
+            @RequestParam(defaultValue = "1000") int size,
+            @RequestParam(required = false) String employeeId) {
+        if (employeeId != null && !employeeId.trim().isEmpty()) {
+            return repo.findByEmployee_EmployeeIdOrderByCreatedAtDesc(employeeId, PageRequest.of(page, size));
         }
-        return repo.findAllByOrderByCreatedAtDesc(PageRequest.of(page, 20));
+        return repo.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
     }
 
     @PostMapping
     public PerformanceReview create(@AuthenticationPrincipal UserDetails ud,
                                      @RequestBody PerformanceRequest req) {
         User reviewer = userRepo.findByEmail(ud.getUsername()).orElseThrow();
-        User employee = userRepo.findById(req.getEmployeeId()).orElseThrow();
+        User employee = userRepo.findByEmployeeId(req.getEmployeeId()).orElseGet(() -> {
+            try {
+                return userRepo.findById(Long.parseLong(req.getEmployeeId())).orElseThrow();
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("Employee not found");
+            }
+        });
         int count = 0; double sum = 0;
         if (req.getQualityScore() != null) { sum += req.getQualityScore(); count++; }
         if (req.getProductivityScore() != null) { sum += req.getProductivityScore(); count++; }
@@ -62,7 +69,7 @@ public class AdminPerformanceController {
 
     @lombok.Data
     public static class PerformanceRequest {
-        private Long employeeId;
+        private String employeeId;
         private java.time.LocalDate reviewPeriodStart;
         private java.time.LocalDate reviewPeriodEnd;
         private Integer qualityScore;

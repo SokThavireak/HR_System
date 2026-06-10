@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import com.hrms.service.ActivityLogService;
 
 import java.time.LocalDate;
 
@@ -21,6 +22,7 @@ public class AdminLeaveController {
 
     private final LeaveService leaveService;
     private final UserRepository userRepo;
+    private final ActivityLogService activityLogService;
 
     @GetMapping
     public Page<LeaveRequest> getLeaves(@RequestParam(defaultValue = "PENDING") LeaveStatus status,
@@ -36,14 +38,18 @@ public class AdminLeaveController {
     @PutMapping("/{id}/approve")
     public LeaveRequest approve(@PathVariable Long id, @AuthenticationPrincipal UserDetails ud) {
         Long approverId = userRepo.findByEmail(ud.getUsername()).orElseThrow().getId();
-        return leaveService.approve(id, approverId);
+        LeaveRequest req = leaveService.approve(id, approverId);
+        activityLogService.log("Leave request from " + req.getUser().getFirstName() + " " + req.getUser().getLastName() + " approved", "LEAVE_APPROVED");
+        return req;
     }
 
     @PutMapping("/{id}/reject")
     public LeaveRequest reject(@PathVariable Long id, @AuthenticationPrincipal UserDetails ud,
                                 @RequestBody RejectRequest req) {
         Long rejecterId = userRepo.findByEmail(ud.getUsername()).orElseThrow().getId();
-        return leaveService.reject(id, rejecterId, req.getRejectionReason());
+        LeaveRequest res = leaveService.reject(id, rejecterId, req.getRejectionReason());
+        activityLogService.log("Leave request from " + res.getUser().getFirstName() + " " + res.getUser().getLastName() + " rejected", "LEAVE_REJECTED");
+        return res;
     }
 
     @PutMapping("/{id}/cancel")

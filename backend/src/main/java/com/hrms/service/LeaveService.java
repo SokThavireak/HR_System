@@ -24,6 +24,12 @@ public class LeaveService {
     private final LeaveRequestRepository leaveRepo;
     private final UserRepository userRepo;
 
+    public int getLeaveUsedThisYear(Long userId, LeaveType type) {
+        LocalDate startOfYear = LocalDate.now().withDayOfYear(1);
+        LocalDate endOfYear = LocalDate.now().withDayOfYear(LocalDate.now().lengthOfYear());
+        return (int) leaveRepo.countByUserAndTypeAndDateRange(userId, type, startOfYear, endOfYear);
+    }
+
     @Transactional
     public LeaveRequest requestLeave(Long userId, LeaveType type, LocalDate start, LocalDate end, String reason) {
         if (start.isAfter(end)) throw new RuntimeException("Start date must be before end date");
@@ -32,15 +38,15 @@ public class LeaveService {
 
         // Validate balance
         if (type == LeaveType.IL) {
-            int remaining = user.getIlLeaveEntitlement() - user.getIlLeaveUsed();
+            int remaining = user.getIlLeaveEntitlement() - getLeaveUsedThisYear(userId, LeaveType.IL);
             if (days > remaining)
                 throw new RuntimeException("Insufficient IL balance. Remaining: " + remaining + " days");
         } else if (type == LeaveType.SICK) {
-            int remaining = user.getSickLeaveEntitlement() - user.getSickLeaveUsed();
+            int remaining = user.getSickLeaveEntitlement() - getLeaveUsedThisYear(userId, LeaveType.SICK);
             if (days > remaining)
                 throw new RuntimeException("Insufficient sick leave balance. Remaining: " + remaining + " days");
         } else if (type == LeaveType.SPECIAL) {
-            int remaining = user.getSpecialLeaveEntitlement() - user.getSpecialLeaveUsed();
+            int remaining = user.getSpecialLeaveEntitlement() - getLeaveUsedThisYear(userId, LeaveType.SPECIAL);
             if (days > remaining)
                 throw new RuntimeException("Insufficient special leave balance. Remaining: " + remaining + " days");
         }
@@ -76,22 +82,18 @@ public class LeaveService {
 
         // Deduct balance
         if (leave.getLeaveType() == LeaveType.IL) {
-            int remaining = user.getIlLeaveEntitlement() - user.getIlLeaveUsed();
+            int remaining = user.getIlLeaveEntitlement() - getLeaveUsedThisYear(user.getId(), LeaveType.IL);
             if (days > remaining)
                 throw new RuntimeException("Insufficient IL balance. Remaining: " + remaining + " days");
-            user.setIlLeaveUsed(user.getIlLeaveUsed() + days);
         } else if (leave.getLeaveType() == LeaveType.SICK) {
-            int remaining = user.getSickLeaveEntitlement() - user.getSickLeaveUsed();
+            int remaining = user.getSickLeaveEntitlement() - getLeaveUsedThisYear(user.getId(), LeaveType.SICK);
             if (days > remaining)
                 throw new RuntimeException("Insufficient sick leave balance. Remaining: " + remaining + " days");
-            user.setSickLeaveUsed(user.getSickLeaveUsed() + days);
         } else if (leave.getLeaveType() == LeaveType.SPECIAL) {
-            int remaining = user.getSpecialLeaveEntitlement() - user.getSpecialLeaveUsed();
+            int remaining = user.getSpecialLeaveEntitlement() - getLeaveUsedThisYear(user.getId(), LeaveType.SPECIAL);
             if (days > remaining)
                 throw new RuntimeException("Insufficient special leave balance. Remaining: " + remaining + " days");
-            user.setSpecialLeaveUsed(user.getSpecialLeaveUsed() + days);
         }
-        userRepo.save(user);
 
         leave.setStatus(LeaveStatus.APPROVED);
         leave.setApprovedBy(userRepo.findById(approverId).orElseThrow());
@@ -112,19 +114,6 @@ public class LeaveService {
     @Transactional
     public LeaveRequest cancel(Long leaveId) {
         LeaveRequest leave = leaveRepo.findById(leaveId).orElseThrow(() -> new RuntimeException("Leave not found"));
-        // If cancelling an approved leave, restore balance
-        if (leave.getStatus() == LeaveStatus.APPROVED) {
-            User user = leave.getUser();
-            int days = leave.getTotalDays();
-            if (leave.getLeaveType() == LeaveType.IL) {
-                user.setIlLeaveUsed(Math.max(0, user.getIlLeaveUsed() - days));
-            } else if (leave.getLeaveType() == LeaveType.SICK) {
-                user.setSickLeaveUsed(Math.max(0, user.getSickLeaveUsed() - days));
-            } else if (leave.getLeaveType() == LeaveType.SPECIAL) {
-                user.setSpecialLeaveUsed(Math.max(0, user.getSpecialLeaveUsed() - days));
-            }
-            userRepo.save(user);
-        }
         leave.setStatus(LeaveStatus.CANCELLED);
         return leaveRepo.save(leave);
     }
@@ -143,19 +132,24 @@ public class LeaveService {
     }
 
     public long countPending() { return leaveRepo.countByStatus(LeaveStatus.PENDING); }
+    public long countPendingByUser(Long userId) { return leaveRepo.countByUserIdAndStatus(userId, LeaveStatus.PENDING); }
 
     public Map<String, Object> getLeaveBalance(Long userId) {
         User user = userRepo.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        int ilUsed = getLeaveUsedThisYear(userId, LeaveType.IL);
+        int sickUsed = getLeaveUsedThisYear(userId, LeaveType.SICK);
+        int specialUsed = getLeaveUsedThisYear(userId, LeaveType.SPECIAL);
+
         Map<String, Object> balance = new HashMap<>();
         balance.put("ilEntitlement", user.getIlLeaveEntitlement());
-        balance.put("ilUsed", user.getIlLeaveUsed());
-        balance.put("ilRemaining", user.getIlLeaveEntitlement() - user.getIlLeaveUsed());
+        balance.put("ilUsed", ilUsed);
+        balance.put("ilRemaining", user.getIlLeaveEntitlement() - ilUsed);
         balance.put("sickEntitlement", user.getSickLeaveEntitlement());
-        balance.put("sickUsed", user.getSickLeaveUsed());
-        balance.put("sickRemaining", user.getSickLeaveEntitlement() - user.getSickLeaveUsed());
+        balance.put("sickUsed", sickUsed);
+        balance.put("sickRemaining", user.getSickLeaveEntitlement() - sickUsed);
         balance.put("specialEntitlement", user.getSpecialLeaveEntitlement());
-        balance.put("specialUsed", user.getSpecialLeaveUsed());
-        balance.put("specialRemaining", user.getSpecialLeaveEntitlement() - user.getSpecialLeaveUsed());
+        balance.put("specialUsed", specialUsed);
+        balance.put("specialRemaining", user.getSpecialLeaveEntitlement() - specialUsed);
         balance.put("unusedIlPaid", user.getUnusedIlPaid());
         return balance;
     }

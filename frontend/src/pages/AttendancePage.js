@@ -5,7 +5,7 @@ import { useToast } from "../hooks/useToast";
 import {
   Button, Input, Select, Badge, Card, CardHeader, CardTitle, CardContent,
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-  AttendancePageSkeleton,
+  AttendancePageSkeleton, Modal
 } from "../components/ui";
 import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
 
@@ -125,10 +125,13 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
   const [totalPages, setTotalPages] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [usingApiData, setUsingApiData] = useState(false);
-  const lastFetchedRange = useRef(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null);
+  const [sortDirection, setSortDirection] = useState("desc");
 
   // ─── Employee detection (must be before filter state init) ───
-  const isEmployee = !admin && !!user?.employeeId;
+  const isEmployee = !admin && user != null;
 
   // Initialize admin-only filters empty for employees (skip localStorage)
   const initFilter = (key, defaultVal) => {
@@ -151,6 +154,8 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
     return "all";
   });
   const [filterDay, setFilterDay] = useState(() => localStorage.getItem("att_filterDay") || today);
+  const [filterStartDate, setFilterStartDate] = useState(() => localStorage.getItem("att_filterStartDate") || today);
+  const [filterEndDate, setFilterEndDate] = useState(() => localStorage.getItem("att_filterEndDate") || today);
   const [filterMonth, setFilterMonth] = useState(() => localStorage.getItem("att_filterMonth") || String(curMonth));
   const [filterYear, setFilterYear] = useState(() => localStorage.getItem("att_filterYear") || String(curYear));
   const [filterName, setFilterName] = useState(() => initFilter("att_filterName", ""));
@@ -159,11 +164,12 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
   const [filterUserId, setFilterUserId] = useState(() => initFilter("att_filterUserId", ""));
   const [filterUserIdInput, setFilterUserIdInput] = useState(() => initFilter("att_filterUserId", ""));
   const [filterLetter, setFilterLetter] = useState(() => initFilter("att_filterLetter", ""));
-  const [filterStatus, setFilterStatus] = useState(() => initFilter("att_filterStatus", ""));
+  const [filterStatus, setFilterStatus] = useState(() => localStorage.getItem("att_filterStatus") || "");
   const [filterDept, setFilterDept] = useState(() => initFilter("att_filterDept", ""));
 
   // Auto-filter for non-admin employees — lock to their own record
-  const effectiveFilterUserId = isEmployee ? String(user.employeeId) : filterUserId;
+  const effectiveFilterUserId = isEmployee ? String(user?.id || "") : filterUserId;
+
 
   const [manual, setManual] = useState({ employeeId: "", date: today, clockIn: "09:00", clockOut: "17:00", status: "PRESENT", note: "" });
   const [editRecord, setEditRecord] = useState(null);
@@ -171,8 +177,11 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
   // ─── Persist filter state to localStorage (date filters only for employees) ───
   useEffect(() => { localStorage.setItem("att_filterType", filterType); }, [filterType]);
   useEffect(() => { localStorage.setItem("att_filterDay", filterDay); }, [filterDay]);
+  useEffect(() => { localStorage.setItem("att_filterStartDate", filterStartDate); }, [filterStartDate]);
+  useEffect(() => { localStorage.setItem("att_filterEndDate", filterEndDate); }, [filterEndDate]);
   useEffect(() => { localStorage.setItem("att_filterMonth", filterMonth); }, [filterMonth]);
   useEffect(() => { localStorage.setItem("att_filterYear", filterYear); }, [filterYear]);
+  useEffect(() => { localStorage.setItem("att_filterStatus", filterStatus); }, [filterStatus]);
   useEffect(() => { if (!isEmployee) localStorage.setItem("att_filterName", filterName); }, [filterName, isEmployee]);
   useEffect(() => { if (!isEmployee) localStorage.setItem("att_filterId", filterId); }, [filterId, isEmployee]);
   useEffect(() => { if (!isEmployee) localStorage.setItem("att_filterUserId", filterUserId); }, [filterUserId, isEmployee]);
@@ -180,7 +189,6 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
   useEffect(() => { setFilterIdInput(filterId); }, [filterId]);
   useEffect(() => { setFilterUserIdInput(filterUserId); }, [filterUserId]);
   useEffect(() => { if (!isEmployee) localStorage.setItem("att_filterLetter", filterLetter); }, [filterLetter, isEmployee]);
-  useEffect(() => { if (!isEmployee) localStorage.setItem("att_filterStatus", filterStatus); }, [filterStatus, isEmployee]);
   useEffect(() => { if (!isEmployee) localStorage.setItem("att_filterDept", filterDept); }, [filterDept, isEmployee]);
 
   // ─── Build seed data ONCE ───
@@ -190,6 +198,9 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
   const dateRange = useMemo(() => {
     if (filterType === "all") {
       return { from: null, to: null };
+    }
+    if (filterType === "range") {
+      return { from: filterStartDate, to: filterEndDate };
     }
     if (filterType === "day") {
       return { from: filterDay, to: filterDay };
@@ -203,44 +214,30 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
     }
     const y = Number(filterYear);
     return { from: y + '-01-01', to: y + '-12-31' };
-  }, [filterType, filterDay, filterMonth, filterYear]);
+  }, [filterType, filterDay, filterStartDate, filterEndDate, filterMonth, filterYear]);
 
   // ─── Fetch data from API when date range changes ───
   const [records, setRecords] = useState([]);
 
   useEffect(() => {
-    const rangeKey = `${dateRange.from}_${dateRange.to}_${effectiveFilterUserId}_${filterId}`;
-    if (lastFetchedRange.current === rangeKey) return;
-    lastFetchedRange.current = rangeKey;
-
     let cancelled = false;
     setApiLoading(true);
     setLoading(true);
 
-    attendanceService.getAllAttendance(dateRange.from, dateRange.to, null, 0, 2000, filterId || null, effectiveFilterUserId || null)
+    const fetchPromise = isEmployee
+      ? attendanceService.getMyAttendance(dateRange.from, dateRange.to)
+      : attendanceService.getAllAttendance(dateRange.from, dateRange.to, null, 0, 2000, filterId || null, effectiveFilterUserId || null);
+
+    fetchPromise
       .then((res) => {
         if (cancelled) return;
         const data = res.data?.content || res.data || [];
-        if (data.length > 0) {
-          setRecords(data);
-          setUsingApiData(true);
-        } else if (isEmployee) {
-          const myRecords = seedData.filter((r) => String(r.user?.employeeId || "") === effectiveFilterUserId);
-          setRecords(myRecords);
-          setUsingApiData(false);
-        } else {
-          setRecords(seedData);
-          setUsingApiData(false);
-        }
+        setRecords(data);
+        setUsingApiData(true);
       })
       .catch(() => {
         if (cancelled) return;
-        if (isEmployee) {
-          const myRecords = seedData.filter((r) => String(r.user?.employeeId || "") === effectiveFilterUserId);
-          setRecords(myRecords);
-        } else {
-          setRecords(seedData);
-        }
+        setRecords([]);
         setUsingApiData(false);
       })
       .finally(() => {
@@ -250,7 +247,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
       });
 
     return () => { cancelled = true; };
-  }, [dateRange, seedData, effectiveFilterUserId, filterId]);
+  }, [dateRange, seedData, effectiveFilterUserId, filterId, isEmployee, refreshTrigger]);
 
   // ─── Filter + Sort records ───
   const filtered = useMemo(() => {
@@ -260,7 +257,11 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
       if (filterStatus && a.status !== filterStatus) return false;
       if (filterDept && a.user?.department !== filterDept) return false;
       if (filterId && String(a.id) !== String(filterId)) return false;
-      if (effectiveFilterUserId && String(a.user?.employeeId || "") !== effectiveFilterUserId) return false;
+      if (isEmployee) {
+        if (String(a.user?.id) !== String(user?.id)) return false;
+      } else {
+        if (filterUserId && String(a.user?.employeeId || "").toLowerCase() !== filterUserId.toLowerCase()) return false;
+      }
       if (filterName) {
         const name = ((a.user?.firstName || '') + ' ' + (a.user?.lastName || '')).toLowerCase();
         if (!name.includes(filterName.toLowerCase())) return false;
@@ -273,15 +274,19 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
     });
 
     result.sort((a, b) => {
-      const dateCmp = (b.date || "").localeCompare(a.date || "");
-      if (dateCmp !== 0) return dateCmp;
+      const cmp = sortDirection === "desc" 
+        ? (b.date || "").localeCompare(a.date || "") 
+        : (a.date || "").localeCompare(b.date || "");
+      if (cmp !== 0) return cmp;
       const nameA = ((a.user?.firstName || '') + ' ' + (a.user?.lastName || '')).toLowerCase();
       const nameB = ((b.user?.firstName || '') + ' ' + (b.user?.lastName || '')).toLowerCase();
       return nameA.localeCompare(nameB);
     });
 
     return result;
-  }, [records, dateRange, filterStatus, filterDept, filterName, filterId, effectiveFilterUserId, filterLetter]);
+  }, [records, dateRange, filterStatus, filterDept, filterName, filterId, effectiveFilterUserId, filterLetter, sortDirection]);
+
+
 
   // ─── Loading + pagination ───
   useEffect(() => {
@@ -292,35 +297,26 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
   }, [filtered]);
 
   // ─── Determine if viewing a single user ───
-  const singleUserId = useMemo(() => {
-    if (filterName.trim()) {
-      const nameLower = filterName.trim().toLowerCase();
-      const matches = filtered.filter((r) => {
-        const fullName = ((r.user?.firstName || '') + ' ' + (r.user?.lastName || '')).toLowerCase();
-        return fullName.includes(nameLower);
-      });
-      if (matches.length > 0) {
-        const firstUid = matches[0].user?.id;
-        if (firstUid && matches.every((r) => r.user?.id === firstUid)) return firstUid;
-      }
-    }
+  const targetUser = useMemo(() => {
+    if (filtered.length === 0) return null;
+    const firstUser = filtered[0].user;
+    if (!firstUser || !firstUser.id) return null;
+    if (filtered.every((r) => r.user?.id === firstUser.id)) return firstUser;
     return null;
-  }, [filterName, filtered]);
-
-  // ─── Fetch leave summary for single user ───
-  const [leaveSummary, setLeaveSummary] = useState(null);
-  useEffect(() => {
-    if (!singleUserId) { setLeaveSummary(null); return; }
-    attendanceService.getSummary(singleUserId, dateRange.from, dateRange.to)
-      .then((r) => setLeaveSummary(r.data))
-      .catch(() => setLeaveSummary(null));
-  }, [singleUserId, dateRange]);
+  }, [filtered]);
 
   // ─── Stats ───
   const presentCount = filtered.filter((r) => r.status === "PRESENT").length;
   const lateCount = filtered.filter((r) => r.status === "LATE").length;
   const absentCount = filtered.filter((r) => r.status === "ABSENT").length;
-  const totalHours = filtered.reduce((s, r) => s + (r.hoursWorked || 0), 0);
+  const totalHours = filtered.reduce((s, r) => s + (r.hoursWorked || r.workedHours || 0), 0);
+  
+  const totalDays = presentCount + lateCount + absentCount;
+  let attendanceRate = "-";
+  if (totalDays > 0) {
+    const score = (presentCount * 5 + lateCount * 3 + absentCount * 1) / totalDays;
+    attendanceRate = Math.max(1, Math.min(5, score)).toFixed(1);
+  }
 
   const stats = [
     { k: "Present", v: presentCount, bg: "#10b981", icon: "check" },
@@ -330,16 +326,11 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
   ];
 
   // ─── Leave stats (only when single user) ───
-  const ilEnt = leaveSummary?.ilEntitlement ?? 18;
-  const ilUsed = leaveSummary?.ilUsed ?? 0;
-  const sickEnt = leaveSummary?.sickEntitlement ?? 7;
-  const sickUsed = leaveSummary?.sickUsed ?? 0;
-  const specEnt = leaveSummary?.specialEntitlement ?? 0;
-  const specUsed = leaveSummary?.specialUsed ?? 0;
-  const leaveStats = singleUserId && leaveSummary ? [
-    { k: "IL Leave", used: ilUsed, remaining: ilEnt - ilUsed, bg: "#3b82f6", icon: "calendar" },
-    { k: "Sick Leave", used: sickUsed, remaining: sickEnt - sickUsed, bg: "#f59e0b", icon: "calendar" },
-    { k: "Special Leave", used: specUsed, remaining: specEnt - specUsed, bg: "#8b5cf6", icon: "calendar" },
+  const leaveStats = targetUser ? [
+    { k: "Rating (/5)", v: attendanceRate, bg: "#6366f1", icon: "check" },
+    { k: "IL Left", v: (targetUser.ilLeaveEntitlement || 0) - (targetUser.ilLeaveUsed || 0), bg: "#3b82f6", icon: "calendar" },
+    { k: "Sick Left", v: (targetUser.sickLeaveEntitlement || 0) - (targetUser.sickLeaveUsed || 0), bg: "#f59e0b", icon: "calendar" },
+    { k: "Special Left", v: (targetUser.specialLeaveEntitlement || 0) - (targetUser.specialLeaveUsed || 0), bg: "#8b5cf6", icon: "calendar" },
   ] : [];
 
   // ─── Handlers ───
@@ -349,7 +340,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
       await attendanceService.addManualEntry({ ...manual, employeeId: Number(manual.employeeId) });
       showToast("Manual entry saved!");
       setManual({ ...manual, clockIn: "", clockOut: "", note: "" });
-      lastFetchedRange.current = null;
+      setRefreshTrigger(prev => prev + 1);
     } catch { showToast("Save failed", "error"); }
   };
 
@@ -359,17 +350,18 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
       await attendanceService.updateAttendance(editRecord.id, editRecord);
       showToast("Record updated!");
       setEditRecord(null);
-      lastFetchedRange.current = null;
+      setRefreshTrigger(prev => prev + 1);
     } catch { showToast("Update failed", "error"); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this attendance record?")) return;
+    setActionLoading(id);
     try {
       await attendanceService.deleteAttendance(id);
       showToast("Deleted!");
-      lastFetchedRange.current = null;
+      setRefreshTrigger(prev => prev + 1);
     } catch { showToast("Delete failed", "error"); }
+    finally { setActionLoading(null); setDeleteConfirm(null); }
   };
 
   const startEdit = (r) => {
@@ -475,7 +467,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {stats.map((s) => (
+        {[...stats, ...leaveStats].map((s) => (
           <StaggerItem key={s.k}>
             <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: s.bg }}>
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: s.bg }}><Icon name={s.icon} size={20} /></div>
@@ -484,30 +476,6 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
           </StaggerItem>
         ))}
       </div>
-
-      {/* Leave Stats — only when viewing a single user */}
-      {leaveStats.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {leaveStats.map((s) => (
-            <StaggerItem key={s.k}>
-              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: s.bg }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: s.bg }}><Icon name={s.icon} size={16} /></div>
-                  <p className="text-sm font-semibold text-foreground">{s.k}</p>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold" style={{ color: s.bg }}>{s.used}</span>
-                  <span className="text-sm text-muted-foreground">used</span>
-                </div>
-                <div className="mt-1.5 flex items-baseline gap-2">
-                  <span className="text-lg font-semibold text-emerald-600">{s.remaining}</span>
-                  <span className="text-xs text-muted-foreground">remaining</span>
-                </div>
-              </div>
-            </StaggerItem>
-          ))}
-        </div>
-      )}
 
       {/* ═══ NEW FILTER PANEL ═══ */}
       <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.1}>
@@ -541,54 +509,132 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
           </div>
 
           {/* Main filter row */}
-          <div className="flex flex-wrap items-center gap-2 p-3">
-            {/* Pill toggle: All / Day / Month / Year */}
-            <div className="flex rounded-lg bg-gray-100 p-0.5">
-              {(["all", "day", "month", "year"]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setFilterType(t)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition-all cursor-pointer ${
-                    filterType === t
-                      ? "bg-white text-primary shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+          {isEmployee ? (
+            <div className="flex flex-wrap items-center justify-between p-3" style={{ background: "rgba(154,0,2,0.03)" }}>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex rounded-lg bg-white border border-gray-200 p-0.5">
+                  {(["all", "day", "month", "year", "range"]).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setFilterType(t)}
+                      className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition-all cursor-pointer ${
+                        filterType === t
+                          ? "bg-[#9a0002] text-white shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
 
-            {/* Date controls — hidden when "All" is selected */}
-            {filterType === "day" && (
-              <div className="flex items-center gap-1.5">
-                <Icon name="calendar" size={14} className="text-muted-foreground" />
-                <Input type="date" value={filterDay} onChange={(e) => setFilterDay(e.target.value)} className="h-8 w-auto text-xs" />
-              </div>
-            )}
+                {filterType === "day" && (
+                  <div className="flex items-center gap-1.5">
+                    <Icon name="calendar" size={14} className="text-muted-foreground" />
+                    <Input type="date" value={filterDay} onChange={(e) => setFilterDay(e.target.value)} className="h-8 w-auto text-xs" />
+                  </div>
+                )}
 
-            {filterType === "month" && (
-              <div className="flex items-center gap-1.5">
-                <Select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="h-8 w-auto text-xs">
-                  {monthOptions.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                {filterType === "range" && (
+                  <div className="flex items-center gap-1.5">
+                    <Icon name="calendar" size={14} className="text-muted-foreground" />
+                    <Input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} className="h-8 w-auto text-xs" />
+                    <span className="text-xs text-muted-foreground">to</span>
+                    <Input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} className="h-8 w-auto text-xs" />
+                  </div>
+                )}
+
+                {filterType === "month" && (
+                  <div className="flex items-center gap-1.5">
+                    <Select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="h-8 w-auto text-xs">
+                      {monthOptions.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </Select>
+                    <Select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="h-8 w-auto text-xs">
+                      {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+                    </Select>
+                  </div>
+                )}
+
+                {filterType === "year" && (
+                  <Select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="h-8 w-auto text-xs">
+                    {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+                  </Select>
+                )}
+
+                <div className="mx-1 h-5 w-px bg-gray-200" />
+
+                <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-8 w-auto min-w-[110px] text-xs">
+                  <option value="">All Status</option>
+                  <option value="PRESENT">Present</option>
+                  <option value="LATE">Late</option>
+                  <option value="ABSENT">Absent</option>
+                  <option value="HALF_DAY">Half Day</option>
+                  <option value="ON_LEAVE">On Leave</option>
                 </Select>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-white border border-gray-200 text-muted-foreground shadow-sm">
+                  <Icon name="user" size={12} /> My Records
+                </span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {filtered.length} record{filtered.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2 p-3">
+              <div className="flex rounded-lg bg-gray-100 p-0.5">
+                {(["all", "day", "month", "year", "range"]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setFilterType(t)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition-all cursor-pointer ${
+                      filterType === t
+                        ? "bg-white text-primary shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              {filterType === "day" && (
+                <div className="flex items-center gap-1.5">
+                  <Icon name="calendar" size={14} className="text-muted-foreground" />
+                  <Input type="date" value={filterDay} onChange={(e) => setFilterDay(e.target.value)} className="h-8 w-auto text-xs" />
+                </div>
+              )}
+
+              {filterType === "range" && (
+                <div className="flex items-center gap-1.5">
+                  <Icon name="calendar" size={14} className="text-muted-foreground" />
+                  <Input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} className="h-8 w-auto text-xs" />
+                  <span className="text-xs text-muted-foreground">to</span>
+                  <Input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} className="h-8 w-auto text-xs" />
+                </div>
+              )}
+
+              {filterType === "month" && (
+                <div className="flex items-center gap-1.5">
+                  <Select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="h-8 w-auto text-xs">
+                    {monthOptions.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                  </Select>
+                  <Select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="h-8 w-auto text-xs">
+                    {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+                  </Select>
+                </div>
+              )}
+
+              {filterType === "year" && (
                 <Select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="h-8 w-auto text-xs">
                   {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
                 </Select>
-              </div>
-            )}
+              )}
 
-            {filterType === "year" && (
-              <Select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="h-8 w-auto text-xs">
-                {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
-              </Select>
-            )}
+              <div className="mx-1 h-5 w-px bg-gray-200" />
 
-            {/* Divider — admin only */}
-            {!isEmployee && <div className="mx-1 h-5 w-px bg-gray-200" />}
-
-            {/* Status — admin only */}
-            {!isEmployee && (
               <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-8 w-auto min-w-[110px] text-xs">
                 <option value="">All Status</option>
                 <option value="PRESENT">Present</option>
@@ -597,10 +643,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
                 <option value="HALF_DAY">Half Day</option>
                 <option value="ON_LEAVE">On Leave</option>
               </Select>
-            )}
 
-            {/* Department — admin only */}
-            {!isEmployee && (
               <Select value={filterDept} onChange={(e) => setFilterDept(e.target.value)} className="h-8 w-auto min-w-[130px] text-xs">
                 <option value="">All Departments</option>
                 <option value="Engineering">Engineering</option>
@@ -613,13 +656,9 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
                 <option value="Legal">Legal</option>
                 <option value="Customer Support">Customer Support</option>
               </Select>
-            )}
 
-            {/* Divider — admin only */}
-            {!isEmployee && <div className="mx-1 h-5 w-px bg-gray-200" />}
+              <div className="mx-1 h-5 w-px bg-gray-200" />
 
-            {/* User ID — admin only (commits on Enter or Search button) */}
-            {!isEmployee && (
               <div className="relative w-36">
                 <span className="pointer-events-none absolute left-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground">
                   <Icon name="search" size={13} />
@@ -637,10 +676,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
                   </button>
                 )}
               </div>
-            )}
 
-            {/* Record ID — admin only (commits on Enter or Search button) */}
-            {!isEmployee && (
               <div className="relative w-36">
                 <span className="pointer-events-none absolute left-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground">
                   <Icon name="search" size={13} />
@@ -659,23 +695,18 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
                   </button>
                 )}
               </div>
-            )}
 
-            {/* Search button — commits ID filters */}
-            {!isEmployee && (
               <Button onClick={commitIdFilters} variant="primary" size="sm" className="h-8 text-xs">
                 <Icon name="search" size={13} className="mr-1" /> Search
               </Button>
-            )}
 
-            {/* Spacer */}
-            <div className="flex-1" />
+              <div className="flex-1" />
 
-            {/* Record count */}
-            <span className="text-xs font-medium text-muted-foreground">
-              {filtered.length} record{filtered.length !== 1 ? "s" : ""}
-            </span>
-          </div>
+              <span className="text-xs font-medium text-muted-foreground">
+                {filtered.length} record{filtered.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+          )}
 
           {/* Advanced filters row (collapsible) */}
           {showAdvanced && (
@@ -709,6 +740,8 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
               </Button>
             </div>
           )}
+
+
 
           {/* Active filter chips */}
           {hasActiveFilters && (
@@ -781,7 +814,11 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
                   <TableHeader>
                     <TableRow>
                       <TableHead>Employee</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead className="cursor-pointer select-none hover:text-foreground" onClick={() => setSortDirection(s => s === "desc" ? "asc" : "desc")}>
+                        <div className="flex items-center gap-1">
+                          Date {sortDirection === "desc" ? "↓" : "↑"}
+                        </div>
+                      </TableHead>
                       <TableHead style={{ minWidth: "120px" }}>Clock In</TableHead>
                       <TableHead style={{ minWidth: "120px" }}>Clock Out</TableHead>
                       <TableHead>Worked (hrs)</TableHead>
@@ -809,7 +846,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
                           <TableCell>
                             <div className="flex gap-1">
                               <button title="Edit" onClick={() => startEdit(r)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
-                              <button title="Delete" onClick={() => handleDelete(r.id)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
+                              <button title="Delete" onClick={() => setDeleteConfirm(r.id)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
                             </div>
                           </TableCell>
                         )}
@@ -839,6 +876,69 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
           </CardContent>
         </Card>
       </ScrollReveal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Delete Attendance Record"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => handleDelete(deleteConfirm)} disabled={!!actionLoading}>
+              {actionLoading === deleteConfirm ? "Deleting..." : "Delete"}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">Are you sure you want to delete this attendance record? This action cannot be undone.</p>
+      </Modal>
+
+      {/* Edit Attendance Modal */}
+      <Modal
+        open={!!editRecord}
+        onClose={() => setEditRecord(null)}
+        title="Edit Attendance Record"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setEditRecord(null)}>Cancel</Button>
+            <Button onClick={handleUpdate}>Save Changes</Button>
+          </>
+        }
+      >
+        {editRecord && (
+          <div className="flex flex-col gap-4 py-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Date</label>
+              <Input type="date" value={editRecord.date} onChange={(e) => setEditRecord({ ...editRecord, date: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Clock In</label>
+                <Input type="time" value={editRecord.clockIn} onChange={(e) => setEditRecord({ ...editRecord, clockIn: e.target.value })} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Clock Out</label>
+                <Input type="time" value={editRecord.clockOut} onChange={(e) => setEditRecord({ ...editRecord, clockOut: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
+              <Select value={editRecord.status} onChange={(e) => setEditRecord({ ...editRecord, status: e.target.value })}>
+                <option value="PRESENT">Present</option>
+                <option value="ABSENT">Absent</option>
+                <option value="LATE">Late</option>
+                <option value="HALF_DAY">Half Day</option>
+                <option value="ON_LEAVE">On Leave</option>
+              </Select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Note</label>
+              <Input placeholder="Optional note..." value={editRecord.note} onChange={(e) => setEditRecord({ ...editRecord, note: e.target.value })} />
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

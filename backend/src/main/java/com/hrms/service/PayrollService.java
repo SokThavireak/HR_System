@@ -23,12 +23,20 @@ public class PayrollService {
     private final PayrollRepository payrollRepo;
     private final UserRepository userRepo;
     private final AttendanceRepository attendanceRepo;
+    private final com.hrms.repository.LeaveRequestRepository leaveRepo;
 
     @Transactional
-    public Payroll calculateAndCreate(Long userId, Double fullTimeWorkHours, BigDecimal tax,
+    public Payroll calculateAndCreate(String employeeId, Double fullTimeWorkHours, BigDecimal tax,
                                       BigDecimal insurance, BigDecimal otherDeductions,
                                       java.time.LocalDate periodStart, java.time.LocalDate periodEnd) {
-        User user = userRepo.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepo.findByEmployeeId(employeeId).orElseGet(() -> {
+            try {
+                return userRepo.findById(Long.parseLong(employeeId)).orElseThrow(() -> new RuntimeException("User not found"));
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("User not found");
+            }
+        });
+        Long userId = user.getId();
         if (user.getBaseSalary() == null)
             throw new RuntimeException("Employee has no base salary set");
         if (fullTimeWorkHours == null || fullTimeWorkHours <= 0)
@@ -64,7 +72,10 @@ public class PayrollService {
         // ── IL Payout: unused IL days paid at OT rate (once per year) ──
         BigDecimal ilPayout = BigDecimal.ZERO;
         if (Boolean.FALSE.equals(user.getUnusedIlPaid())) {
-            int unusedIlDays = user.getIlLeaveEntitlement() - user.getIlLeaveUsed();
+            java.time.LocalDate startOfYear = periodEnd.withDayOfYear(1);
+            java.time.LocalDate endOfYear = periodEnd.withDayOfYear(periodEnd.lengthOfYear());
+            long ilUsed = leaveRepo.countByUserAndTypeAndDateRange(userId, com.hrms.entity.LeaveRequest.LeaveType.IL, startOfYear, endOfYear);
+            int unusedIlDays = user.getIlLeaveEntitlement() - (int) ilUsed;
             if (unusedIlDays > 0) {
                 ilPayout = hourlyRate
                     .multiply(BigDecimal.valueOf(unusedIlDays))
@@ -176,6 +187,15 @@ public class PayrollService {
     public void bulkProcess() {
         payrollRepo.findAllByStatus(PayrollStatus.DRAFT).forEach(p -> {
             p.setStatus(PayrollStatus.PROCESSED);
+            payrollRepo.save(p);
+        });
+    }
+
+    @Transactional
+    public void bulkPay() {
+        payrollRepo.findAllByStatus(PayrollStatus.PROCESSED).forEach(p -> {
+            p.setStatus(PayrollStatus.PAID);
+            p.setPaymentDate(java.time.LocalDate.now());
             payrollRepo.save(p);
         });
     }

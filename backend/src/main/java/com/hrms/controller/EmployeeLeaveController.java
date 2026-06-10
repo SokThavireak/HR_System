@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
+import com.hrms.service.ActivityLogService;
 
 @RestController
 @RequestMapping("/api/v1/employee/leaves")
@@ -19,6 +20,7 @@ public class EmployeeLeaveController {
 
     private final LeaveService leaveService;
     private final UserRepository userRepo;
+    private final ActivityLogService activityLogService;
 
     private User currentUser(UserDetails ud) {
         return userRepo.findByEmail(ud.getUsername()).orElseThrow();
@@ -32,8 +34,11 @@ public class EmployeeLeaveController {
     @PostMapping
     public ResponseEntity<LeaveRequest> requestLeave(@AuthenticationPrincipal UserDetails ud,
                                                      @RequestBody LeaveRequestDto dto) {
-        return ResponseEntity.ok(leaveService.requestLeave(
-            currentUser(ud).getId(), dto.getLeaveType(), dto.getStartDate(), dto.getEndDate(), dto.getReason()));
+        User u = currentUser(ud);
+        LeaveRequest req = leaveService.requestLeave(
+            u.getId(), dto.getLeaveType(), dto.getStartDate(), dto.getEndDate(), dto.getReason());
+        activityLogService.log("New leave request from " + u.getFirstName() + " " + u.getLastName(), "LEAVE_REQUEST");
+        return ResponseEntity.ok(req);
     }
 
     @DeleteMapping("/{id}")

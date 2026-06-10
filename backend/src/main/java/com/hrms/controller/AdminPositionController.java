@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
+import com.hrms.service.ActivityLogService;
 import java.math.BigDecimal;
 
 @RestController
@@ -17,6 +18,7 @@ public class AdminPositionController {
 
     private final PositionRepository posRepo;
     private final DepartmentRepository deptRepo;
+    private final ActivityLogService activityLogService;
 
     @GetMapping
     public Page<Position> getAll(@RequestParam(required = false) Long departmentId, Pageable page) {
@@ -50,7 +52,9 @@ public class AdminPositionController {
             .minSalary(req.getMinSalary() != null ? new BigDecimal(req.getMinSalary()) : null)
             .maxSalary(req.getMaxSalary() != null ? new BigDecimal(req.getMaxSalary()) : null)
             .build();
-        return posRepo.save(pos);
+        Position saved = posRepo.save(pos);
+        activityLogService.log("Position " + saved.getTitle() + " created in " + dept.getName(), "POSITION");
+        return saved;
     }
 
     @PutMapping("/{id}")
@@ -65,12 +69,16 @@ public class AdminPositionController {
         }
         if (req.getMinSalary() != null) pos.setMinSalary(new BigDecimal(req.getMinSalary()));
         if (req.getMaxSalary() != null) pos.setMaxSalary(new BigDecimal(req.getMaxSalary()));
-        return posRepo.save(pos);
+        Position saved = posRepo.save(pos);
+        activityLogService.log("Position " + saved.getTitle() + " updated", "POSITION");
+        return saved;
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
+        Position pos = posRepo.findById(id).orElseThrow(() -> new RuntimeException("Position not found"));
         posRepo.deleteById(id);
+        activityLogService.log("Position " + pos.getTitle() + " deleted", "POSITION");
     }
 
     @lombok.Data

@@ -9,6 +9,7 @@ import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import com.hrms.service.ActivityLogService;
 import java.math.BigDecimal;
 
 @RestController
@@ -19,6 +20,7 @@ public class AdminUserController {
     private final UserRepository userRepo;
     private final RoleRepository roleRepo;
     private final PasswordEncoder encoder;
+    private final ActivityLogService activityLogService;
 
     @GetMapping
     public ResponseEntity<Page<User>> getUsers(@RequestParam(required = false) String search, Pageable page) {
@@ -54,7 +56,9 @@ public class AdminUserController {
             .active(true)
             .build();
         user.getRoles().add(role);
-        return ResponseEntity.ok(userRepo.save(user));
+        User saved = userRepo.save(user);
+        activityLogService.log("New employee " + saved.getFirstName() + " " + saved.getLastName() + " added" + (saved.getDepartment() != null ? " to " + saved.getDepartment() : ""), "USER");
+        return ResponseEntity.ok(saved);
     }
 
     @DeleteMapping("/{id}")
@@ -62,6 +66,7 @@ public class AdminUserController {
         User user = userRepo.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         user.setActive(false);
         userRepo.save(user);
+        activityLogService.log("Employee " + user.getFirstName() + " " + user.getLastName() + " deactivated", "USER");
         return ResponseEntity.ok().build();
     }
 
@@ -73,15 +78,27 @@ public class AdminUserController {
         user.setPhone(req.getPhone());
         user.setDepartment(req.getDepartment());
         user.setPosition(req.getPosition());
-        if (req.getBaseSalary() != null) user.setBaseSalary(new BigDecimal(req.getBaseSalary()));
-        if (req.getWorkHoursPerDay() != null) user.setWorkHoursPerDay(req.getWorkHoursPerDay());
-        if (req.getWorkingDaysPerMonth() != null) user.setWorkingDaysPerMonth(req.getWorkingDaysPerMonth());
-        if (req.getWorkStartTime() != null) user.setWorkStartTime(req.getWorkStartTime());
-        if (req.getHireDate() != null) user.setHireDate(req.getHireDate());
+        user.setEmail(req.getEmail());
+        user.setEmployeeId(req.getEmployeeId());
+        user.setBaseSalary(req.getBaseSalary() != null ? new BigDecimal(req.getBaseSalary()) : null);
+        user.setWorkHoursPerDay(req.getWorkHoursPerDay());
+        user.setWorkingDaysPerMonth(req.getWorkingDaysPerMonth());
+        user.setWorkStartTime(req.getWorkStartTime());
+        user.setHireDate(req.getHireDate());
         if (req.getIlLeaveEntitlement() != null) user.setIlLeaveEntitlement(req.getIlLeaveEntitlement());
         if (req.getSickLeaveEntitlement() != null) user.setSickLeaveEntitlement(req.getSickLeaveEntitlement());
         if (req.getSpecialLeaveEntitlement() != null) user.setSpecialLeaveEntitlement(req.getSpecialLeaveEntitlement());
-        return ResponseEntity.ok(userRepo.save(user));
+        if (req.getPassword() != null && !req.getPassword().isBlank()) {
+            user.setPassword(encoder.encode(req.getPassword()));
+        }
+        if (req.getRole() != null && !req.getRole().isBlank()) {
+            Role role = roleRepo.findByName(Role.RoleName.valueOf(req.getRole())).orElseThrow();
+            user.getRoles().clear();
+            user.getRoles().add(role);
+        }
+        User saved = userRepo.save(user);
+        activityLogService.log("Employee " + saved.getFirstName() + " " + saved.getLastName() + " details updated", "USER");
+        return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/{id}/activate")

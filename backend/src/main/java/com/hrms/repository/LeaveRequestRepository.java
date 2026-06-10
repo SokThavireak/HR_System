@@ -13,6 +13,7 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
     List<LeaveRequest> findByUserIdOrderByCreatedAtDesc(Long userId);
     Page<LeaveRequest> findByStatusOrderByCreatedAtDesc(LeaveRequest.LeaveStatus status, Pageable pageable);
     long countByStatus(LeaveRequest.LeaveStatus status);
+    long countByUserIdAndStatus(Long userId, LeaveRequest.LeaveStatus status);
 
     @Query("SELECT COALESCE(SUM(l.totalDays), 0) FROM LeaveRequest l WHERE l.user.id = :userId AND l.leaveType = :type AND l.status = 'APPROVED' AND l.startDate <= :end AND l.endDate >= :start")
     long countByUserAndTypeAndDateRange(

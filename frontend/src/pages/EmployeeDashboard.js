@@ -10,6 +10,8 @@ import {
   Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
   EmployeeDashboardSkeleton, PageTransition, Modal,
 } from "../components/ui";
+import { CheckCircle2, AlertCircle, X, Search, Filter } from "lucide-react";
+import { authService } from "../services/authService";
 import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
 
 const SIDEBAR_ITEMS = [
@@ -34,6 +36,7 @@ const Icon = ({ name, size = 18 }) => {
     trending: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
     chart: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
     refresh: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>,
+    phone: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>,
   };
   return icons[name] || null;
 };
@@ -65,8 +68,7 @@ const EmployeeDashboard = ({ user }) => {
     return null;
   }
 
-  const [section, _setSection] = useState(() => sessionStorage.getItem("emp_section") || "dashboard");
-  const setSection = (key) => { _setSection(key); sessionStorage.setItem("emp_section", key); };
+  const [section, setSection] = useState("dashboard");
   const [navVisible, setNavVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [activeNavY, setActiveNavY] = useState(0);
@@ -84,6 +86,15 @@ const EmployeeDashboard = ({ user }) => {
   const [profileLoading, setProfileLoading] = useState(false);
   const { toasts, showToast, removeToast } = useToast();
 
+  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const updateActiveNavY = useCallback(() => {
     const idx = SIDEBAR_ITEMS.findIndex((s) => s.key === section);
     const el = navItemRefs.current[idx];
@@ -95,8 +106,14 @@ const EmployeeDashboard = ({ user }) => {
   }, [section]);
 
   useEffect(() => {
-    const t = setTimeout(updateActiveNavY, 50);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(updateActiveNavY, 50);
+    const t2 = setTimeout(updateActiveNavY, 500); // after initial animations
+    window.addEventListener("resize", updateActiveNavY);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener("resize", updateActiveNavY);
+    };
   }, [updateActiveNavY]);
 
   useEffect(() => {
@@ -123,9 +140,18 @@ const EmployeeDashboard = ({ user }) => {
       ]);
       if (results[0].status === "fulfilled" && results[0].value) setTodayRecord(results[0].value.data);
       if (results[1].status === "fulfilled" && results[1].value) setSummary(results[1].value.data);
-      if (results[2].status === "fulfilled" && results[2].value) setLeaves(results[2].value.data);
-      if (results[3].status === "fulfilled" && results[3].value) setPaySlips(results[3].value.data);
-      if (results[4].status === "fulfilled" && results[4].value) setPerformance(results[4].value.data);
+      if (results[2].status === "fulfilled" && results[2].value) {
+        const lvData = results[2].value.data;
+        setLeaves(lvData.content ? lvData.content : lvData);
+      }
+      if (results[3].status === "fulfilled" && results[3].value) {
+        const psData = results[3].value.data;
+        setPaySlips(psData.content ? psData.content : psData);
+      }
+      if (results[4].status === "fulfilled" && results[4].value) {
+        const perfData = results[4].value.data;
+        setPerformance(perfData.content ? perfData.content : perfData);
+      }
     } catch (e) { console.error("[EmployeeDashboard] loadData error:", e); }
     clearTimeout(safetyTimer);
     finish();
@@ -139,10 +165,12 @@ const EmployeeDashboard = ({ user }) => {
         const { data } = await employeeService.clockIn({});
         setTodayRecord(data);
         showToast("Clocked in successfully!");
+        employeeService.getDashboardSummary().then(res => setSummary(res.data)).catch(() => {});
       } else if (!todayRecord?.clockOutTime) {
         const { data } = await employeeService.clockOut({});
         setTodayRecord(data);
         showToast("Clocked out successfully!");
+        employeeService.getDashboardSummary().then(res => setSummary(res.data)).catch(() => {});
       }
     } catch (err) { showToast(err.message || "Action failed", "error"); }
   };
@@ -185,14 +213,28 @@ const EmployeeDashboard = ({ user }) => {
     setEditProfile(true);
   };
 
-  const getCurrentTime = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const isClockedIn = todayRecord?.clockInTime && !todayRecord?.clockOutTime;
   const isDoneToday = todayRecord?.clockInTime && todayRecord?.clockOutTime;
   const handleLogout = () => { localStorage.removeItem("hrms_token"); localStorage.removeItem("hrms_user"); localStorage.removeItem("hrms_login_time"); localStorage.removeItem("hrms_role"); window.location.reload(); };
 
-  if (loading) return <EmployeeDashboardSkeleton />;
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState("ALL");
+  const [activeUser, setActiveUser] = useState(user);
 
-  const initials = `${user?.firstName?.charAt(0) || ""}${user?.lastName?.charAt(0) || ""}`;
+  useEffect(() => {
+    if (activeUser && activeUser.baseSalary === undefined) {
+      authService.getCurrentUser()
+        .then(res => {
+          if (res.data) setActiveUser(res.data);
+        })
+        .catch(console.error);
+    }
+  }, [activeUser]);
+
+  const initials = activeUser?.firstName && activeUser?.lastName
+    ? `${activeUser.firstName.charAt(0)}${activeUser.lastName.charAt(0)}`
+    : "??";
+
+  if (loading) return <EmployeeDashboardSkeleton />;
 
   return (
     <div className="min-h-screen" style={{ background: "#efe6dd" }}>
@@ -321,7 +363,7 @@ const EmployeeDashboard = ({ user }) => {
                   >
                     <CardContent className="w-full p-6 flex flex-col items-center justify-center text-center text-white">
                       <p className="mb-2 text-sm font-medium text-white/70">Today&apos;s Attendance</p>
-                      <p className="mb-8 text-5xl font-bold tracking-tight">{getCurrentTime()}</p>
+                      <p className="mb-8 text-5xl font-bold tracking-tight" style={{ fontVariantNumeric: "tabular-nums" }}>{currentTime}</p>
                       
                       <button 
                         onClick={handleClock} 
@@ -347,21 +389,27 @@ const EmployeeDashboard = ({ user }) => {
                 </StaggerItem>
 
                 {/* Stat Cards */}
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
                   {[
-                    { bg: "#9a0002", value: summary?.presentDays ?? 0, label: "Present Days", icon: "check" },
-                    { bg: "#b45309", value: `${Number(summary?.overtimeHours ?? 0).toFixed(2)}h`, label: "Overtime", icon: "clock" },
-                    { bg: "#c2410c", value: summary?.pendingLeaves ?? 0, label: "Pending Leaves", icon: "calendar" },
-                    { bg: "#15803d", value: `$${summary?.lastPaySlip ?? 0}`, label: "Last Payslip", icon: "dollar" },
+                    { bg: "#10b981", v: summary?.presentDays ?? 0, k: "Present", icon: "check" },
+                    { bg: "#f59e0b", v: summary?.lateDays ?? 0, k: "Late", icon: "clock" },
+                    { bg: "#ef4444", v: summary?.absentDays ?? 0, k: "Absent", icon: "x" },
+                    { bg: "#9a0002", v: `${Number(summary?.totalHours ?? 0).toFixed(1)}h`, k: "Total Hours", icon: "timer" },
+                    { bg: "#6366f1", v: summary?.attendanceRate ?? "-", k: "Rating (/5)", icon: "check" },
+                    { bg: "#b45309", v: `${Number(summary?.overtimeHours ?? 0).toFixed(1)}h`, k: "Overtime", icon: "clock" },
+                    { bg: "#3b82f6", v: summary?.leaveBalance?.ilRemaining ?? 0, k: "IL Left", icon: "calendar" },
+                    { bg: "#f59e0b", v: summary?.leaveBalance?.sickRemaining ?? 0, k: "Sick Left", icon: "calendar" },
+                    { bg: "#8b5cf6", v: summary?.leaveBalance?.specialRemaining ?? 0, k: "Special Left", icon: "calendar" },
+                    { bg: "#15803d", v: `$${summary?.lastPaySlip ?? 0}`, k: "Last Payslip", icon: "dollar" },
                   ].map((s) => (
-                    <StaggerItem key={s.label}>
-                      <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: s.bg }}>
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: s.bg }}>
-                          <Icon name={s.icon} size={22} />
+                    <StaggerItem key={s.k}>
+                      <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: s.bg }}>
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: s.bg }}>
+                          <Icon name={s.icon} size={20} />
                         </div>
                         <div>
-                          <p className="text-2xl font-bold leading-none">{s.value}</p>
-                          <p className="mt-1 text-xs font-medium text-muted-foreground">{s.label}</p>
+                          <p className="text-2xl font-bold leading-none">{s.v}</p>
+                          <p className="mt-0.5 text-xs font-medium text-muted-foreground">{s.k}</p>
                         </div>
                       </div>
                     </StaggerItem>
@@ -390,23 +438,26 @@ const EmployeeDashboard = ({ user }) => {
     </Card>
   </StaggerItem>
 
-  {/* Card 2: Leave Balance */}
+  {/* Card 2: Leave Requests */}
   <StaggerItem className="h-full">
     <Card className="border-0 shadow-md h-full flex flex-col" style={{ background: "#fffbf7" }}>
       <CardContent className="px-6 pb-6 pt-6 flex flex-col justify-center h-full flex-1">
         <div>
-          <p className="text-xs font-semibold mb-1.5" style={{ color: "#8b7355" }}>Leave Balance</p>
+          <p className="text-xs font-semibold mb-1.5" style={{ color: "#8b7355" }}>My Leave Requests</p>
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-bold" style={{ color: "#3d2b1f" }}>{leaves.length}</span>
-            <span className="text-sm font-normal" style={{ color: "#8b7355" }}>requests</span>
+            <span className="text-sm font-normal" style={{ color: "#8b7355" }}>total</span>
           </div>
         </div>
-        <div className="mt-6 flex gap-2">
+        <div className="mt-6 flex flex-wrap gap-2">
           <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold" style={{ background: "#dcfce7", color: "#15803d" }}>
             {leaves.filter(l => l.status === "APPROVED").length} approved
           </span>
           <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold" style={{ background: "#fef3c7", color: "#b45309" }}>
             {leaves.filter(l => l.status === "PENDING").length} pending
+          </span>
+          <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold" style={{ background: "#fee2e2", color: "#b91c1c" }}>
+            {leaves.filter(l => l.status === "REJECTED").length} rejected
           </span>
         </div>
       </CardContent>
@@ -613,7 +664,7 @@ const EmployeeDashboard = ({ user }) => {
             
             {/* ═══ PROFILE TAB ═══ */}
             {section === "profile" && (
-              <div className="space-y-6">
+              <div className="space-y-6 animate-fade-up">
                 <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
                   <h2 className="text-2xl font-bold" style={{ color: "#3d2b1f" }}>My Profile</h2>
                 </ScrollReveal>
@@ -622,35 +673,43 @@ const EmployeeDashboard = ({ user }) => {
                 <StaggerItem>
                   <Card className="border-0 shadow-md overflow-hidden" style={{ background: "#fffbf7" }}>
                     <div className="h-2" style={{ background: "linear-gradient(90deg, #9a0002, #6b0001)" }} />
-                    <CardContent className="px-8 py-8">
-                      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
-                        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl text-3xl font-black text-white" style={{ background: "linear-gradient(135deg, #9a0002, #6b0001)", boxShadow: "0 8px 24px rgba(154,0,2,0.25)" }}>
-                          {initials}
-                        </div>
-                        <div className="flex-1 text-center sm:text-left">
-                          <h3 className="text-2xl font-bold" style={{ color: "#3d2b1f" }}>
-                            {user?.firstName} {user?.lastName}
+                    <CardContent className="px-8 py-10 relative">
+                      <div className="flex flex-col items-center text-center gap-5">
+                        
+                        <div>
+                          <h3 className="text-3xl font-bold" style={{ color: "#3d2b1f" }}>
+                            {activeUser?.firstName} {activeUser?.lastName}
                           </h3>
-                          <p className="mt-1 text-sm" style={{ color: "#8b7355" }}>{user?.email}</p>
-                          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                            {user?.employeeId && (
-                              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: "rgba(154,0,2,0.08)", color: "#9a0002" }}>
-                                ID: {String(user.employeeId).padStart(6, "0")}
+                          <div className="mt-3 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6">
+                            <p className="text-sm flex items-center gap-2 font-medium" style={{ color: "#8b7355" }}>
+                              <Icon name="user" size={16} /> {activeUser?.email}
+                            </p>
+                            <p className="text-sm flex items-center gap-2 font-medium" style={{ color: "#8b7355" }}>
+                              <Icon name="phone" size={16} /> {activeUser?.phone || "No phone provided"}
+                            </p>
+                          </div>
+                          
+                          <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+                            {activeUser?.employeeId && (
+                              <span className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold shadow-sm" style={{ background: "rgba(154,0,2,0.08)", color: "#9a0002" }}>
+                                ID: {String(activeUser.employeeId).padStart(6, "0")}
                               </span>
                             )}
-                            {user?.department && (
-                              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: "#e8ddd0", color: "#5c4033" }}>
-                                {user.department}
+                            {activeUser?.department && (
+                              <span className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold shadow-sm" style={{ background: "#e8ddd0", color: "#5c4033" }}>
+                                {activeUser.department}
                               </span>
                             )}
-                            {user?.position && (
-                              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: "#e8ddd0", color: "#5c4033" }}>
-                                {user.position}
+                            {activeUser?.position && (
+                              <span className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold shadow-sm" style={{ background: "#e8ddd0", color: "#5c4033" }}>
+                                {activeUser.position}
                               </span>
                             )}
                           </div>
                         </div>
-                        <Button onClick={openEditProfile} variant="outline" size="sm" style={{ borderColor: "#9a0002", color: "#9a0002" }}>
+
+                        {/* Edit Button */}
+                        <Button onClick={openEditProfile} variant="outline" size="sm" className="mt-4 w-full max-w-[200px]" style={{ borderColor: "#9a0002", color: "#9a0002" }}>
                           Edit Profile
                         </Button>
                       </div>
@@ -658,77 +717,77 @@ const EmployeeDashboard = ({ user }) => {
                   </Card>
                 </StaggerItem>
 
-                {/* Personal Information */}
-                <StaggerItem>
-                  <Card className="border-0 shadow-md" style={{ background: "#fffbf7" }}>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base font-bold" style={{ color: "#3d2b1f" }}>Personal Information</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                        <div>
-                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>First Name</label>
-                          <Input readOnly value={user?.firstName || ""} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Employment Details */}
+                  <StaggerItem>
+                    <Card className="border-0 shadow-md h-full" style={{ background: "#fffbf7" }}>
+                      <CardHeader className="pb-3 border-b border-[#e8ddd0] mb-4">
+                        <CardTitle className="text-base font-bold flex items-center gap-2" style={{ color: "#3d2b1f" }}>
+                          <Icon name="file" size={18} /> Employment Details
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center pb-2 border-b border-[#f5efe8]">
+                            <span className="text-sm font-medium" style={{ color: "#8b7355" }}>Hire Date</span>
+                            <span className="text-sm font-bold text-right" style={{ color: "#3d2b1f" }}>{activeUser?.hireDate || "—"}</span>
+                          </div>
+                          <div className="flex justify-between items-center pb-2 border-b border-[#f5efe8]">
+                            <span className="text-sm font-medium" style={{ color: "#8b7355" }}>Department</span>
+                            <span className="text-sm font-bold text-right" style={{ color: "#3d2b1f" }}>{activeUser?.department || "—"}</span>
+                          </div>
+                          <div className="flex justify-between items-center pb-2 border-b border-[#f5efe8]">
+                            <span className="text-sm font-medium" style={{ color: "#8b7355" }}>Position</span>
+                            <span className="text-sm font-bold text-right" style={{ color: "#3d2b1f" }}>{activeUser?.position || "—"}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium" style={{ color: "#8b7355" }}>Employee ID</span>
+                            <span className="text-sm font-bold text-right" style={{ color: "#3d2b1f" }}>{activeUser?.employeeId ? String(activeUser.employeeId).padStart(6, "0") : "—"}</span>
+                          </div>
                         </div>
-                        <div>
-                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Last Name</label>
-                          <Input readOnly value={user?.lastName || ""} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
-                        </div>
-                        <div>
-                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Email</label>
-                          <Input readOnly value={user?.email || ""} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
-                        </div>
-                        <div>
-                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Phone</label>
-                          <Input readOnly value={user?.phone || "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </StaggerItem>
+                      </CardContent>
+                    </Card>
+                  </StaggerItem>
 
-                {/* Work Information */}
-                <StaggerItem>
-                  <Card className="border-0 shadow-md" style={{ background: "#fffbf7" }}>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base font-bold" style={{ color: "#3d2b1f" }}>Work Information</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                        <div>
-                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Employee ID</label>
-                          <Input readOnly value={user?.employeeId ? String(user.employeeId).padStart(6, "0") : "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
+                  {/* Compensation & Hours */}
+                  <StaggerItem>
+                    <Card className="border-0 shadow-md h-full" style={{ background: "#fffbf7" }}>
+                      <CardHeader className="pb-3 border-b border-[#e8ddd0] mb-4">
+                        <CardTitle className="text-base font-bold flex items-center gap-2" style={{ color: "#3d2b1f" }}>
+                          <Icon name="dollar" size={18} /> Compensation & Hours
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center pb-2 border-b border-[#f5efe8]">
+                            <span className="text-sm font-medium" style={{ color: "#8b7355" }}>Base Salary</span>
+                            <span className="text-sm font-black text-right" style={{ color: "#16a34a" }}>{activeUser?.baseSalary ? `$${activeUser.baseSalary.toLocaleString()}` : "—"}</span>
+                          </div>
+                          <div className="flex justify-between items-center pb-2 border-b border-[#f5efe8]">
+                            <span className="text-sm font-medium" style={{ color: "#8b7355" }}>Work Start Time</span>
+                            <span className="text-sm font-bold text-right" style={{ color: "#3d2b1f" }}>{activeUser?.workStartTime ? activeUser.workStartTime.substring(0, 5) : "08:00 AM"}</span>
+                          </div>
+                          <div className="flex justify-between items-center pb-2 border-b border-[#f5efe8]">
+                            <span className="text-sm font-medium" style={{ color: "#8b7355" }}>Work Hours / Day</span>
+                            <span className="text-sm font-bold text-right" style={{ color: "#3d2b1f" }}>{activeUser?.workHoursPerDay != null ? `${activeUser.workHoursPerDay} hrs` : "8 hrs"}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium" style={{ color: "#8b7355" }}>Working Days / Month</span>
+                            <span className="text-sm font-bold text-right" style={{ color: "#3d2b1f" }}>{activeUser?.workingDaysPerMonth != null ? `${activeUser.workingDaysPerMonth} days` : "22 days"}</span>
+                          </div>
                         </div>
-                        <div>
-                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Department</label>
-                          <Input readOnly value={user?.department || "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
-                        </div>
-                        <div>
-                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Position</label>
-                          <Input readOnly value={user?.position || "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
-                        </div>
-                        <div>
-                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Hire Date</label>
-                          <Input readOnly value={user?.hireDate || "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
-                        </div>
-                        <div>
-                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Work Hours / Day</label>
-                          <Input readOnly value={user?.workHoursPerDay != null ? `${user.workHoursPerDay}h` : "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
-                        </div>
-                        <div>
-                          <label className="mb-1.5 block text-xs font-semibold" style={{ color: "#8b7355" }}>Working Days / Month</label>
-                          <Input readOnly value={user?.workingDaysPerMonth != null ? `${user.workingDaysPerMonth} days` : "—"} className="bg-[#f5efe8] border-[#e8ddd0] text-[#5c4033]" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </StaggerItem>
+                      </CardContent>
+                    </Card>
+                  </StaggerItem>
+                </div>
 
                 {/* Leave Balances */}
                 <StaggerItem>
                   <Card className="border-0 shadow-md" style={{ background: "#fffbf7" }}>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base font-bold" style={{ color: "#3d2b1f" }}>Leave Balances</CardTitle>
+                    <CardHeader className="pb-3 border-b border-[#e8ddd0] mb-4">
+                      <CardTitle className="text-base font-bold flex items-center gap-2" style={{ color: "#3d2b1f" }}>
+                        <Icon name="calendar" size={18} /> Leave Balances
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -740,19 +799,19 @@ const EmployeeDashboard = ({ user }) => {
                           const remaining = lb.total - lb.used;
                           const pct = lb.total > 0 ? Math.round((lb.used / lb.total) * 100) : 0;
                           return (
-                            <div key={lb.label} className="rounded-xl p-4" style={{ background: "#f5efe8", border: "1px solid #e8ddd0" }}>
+                            <div key={lb.label} className="rounded-xl p-5" style={{ background: "#f5efe8", border: "1px solid #e8ddd0" }}>
                               <div className="flex items-center justify-between mb-3">
-                                <span className="text-xs font-semibold" style={{ color: "#8b7355" }}>{lb.label}</span>
-                                <span className="text-xs font-bold" style={{ color: lb.color }}>{remaining} left</span>
+                                <span className="text-sm font-bold" style={{ color: "#5c4033" }}>{lb.label}</span>
+                                <span className="text-xs font-bold px-2 py-1 rounded-md bg-white shadow-sm" style={{ color: lb.color }}>{remaining} left</span>
                               </div>
-                              <div className="flex items-baseline gap-1.5 mb-2">
-                                <span className="text-2xl font-bold" style={{ color: "#3d2b1f" }}>{remaining}</span>
-                                <span className="text-xs" style={{ color: "#8b7355" }}>/ {lb.total} days</span>
+                              <div className="flex items-baseline gap-1.5 mb-3">
+                                <span className="text-3xl font-black" style={{ color: "#3d2b1f" }}>{remaining}</span>
+                                <span className="text-sm font-medium" style={{ color: "#8b7355" }}>/ {lb.total} days</span>
                               </div>
-                              <div className="h-2 w-full rounded-full overflow-hidden" style={{ background: "#ede0d4" }}>
+                              <div className="h-2 w-full rounded-full overflow-hidden shadow-inner" style={{ background: "#e8ddd0" }}>
                                 <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: lb.color }} />
                               </div>
-                              <p className="mt-1.5 text-[10px]" style={{ color: "#8b7355" }}>{lb.used} used · {pct}% consumed</p>
+                              <p className="mt-2 text-xs font-medium" style={{ color: "#8b7355" }}>{lb.used} used ({pct}% consumed)</p>
                             </div>
                           );
                         })}

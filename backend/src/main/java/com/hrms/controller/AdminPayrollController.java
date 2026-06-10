@@ -7,8 +7,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
+import java.time.LocalDate;
+import com.hrms.service.ActivityLogService;
 
 @RestController
 @RequestMapping("/api/v1/admin/payroll")
@@ -16,14 +17,17 @@ import java.util.List;
 public class AdminPayrollController {
 
     private final PayrollService payrollService;
+    private final ActivityLogService activityLogService;
 
     @PostMapping("/calculate")
     public Payroll calculate(@RequestBody PayrollCalcRequest req) {
-        return payrollService.calculateAndCreate(
-            req.getUserId(), req.getFullTimeWorkHours(), req.getTaxDeduction(),
+        Payroll p = payrollService.calculateAndCreate(
+            req.getEmployeeId(), req.getFullTimeWorkHours(), req.getTaxDeduction(),
             req.getInsuranceDeduction(), req.getOtherDeductions(),
             req.getPayPeriodStart(), req.getPayPeriodEnd()
         );
+        activityLogService.log("Payroll calculated for employee " + req.getEmployeeId(), "PAYROLL");
+        return p;
     }
 
     @GetMapping
@@ -40,12 +44,16 @@ public class AdminPayrollController {
 
     @PutMapping("/{id}/process")
     public Payroll process(@PathVariable Long id) {
-        return payrollService.processPayroll(id);
+        Payroll p = payrollService.processPayroll(id);
+        activityLogService.log("Payroll processed for " + p.getUser().getFirstName() + " " + p.getUser().getLastName(), "PAYROLL");
+        return p;
     }
 
     @PutMapping("/{id}/pay")
     public Payroll pay(@PathVariable Long id) {
-        return payrollService.markPaid(id);
+        Payroll p = payrollService.markPaid(id);
+        activityLogService.log("Payroll paid for " + p.getUser().getFirstName() + " " + p.getUser().getLastName(), "PAYROLL");
+        return p;
     }
 
     @GetMapping("/{id}")
@@ -66,6 +74,13 @@ public class AdminPayrollController {
     @PostMapping("/bulk-process")
     public void bulkProcess() {
         payrollService.bulkProcess();
+        activityLogService.log("Bulk payroll processing completed", "PAYROLL");
+    }
+
+    @PostMapping("/bulk-pay")
+    public void bulkPay() {
+        payrollService.bulkPay();
+        activityLogService.log("Bulk payroll payment completed", "PAYROLL");
     }
 
     @GetMapping("/sum-paid")
@@ -75,7 +90,7 @@ public class AdminPayrollController {
 
     @lombok.Data
     public static class PayrollCalcRequest {
-        private Long userId;
+        private String employeeId;
         private Double fullTimeWorkHours;
         private BigDecimal taxDeduction;
         private BigDecimal insuranceDeduction;

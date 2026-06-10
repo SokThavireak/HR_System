@@ -48,11 +48,12 @@ export const adminService = {
   payPayroll: (id) => api.put(`/admin/payroll/${id}/pay`),
   deletePayroll: (id) => api.delete(`/admin/payroll/${id}`),
   bulkProcess: () => api.post('/admin/payroll/bulk-process'),
+  bulkPay: () => api.post('/admin/payroll/bulk-pay'),
 
   /* =================================================================
      PERFORMANCE  —  list · get · create · update · delete · export
      ================================================================= */
-  getReviews: (page = 0, size = 20, employeeId) =>
+  getReviews: (page = 0, size = 1000, employeeId) =>
     api.get('/admin/performance', { params: { page, size, employeeId } }),
   getReview: (id) => api.get(`/admin/performance/${id}`),
   createReview: (data) => api.post('/admin/performance', data),

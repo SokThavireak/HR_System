@@ -34,19 +34,30 @@ public class EmployeeDashboardController {
         User user = currentUser(ud);
         var now = LocalDate.now();
         var startOfMonth = now.withDayOfMonth(1);
-        Long presentDays = attendanceRepo.countPresentDays(user.getId(), startOfMonth, now);
-        Double overtime = attendanceRepo.sumOvertimeByUserAndPeriod(user.getId(), startOfMonth, now);
-        long totalDaysOfMonth = now.getDayOfMonth();
-        double attendanceRate = totalDaysOfMonth > 0 ? Math.round((presentDays * 100.0 / totalDaysOfMonth) * 10.0) / 10.0 : 0;
+        long presentDays = attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), "PRESENT", startOfMonth, now) != null ? attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), "PRESENT", startOfMonth, now) : 0;
+        long lateDays = attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), "LATE", startOfMonth, now) != null ? attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), "LATE", startOfMonth, now) : 0;
+        long absentDays = attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), "ABSENT", startOfMonth, now) != null ? attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), "ABSENT", startOfMonth, now) : 0;
+        Double totalHours = attendanceRepo.sumHoursWorked(user.getId(), startOfMonth, now);
+
+        long totalDays = presentDays + lateDays + absentDays;
+        double attendanceRate = 0.0;
+        if (totalDays > 0) {
+            double score = (presentDays * 5.0 + lateDays * 3.0 + absentDays * 1.0) / totalDays;
+            attendanceRate = Math.max(1.0, Math.min(5.0, score));
+        }
+
         var payslips = payrollRepo.findByUserIdOrderByPayPeriodEndDesc(user.getId());
         String lastPay = payslips.isEmpty() ? "0" : payslips.get(0).getNetSalary().toString();
 
         return ResponseEntity.ok(Map.of(
-            "presentDays", presentDays != null ? presentDays : 0,
-            "overtimeHours", overtime != null ? overtime : 0,
-            "attendanceRate", attendanceRate,
-            "pendingLeaves", leaveService.countPending(),
-            "lastPaySlip", lastPay
+            "presentDays", presentDays,
+            "lateDays", lateDays,
+            "absentDays", absentDays,
+            "totalHours", totalHours != null ? totalHours : 0.0,
+            "attendanceRate", Math.round(attendanceRate * 10.0) / 10.0,
+            "pendingLeaves", leaveService.countPendingByUser(user.getId()),
+            "lastPaySlip", lastPay,
+            "leaveBalance", leaveService.getLeaveBalance(user.getId())
         ));
     }
 

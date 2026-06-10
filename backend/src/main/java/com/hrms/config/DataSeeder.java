@@ -238,7 +238,7 @@ public class DataSeeder {
             LocalDate monthStart = today.withDayOfMonth(1);
             LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
             List<LocalDate> workDayList = new ArrayList<>();
-            for (LocalDate d = monthStart; !d.isAfter(monthEnd); d = d.plusDays(1)) {
+            for (LocalDate d = monthStart; d.isBefore(today); d = d.plusDays(1)) {
                 if (d.getDayOfWeek().getValue() <= 5) workDayList.add(d);
             }
             Random rng = new Random(42);
@@ -428,9 +428,9 @@ public class DataSeeder {
 
             // Build work days for current month
             List<LocalDate> workDayList = new ArrayList<>();
-            for (LocalDate d = monthStart; !d.isAfter(monthEnd); d = d.plusDays(1)) {
+            for (LocalDate d = monthStart; d.isBefore(today); d = d.plusDays(1)) {
                 int dow = d.getDayOfWeek().getValue();
-                if (dow <= 5 && !d.isAfter(today)) workDayList.add(d);
+                if (dow <= 5) workDayList.add(d);
             }
 
             List<User> users = userRepo.findAll().stream()
@@ -562,12 +562,15 @@ public class DataSeeder {
             for (Object[] l : leaveData) {
                 User u = users.get((int) l[0]);
                 LeaveStatus ls = (LeaveStatus) l[6];
+                LocalDate start = (LocalDate) l[2];
+                LocalDate end = (LocalDate) l[3];
+                int calculatedDays = (int) java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
                 LeaveRequest lr = LeaveRequest.builder()
                     .user(u)
                     .leaveType((LeaveType) l[1])
-                    .startDate((LocalDate) l[2])
-                    .endDate((LocalDate) l[3])
-                    .totalDays((Integer) l[4])
+                    .startDate(start)
+                    .endDate(end)
+                    .totalDays(calculatedDays)
                     .reason((String) l[5])
                     .createdAt(LocalDateTime.now().minusDays(30))
                     .build();

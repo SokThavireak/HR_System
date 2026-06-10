@@ -23,7 +23,7 @@ const dialogVariants = {
   },
 };
 
-export function Modal({ open, onClose, title, children, footer }) {
+export function Modal({ open, onClose, title, children, footer, maxWidthClass = "max-w-lg", bodyClassName = "px-6 py-4" }) {
   const overlayRef = useRef(null);
 
   useEffect(() => {
@@ -57,11 +57,11 @@ export function Modal({ open, onClose, title, children, footer }) {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-2xl"
+            className={`w-full ${maxWidthClass} rounded-2xl border border-gray-200 bg-white shadow-2xl flex flex-col max-h-[90vh]`}
             onClick={(e) => e.stopPropagation()}
           >
             {title && (
-              <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <div className="flex-none flex items-center justify-between border-b border-gray-100 px-6 py-4">
                 <h3 className="text-lg font-semibold">{title}</h3>
                 <button
                   onClick={onClose}
@@ -74,9 +74,9 @@ export function Modal({ open, onClose, title, children, footer }) {
                 </button>
               </div>
             )}
-            <div className="px-6 py-4">{children}</div>
+            <div className={`flex-1 overflow-y-auto ${bodyClassName}`}>{children}</div>
             {footer && (
-              <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-6 py-4">
+              <div className="flex-none flex items-center justify-end gap-2 border-t border-gray-100 px-6 py-4">
                 {footer}
               </div>
             )}

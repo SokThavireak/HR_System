@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
+import com.hrms.service.ActivityLogService;
 
 @RestController
 @RequestMapping("/api/v1/admin/departments")
@@ -16,6 +17,7 @@ public class AdminDepartmentController {
 
     private final DepartmentRepository deptRepo;
     private final UserRepository userRepo;
+    private final ActivityLogService activityLogService;
 
     @GetMapping
     public Page<Department> getAll(@RequestParam(required = false) String search, Pageable page) {
@@ -46,7 +48,9 @@ public class AdminDepartmentController {
             User head = userRepo.findById(req.getHeadUserId()).orElseThrow(() -> new RuntimeException("User not found"));
             dept.setHead(head);
         }
-        return deptRepo.save(dept);
+        Department saved = deptRepo.save(dept);
+        activityLogService.log("Department " + saved.getName() + " created", "DEPARTMENT");
+        return saved;
     }
 
     @PutMapping("/{id}")
@@ -58,12 +62,16 @@ public class AdminDepartmentController {
             User head = userRepo.findById(req.getHeadUserId()).orElseThrow(() -> new RuntimeException("User not found"));
             dept.setHead(head);
         }
-        return deptRepo.save(dept);
+        Department saved = deptRepo.save(dept);
+        activityLogService.log("Department " + saved.getName() + " updated", "DEPARTMENT");
+        return saved;
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
+        Department dept = deptRepo.findById(id).orElseThrow(() -> new RuntimeException("Department not found"));
         deptRepo.deleteById(id);
+        activityLogService.log("Department " + dept.getName() + " deleted", "DEPARTMENT");
     }
 
     @lombok.Data

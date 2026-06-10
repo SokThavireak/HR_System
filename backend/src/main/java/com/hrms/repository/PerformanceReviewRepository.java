@@ -8,6 +8,7 @@ import java.util.List;
 
 public interface PerformanceReviewRepository extends JpaRepository<PerformanceReview, Long> {
     Page<PerformanceReview> findByEmployeeIdOrderByCreatedAtDesc(Long employeeId, Pageable pageable);
+    Page<PerformanceReview> findByEmployee_EmployeeIdOrderByCreatedAtDesc(String employeeId, Pageable pageable);
     Page<PerformanceReview> findAllByOrderByCreatedAtDesc(Pageable pageable);
     boolean existsByEmployeeIdAndReviewPeriodStartAndReviewPeriodEnd(Long employeeId, java.time.LocalDate start, java.time.LocalDate end);
 }

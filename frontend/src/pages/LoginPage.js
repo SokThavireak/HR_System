@@ -69,7 +69,14 @@ export default function LoginPage({ onLogin }) {
     try {
       const { data } = await authService.login(email, password);
       localStorage.setItem("hrms_token", data.token);
-      onLogin(data);
+      
+      // Fetch full user details to ensure all profile fields are available immediately
+      try {
+        const userRes = await authService.getCurrentUser();
+        onLogin({ ...data, ...userRes.data });
+      } catch (e) {
+        onLogin(data);
+      }
     } catch (err) {
       setError(err.message || "Invalid credentials. Please try again.");
     } finally {
