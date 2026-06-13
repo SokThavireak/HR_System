@@ -4,7 +4,7 @@ server:
 spring:
   datasource:
 
-    url: jdbc:postgresql://dpg-d8m114rbc2fs73e3t420-a.singapore-postgres.render.com:5432/hrms_6dhs
+    url: jdbc:postgresql://dpg-d8m114rbc2fs73e3t420-a.singapore-postgres.render.com:5432/hrms_6dhs?sslmode=require
     driver-class-name: org.postgresql.Driver
     username: hrms
     password: "m2dSZ1DuhFHZsnqw4rhemsw7ZdjoaIsy"
