@@ -3,10 +3,11 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/hr_system
+
+    url: jdbc:postgresql://dpg-d8m114rbc2fs73e3t420-a:5432/hrms_6dhs
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: "051126"
+    username: hrms
+    password: "m2dSZ1DuhFHZsnqw4rhemsw7ZdjoaIsy"
   jpa:
     hibernate:
       ddl-auto: update
