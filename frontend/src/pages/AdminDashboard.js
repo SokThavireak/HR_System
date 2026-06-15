@@ -2783,13 +2783,13 @@ function PerformanceView({ showToast }) {
       <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
         <h2 className="text-2xl font-bold">Performance Reviews</h2>
       </ScrollReveal>
-      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
+      <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
         <Card>
           <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Icon name="plus" size={16} className="text-primary" /> Submit Review</CardTitle></CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit}>
-              <div className="rounded-xl border border-primary/10 bg-primary/[0.03] p-4">
-                <div className="flex items-center justify-between mb-3">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="rounded-xl border border-primary/10 bg-primary/[0.03] p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-4">
                   <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Icon name="users" size={14} /> Employee(s)</p>
                   {empIds.length < 5 && (
                     <button type="button" onClick={() => { setEmpIds([...empIds, { id: nextIdRef.current, value: "" }]); nextIdRef.current += 1; }} className="flex h-7 items-center gap-1 rounded-lg bg-primary px-2.5 text-[11px] font-semibold text-white hover:bg-primary/90 transition-colors cursor-pointer">
@@ -2797,10 +2797,10 @@ function PerformanceView({ showToast }) {
                     </button>
                   )}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {empIds.map((emp, idx) => (
                     <div key={emp.id} className="flex items-start gap-2">
-                      <span className="w-5 text-center text-[10px] font-bold text-muted-foreground mt-2">{idx + 1}</span>
+                      <span className="w-5 text-center text-[10px] font-bold text-muted-foreground mt-2.5">{idx + 1}</span>
                       <div className="flex-1 flex flex-col">
                         <Input type="text" value={emp.value} onChange={(e) => { const updated = [...empIds]; updated[idx].value = e.target.value; setEmpIds(updated); }} placeholder={`Employee ID ${idx + 1} (e.g. 000002)`} required={idx === 0} />
                         {emp.value && (() => {
@@ -2809,7 +2809,7 @@ function PerformanceView({ showToast }) {
                         })()}
                       </div>
                       {empIds.length > 1 && (
-                        <button type="button" onClick={() => setEmpIds(empIds.filter((e) => e.id !== emp.id))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer">
+                        <button type="button" onClick={() => setEmpIds(empIds.filter((e) => e.id !== emp.id))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer mt-1">
                           <Icon name="x" size={14} />
                         </button>
                       )}
@@ -2817,7 +2817,7 @@ function PerformanceView({ showToast }) {
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[
                   { n: "periodStart", l: "Period Start", type: "date" }, { n: "periodEnd", l: "Period End", type: "date" },
                   { n: "quality", l: "Quality (1-5)", type: "number" }, { n: "productivity", l: "Productivity (1-5)", type: "number" }, { n: "communication", l: "Communication (1-5)", type: "number" },
@@ -2826,13 +2826,17 @@ function PerformanceView({ showToast }) {
                   <div key={n}><label className="mb-1 block text-xs font-medium text-muted-foreground">{l}</label><Input name={n} type={type} min={type === "number" ? 1 : null} max={type === "number" ? 5 : null} required /></div>
                 ))}
               </div>
-              <div className="mt-4"><label className="mb-1 block text-xs font-medium text-muted-foreground">Feedback</label><Textarea name="feedback" rows="3" required /></div>
-              <div className="mt-4"><label className="mb-1 block text-xs font-medium text-muted-foreground">Goals / Areas of Improvement</label><Textarea name="goals" rows="2" /></div>
-              <Button type="submit" className="mt-4" disabled={submitLoading}><Icon name="check" size={14} /> {submitLoading ? "Submitting…" : "Submit Review"}</Button>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Feedback</label><Textarea name="feedback" rows="3" required /></div>
+                <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Goals / Areas of Improvement</label><Textarea name="goals" rows="3" /></div>
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button type="submit" className="w-full sm:w-auto" disabled={submitLoading}><Icon name="check" size={14} className="mr-2" /> {submitLoading ? "Submitting…" : "Submit Review"}</Button>
+              </div>
             </form>
           </CardContent>
         </Card>
-      </ScrollReveal>
+      </StaggeredReveal>
       <ScrollReveal variant="fadeUp" stagger={0.08} delay={0.3}>
         <div className="flex gap-2">
           <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
