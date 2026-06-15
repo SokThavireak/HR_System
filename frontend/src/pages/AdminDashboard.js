@@ -57,7 +57,7 @@ const Icon = ({ name, size = 18 }) => {
 /* ─── Stat Card ─── */
 function StatCard({ bg, value, label, iconName }) {
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: bg }}>
+    <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: bg }}>
       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: bg }}>
         <Icon name={iconName} size={22} />
       </div>
@@ -772,7 +772,7 @@ function DashboardView({ user }) {
       {/* Payroll Breakdown Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#6366f1" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#6366f1" }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#6366f1" }}>
                 <Icon name="dollar" size={18} />
@@ -785,7 +785,7 @@ function DashboardView({ user }) {
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#14b8a6" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#14b8a6" }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#14b8a6" }}>
                 <Icon name="clock" size={18} />
@@ -798,7 +798,7 @@ function DashboardView({ user }) {
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#ec4899" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#ec4899" }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#ec4899" }}>
                 <Icon name="trending" size={18} />
@@ -811,7 +811,7 @@ function DashboardView({ user }) {
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#f97316" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#f97316" }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#f97316" }}>
                 <Icon name="calendar" size={18} />
@@ -1160,25 +1160,25 @@ function UserManagementView({ showToast }) {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
             <p className="text-2xl font-bold">{users.length}</p>
             <p className="mt-1 text-xs font-medium text-muted-foreground">Total Users</p>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#10b981" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#10b981" }}>
             <p className="text-2xl font-bold">{users.filter((u) => u.active).length}</p>
             <p className="mt-1 text-xs font-medium text-muted-foreground">Active</p>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#6b7280" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#6b7280" }}>
             <p className="text-2xl font-bold">{users.filter((u) => !u.active).length}</p>
             <p className="mt-1 text-xs font-medium text-muted-foreground">Inactive</p>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
             <p className="text-2xl font-bold">{departments.length}</p>
             <p className="mt-1 text-xs font-medium text-muted-foreground">Departments</p>
           </div>

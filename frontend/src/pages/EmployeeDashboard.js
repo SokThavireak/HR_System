@@ -430,7 +430,7 @@ const EmployeeDashboard = ({ user }) => {
                     { bg: "#15803d", v: `$${summary?.lastPaySlip ?? 0}`, k: "Last Payslip", icon: "dollar" },
                   ].map((s) => (
                     <StaggerItem key={s.k}>
-                      <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: s.bg }}>
+                      <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: s.bg }}>
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: s.bg }}>
                           <Icon name={s.icon} size={20} />
                         </div>

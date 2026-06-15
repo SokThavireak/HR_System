@@ -469,7 +469,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[...stats, ...leaveStats].map((s) => (
           <StaggerItem key={s.k}>
-            <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: s.bg }}>
+            <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: s.bg }}>
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: s.bg }}><Icon name={s.icon} size={20} /></div>
               <div><p className="text-2xl font-bold leading-none">{s.v}</p><p className="mt-0.5 text-xs font-medium text-muted-foreground">{s.k}</p></div>
             </div>
