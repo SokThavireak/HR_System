@@ -12,8 +12,8 @@ import {
   AdminAttendanceSkeleton, LeaveApprovalsSkeleton, PayrollSkeleton, PerformanceSkeleton,
   AttendancePageSkeleton,
   PageTransition, Modal,
+  StaggeredReveal, ScrollReveal, StaggerItem
 } from "../components/ui";
-import { StaggeredReveal, ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
 import { useToast } from "../hooks/useToast";
 import ToastContainer from "../components/common/ToastContainer";
 
