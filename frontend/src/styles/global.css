@@ -727,6 +727,13 @@
   .login-left-pane {
     padding: 2.5rem !important; /* Decrease padding */
   }
+
+  .login-right-pane {
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    overflow-y: auto !important;
+    justify-content: flex-start !important;
+  }
   
   /* Sidebar / Navigation Tweaks */
   .dashboard-sidebar {
