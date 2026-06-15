@@ -204,7 +204,7 @@ export default function LoginPage({ onLogin }) {
 
       {/* ═══════════ RIGHT: Sign-In Form ═══════════ */}
       <div className="flex flex-1 flex-col items-center justify-center p-6 lg:p-10 login-right-pane" style={{ background: "#efe6dd" }}>
-        <ScrollReveal variant="fadeUp" stagger={0.1} delay={0.05} className="w-full max-w-[400px] my-auto py-8">
+        <ScrollReveal variant="fadeUp" stagger={0.1} delay={0.05} className="w-full max-w-[400px] py-4">
           {/* Mobile Logo */}
           <StaggerItem>
             <div className="mb-8 flex items-center justify-center gap-2 md:hidden">
