@@ -772,12 +772,12 @@ function DashboardView({ user }) {
 
   return (
     <div className="space-y-7">
-      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
+      <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
         <div>
           <h2 className="text-2xl font-bold">Overview</h2>
           <p className="text-sm text-muted-foreground">Welcome back, {user?.firstName || "Admin"}! Here's your dashboard summary.</p>
         </div>
-      </ScrollReveal>
+      </StaggeredReveal>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
@@ -844,7 +844,7 @@ function DashboardView({ user }) {
       </div>
 
       {/* ── Employees by Department ── */}
-      <ScrollReveal variant="fadeUp" stagger={0.08}>
+      <StaggeredReveal variant="fadeUp" stagger={0.08}>
         <Card>
           <CardHeader className="pb-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -905,7 +905,7 @@ function DashboardView({ user }) {
       </ScrollReveal>
 
       {/* ── Weekly Attendance Trend ── */}
-      <ScrollReveal variant="fadeUp" stagger={0.08}>
+      <StaggeredReveal variant="fadeUp" stagger={0.08}>
         <Card>
           <CardHeader className="pb-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -959,7 +959,7 @@ function DashboardView({ user }) {
       </ScrollReveal>
 
       {/* ── Recent Activity ── */}
-      <ScrollReveal variant="fadeUp" stagger={0.1}>
+      <StaggeredReveal variant="fadeUp" stagger={0.1}>
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2"><Icon name="check" size={16} /> Recent Activity</CardTitle>
