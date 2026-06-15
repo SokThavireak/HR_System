@@ -2780,9 +2780,9 @@ function PerformanceView({ showToast }) {
 
   return (
     <div className="space-y-7">
-      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
+      <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
         <h2 className="text-2xl font-bold">Performance Reviews</h2>
-      </ScrollReveal>
+      </StaggeredReveal>
       <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
         <Card>
           <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Icon name="plus" size={16} className="text-primary" /> Submit Review</CardTitle></CardHeader>
@@ -2837,14 +2837,14 @@ function PerformanceView({ showToast }) {
           </CardContent>
         </Card>
       </StaggeredReveal>
-      <ScrollReveal variant="fadeUp" stagger={0.08} delay={0.3}>
+      <StaggeredReveal variant="fadeUp" stagger={0.08} delay={0.3}>
         <div className="flex gap-2">
           <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
           <Button onClick={() => { setPerfOpen(true); setPerfResult(null); setPerfError(""); setPerfEmployeeId(""); }} variant="outline" size="sm"><Icon name="users" size={14} /> Employee Performance</Button>
           <Button onClick={() => { setBulkOpen(true); setBulkResult(null); }} variant="outline" size="sm" disabled={bulkLoading}><Icon name="clock" size={14} /> Bulk Process</Button>
         </div>
       </ScrollReveal>
-      <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.45}>
+      <StaggeredReveal variant="fadeUp" stagger={0.06} delay={0.45}>
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-3 flex-wrap">
