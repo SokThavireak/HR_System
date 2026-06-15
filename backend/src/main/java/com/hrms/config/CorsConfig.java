@@ -9,7 +9,16 @@ public class CorsConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         var config = new CorsConfiguration();
-        config.setAllowedOrigins(java.util.List.of("http://localhost:3000"));
+        String envOrigins = System.getenv("ALLOWED_ORIGINS");
+        if (envOrigins != null && !envOrigins.isEmpty()) {
+            config.setAllowedOrigins(java.util.Arrays.asList(envOrigins.split(",")));
+        } else {
+            config.setAllowedOriginPatterns(java.util.List.of(
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "https://*.onrender.com"
+            ));
+        }
         config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(java.util.List.of("*"));
         config.setAllowCredentials(true);
