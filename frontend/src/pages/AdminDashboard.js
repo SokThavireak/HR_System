@@ -400,26 +400,26 @@ function CategoryView() {
       </ScrollReveal>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-4 sm:gap-5">
         <StaggerItem>
-          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: "#9a0002" }}>
-              <Icon name="folder" size={22} />
+          <div className="flex items-center gap-3 sm:gap-4 rounded-xl border border-gray-200 bg-white px-4 sm:px-6 py-4 sm:py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: "#9a0002" }}>
+              <Icon name="folder" size={20} />
             </div>
-            <div>
-              <p className="text-2xl font-bold leading-none">{departments.length}</p>
-              <p className="mt-1 text-xs font-medium text-muted-foreground">Total Departments</p>
+            <div className="min-w-0">
+              <p className="text-xl sm:text-2xl font-bold leading-none truncate">{departments.length}</p>
+              <p className="mt-1 text-[10px] sm:text-xs font-medium text-muted-foreground truncate">Total Depts</p>
             </div>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: "#3b82f6" }}>
-              <Icon name="briefcase" size={22} />
+          <div className="flex items-center gap-3 sm:gap-4 rounded-xl border border-gray-200 bg-white px-4 sm:px-6 py-4 sm:py-6 shadow-sm" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: "#3b82f6" }}>
+              <Icon name="briefcase" size={20} />
             </div>
-            <div>
-              <p className="text-2xl font-bold leading-none">{positions.length}</p>
-              <p className="mt-1 text-xs font-medium text-muted-foreground">Total Positions</p>
+            <div className="min-w-0">
+              <p className="text-xl sm:text-2xl font-bold leading-none truncate">{positions.length}</p>
+              <p className="mt-1 text-[10px] sm:text-xs font-medium text-muted-foreground truncate">Total Positions</p>
             </div>
           </div>
         </StaggerItem>
@@ -762,7 +762,7 @@ function DashboardView({ user }) {
       </ScrollReveal>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
         <StaggerItem><StatCard bg="#9a0002" value={stats.totalEmployees} label="Total Employees" iconName="users" /></StaggerItem>
         <StaggerItem><StatCard bg="#22c55e" value={`${stats.attendanceRate}%`} label="Attendance Rate" iconName="check" /></StaggerItem>
         <StaggerItem><StatCard bg="#f59e0b" value={stats.pendingLeaves} label="Pending Leaves" iconName="clock" /></StaggerItem>
@@ -770,54 +770,54 @@ function DashboardView({ user }) {
       </div>
 
       {/* Payroll Breakdown Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#6366f1" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-4 sm:px-6 py-4 sm:py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#6366f1" }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#6366f1" }}>
                 <Icon name="dollar" size={18} />
               </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Avg. Salary</p>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">Avg. Salary</p>
                 <p className="text-lg font-bold">${stats.totalEmployees > 0 ? Math.round(stats.totalPayroll / stats.totalEmployees) : 0}</p>
               </div>
             </div>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#14b8a6" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-4 sm:px-6 py-4 sm:py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#14b8a6" }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#14b8a6" }}>
                 <Icon name="clock" size={18} />
               </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">On-time Rate</p>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">On-time Rate</p>
                 <p className="text-lg font-bold">{stats.attendanceRate}%</p>
               </div>
             </div>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#ec4899" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-4 sm:px-6 py-4 sm:py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#ec4899" }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#ec4899" }}>
                 <Icon name="trending" size={18} />
               </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Performance Avg</p>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">Performance Avg</p>
                 <p className="text-lg font-bold">4.2/5</p>
               </div>
             </div>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#f97316" }}>
+          <div className="rounded-xl border border-gray-200 bg-white px-4 sm:px-6 py-4 sm:py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#f97316" }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ background: "#f97316" }}>
                 <Icon name="calendar" size={18} />
               </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Approved Leaves</p>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">Approved Leaves</p>
                 <p className="text-lg font-bold">{Math.max(0, (stats.pendingLeaves || 0) - 1)}</p>
               </div>
             </div>
@@ -829,18 +829,18 @@ function DashboardView({ user }) {
       <ScrollReveal variant="fadeUp" stagger={0.08}>
         <Card>
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <CardTitle className="text-base flex items-center gap-2"><Icon name="folder" size={16} /> Employees by Department</CardTitle>
               <span className="text-xs text-muted-foreground">{stats.totalEmployees} total employees</span>
             </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-              <div className="flex items-center justify-center lg:col-span-2">
-                <DonutChart segments={deptData} size={200} />
+              <div className="flex items-center justify-center lg:col-span-2 py-4 lg:py-0">
+                <DonutChart segments={deptData} size={180} />
               </div>
-              <div className="lg:col-span-3">
-                <Table>
+              <div className="lg:col-span-3 overflow-x-auto">
+                <Table className="min-w-[450px] lg:min-w-full">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Department</TableHead>
