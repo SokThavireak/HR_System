@@ -1186,7 +1186,7 @@ function UserManagementView({ showToast }) {
       </div>
 
       {/* Add / Edit Form */}
-      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
+      <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -1274,7 +1274,7 @@ function UserManagementView({ showToast }) {
             </form>
           </CardContent>
         </Card>
-      </ScrollReveal>
+      </StaggeredReveal>
 
       {/* Search + Filter */}
       <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
