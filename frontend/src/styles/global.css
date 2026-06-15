@@ -813,4 +813,47 @@
   }
 }
 
+/* ═══════════════════════════════════════════
+   Dashboard Layout & Sidebar Responsiveness
+   ═══════════════════════════════════════════ */
+
+.dashboard-sidebar {
+  position: fixed !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 260px !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 50 !important;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transform: translateX(-100%) !important; /* Hidden by default on mobile */
+}
+
+/* On desktop, always show the sidebar */
+@media (min-width: 1024px) {
+  .dashboard-sidebar {
+    transform: translateX(0) !important;
+  }
+}
+
+/* Open sidebar state on mobile */
+.dashboard-sidebar.sidebar-open {
+  transform: translateX(0) !important;
+}
+
+.dashboard-main {
+  margin-left: 0 !important;
+  transition: margin-left 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+}
+
+/* On desktop, offset main content to fit sidebar */
+@media (min-width: 1024px) {
+  .dashboard-main {
+    margin-left: 260px !important;
+  }
+}
+
 

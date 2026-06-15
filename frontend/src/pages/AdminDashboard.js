@@ -135,7 +135,7 @@ export default function AdminDashboard({ user }) {
       {/* ══════════════════════════════════════════
           SIDEBAR — Cherry Cola #9a0002
           ══════════════════════════════════════════ */}
-      <aside className={`z-50 flex h-screen w-[260px] flex-col dashboard-sidebar fixed top-0 bottom-0 transition-all duration-300 lg:left-0 ${sidebarOpen ? "left-0" : "-left-[260px]"}`} style={{ background: "#9a0002" }}>
+      <aside className={`flex flex-col dashboard-sidebar ${sidebarOpen ? "sidebar-open" : ""}`} style={{ background: "#9a0002" }}>
         <div className="flex h-full flex-col relative">
           {/* Close button on mobile */}
           <button 
@@ -243,7 +243,7 @@ export default function AdminDashboard({ user }) {
       {/* ══════════════════════════════════════════
           MAIN — transparent, shows body #efe6dd
           ══════════════════════════════════════════ */}
-      <div className="relative z-10 flex h-screen flex-col dashboard-main ml-0 lg:ml-[260px]" style={{ background: "transparent" }}>
+      <div className="relative z-10 flex h-screen flex-col dashboard-main" style={{ background: "transparent" }}>
 
         {/* Top Bar */}
         <header className="sticky top-0 z-50 flex min-h-24 h-auto py-4 flex-wrap gap-4 shrink-0 items-center justify-between px-6 lg:px-8 border-b border-gray-200/50 backdrop-blur-md transition-transform duration-300 ease-in-out" style={{ background: "transparent", transform: navVisible ? "translateY(0)" : "translateY(-100%)" }}>
