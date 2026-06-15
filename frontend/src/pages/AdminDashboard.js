@@ -57,13 +57,13 @@ const Icon = ({ name, size = 18 }) => {
 /* ─── Stat Card ─── */
 function StatCard({ bg, value, label, iconName }) {
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: bg }}>
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: bg }}>
-        <Icon name={iconName} size={22} />
+    <div className="flex items-center gap-3 sm:gap-4 rounded-xl border border-gray-200 bg-white px-4 sm:px-6 py-4 sm:py-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: bg }}>
+      <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: bg }}>
+        <Icon name={iconName} size={20} />
       </div>
-      <div>
-        <p className="text-2xl font-bold leading-none">{value}</p>
-        <p className="mt-1 text-xs font-medium text-muted-foreground">{label}</p>
+      <div className="min-w-0">
+        <p className="text-lg sm:text-2xl font-bold leading-none truncate">{value}</p>
+        <p className="mt-1 text-[10px] sm:text-xs font-medium text-muted-foreground truncate">{label}</p>
       </div>
     </div>
   );
@@ -890,9 +890,9 @@ function DashboardView({ user }) {
       <ScrollReveal variant="fadeUp" stagger={0.08}>
         <Card>
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <CardTitle className="text-base flex items-center gap-2"><Icon name="chart" size={16} /> Weekly Attendance Trend</CardTitle>
-              <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" /> ≥90% Excellent</span>
                 <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500" /> 60-89% Average</span>
                 <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" /> &lt;60% Low</span>
@@ -910,8 +910,8 @@ function DashboardView({ user }) {
                 { label: "Saturday", val: 45, count: Math.ceil(stats.totalEmployees * 0.45), total: stats.totalEmployees },
                 { label: "Sunday", val: 12, count: Math.ceil(stats.totalEmployees * 0.12), total: stats.totalEmployees },
               ].map((d) => (
-                <div key={d.label} className="flex items-center gap-4">
-                  <span className="w-20 text-right text-xs font-medium text-muted-foreground shrink-0">{d.label}</span>
+                <div key={d.label} className="flex items-center gap-3 sm:gap-4">
+                  <span className="w-16 sm:w-20 text-right text-xs font-medium text-muted-foreground shrink-0">{d.label}</span>
                   <div className="flex-1 h-8 rounded-lg bg-gray-100 overflow-hidden relative">
                     <div
                       className="h-full rounded-lg transition-all duration-1000 ease-out flex items-center justify-end pr-3"
@@ -923,15 +923,17 @@ function DashboardView({ user }) {
                       <span className="text-[11px] font-bold text-white drop-shadow-sm">{d.val}%</span>
                     </div>
                   </div>
-                  <span className="w-24 text-xs text-muted-foreground shrink-0">{d.count}/{d.total} present</span>
+                  <span className="w-12 sm:w-24 text-xs text-muted-foreground shrink-0 truncate">
+                    {d.count}/{d.total} <span className="hidden sm:inline">present</span>
+                  </span>
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2.5">
+            <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg bg-gray-50 px-4 py-2.5 gap-2 sm:gap-0">
               <span className="text-xs font-medium text-muted-foreground">Weekly Average</span>
               <div className="flex items-center gap-3">
                 <span className="text-lg font-bold text-emerald-600">{Math.round((95 + 88 + 92 + 97 + 85 + 45 + 12) / 7)}%</span>
-                <span className="text-[10px] text-muted-foreground">73 of {stats.totalEmployees} avg/day</span>
+                <span className="text-[10px] text-muted-foreground">{Math.round((95 + 88 + 92 + 97 + 85 + 45 + 12) / 7 * stats.totalEmployees / 100)} of {stats.totalEmployees} avg/day</span>
               </div>
             </div>
           </CardContent>
@@ -1158,29 +1160,29 @@ function UserManagementView({ showToast }) {
       </ScrollReveal>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
-            <p className="text-2xl font-bold">{users.length}</p>
-            <p className="mt-1 text-xs font-medium text-muted-foreground">Total Users</p>
+          <div className="rounded-xl border border-gray-200 bg-white px-4 sm:px-5 py-4 sm:py-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#9a0002" }}>
+            <p className="text-xl sm:text-2xl font-bold">{users.length}</p>
+            <p className="mt-1 text-[10px] sm:text-xs font-medium text-muted-foreground">Total Users</p>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#10b981" }}>
-            <p className="text-2xl font-bold">{users.filter((u) => u.active).length}</p>
-            <p className="mt-1 text-xs font-medium text-muted-foreground">Active</p>
+          <div className="rounded-xl border border-gray-200 bg-white px-4 sm:px-5 py-4 sm:py-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#10b981" }}>
+            <p className="text-xl sm:text-2xl font-bold">{users.filter((u) => u.active).length}</p>
+            <p className="mt-1 text-[10px] sm:text-xs font-medium text-muted-foreground">Active</p>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#6b7280" }}>
-            <p className="text-2xl font-bold">{users.filter((u) => !u.active).length}</p>
-            <p className="mt-1 text-xs font-medium text-muted-foreground">Inactive</p>
+          <div className="rounded-xl border border-gray-200 bg-white px-4 sm:px-5 py-4 sm:py-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#6b7280" }}>
+            <p className="text-xl sm:text-2xl font-bold">{users.filter((u) => !u.active).length}</p>
+            <p className="mt-1 text-[10px] sm:text-xs font-medium text-muted-foreground">Inactive</p>
           </div>
         </StaggerItem>
         <StaggerItem>
-          <div className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
-            <p className="text-2xl font-bold">{departments.length}</p>
-            <p className="mt-1 text-xs font-medium text-muted-foreground">Departments</p>
+          <div className="rounded-xl border border-gray-200 bg-white px-4 sm:px-5 py-4 sm:py-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" style={{ borderLeftWidth: "4px", borderLeftColor: "#3b82f6" }}>
+            <p className="text-xl sm:text-2xl font-bold">{departments.length}</p>
+            <p className="mt-1 text-[10px] sm:text-xs font-medium text-muted-foreground">Departments</p>
           </div>
         </StaggerItem>
       </div>
@@ -1202,7 +1204,7 @@ function UserManagementView({ showToast }) {
               </div>
             )}
             <form onSubmit={editUserId !== null ? saveEdit : create} className="space-y-5">
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {TEXT_FIELDS.map(({ k, l, type = "text", required = false }) => (
                   <div key={k}>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">{l}</label>
@@ -1262,12 +1264,12 @@ function UserManagementView({ showToast }) {
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">{editUserId ? "New Password (optional)" : "Temp Password"}</label>
                   <Input type="password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={editUserId ? "Leave blank to keep current" : ""} />
                 </div>
-                <div className="flex items-end gap-2">
-                  <Button type="submit" disabled={form.role !== "ROLE_HR_ADMIN" && departments.length === 0}>
-                    {editUserId !== null ? <><Icon name="check" size={14} /> Save Changes</> : <><Icon name="plus" size={14} /> Create</>}
+                <div className="flex items-end gap-2 pt-2 sm:pt-0">
+                  <Button type="submit" disabled={form.role !== "ROLE_HR_ADMIN" && departments.length === 0} className="flex-1 sm:flex-none">
+                    {editUserId !== null ? <><Icon name="check" size={14} /> Save</> : <><Icon name="plus" size={14} /> Create</>}
                   </Button>
                   {editUserId !== null && (
-                    <Button type="button" variant="outline" onClick={resetForm}>Cancel</Button>
+                    <Button type="button" variant="outline" onClick={resetForm} className="flex-1 sm:flex-none">Cancel</Button>
                   )}
                 </div>
               </div>
@@ -1278,90 +1280,100 @@ function UserManagementView({ showToast }) {
 
       {/* Search + Filter */}
       <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
-        <div className="flex flex-wrap gap-3">
-          <Input placeholder="Search name, email, dept…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
-          <Input placeholder="Filter by Employee ID…" value={filterEmployeeId} onChange={(e) => setFilterEmployeeId(e.target.value)} className="max-w-[220px]" />
-          {filterEmployeeId && (
-            <Button onClick={() => setFilterEmployeeId("")} variant="ghost" size="sm">
-              <Icon name="x" size={12} /> Clear ID
-            </Button>
-          )}
-          <Button onClick={load} variant="outline"><Icon name="search" size={14} /> Search</Button>
-          <Button onClick={load} variant="secondary"><Icon name="refresh" size={14} /> Refresh</Button>
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+          <Input placeholder="Search name, email, dept…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:max-w-sm" />
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Input placeholder="Filter ID…" value={filterEmployeeId} onChange={(e) => setFilterEmployeeId(e.target.value)} className="flex-1 sm:max-w-[150px]" />
+            {filterEmployeeId && (
+              <Button onClick={() => setFilterEmployeeId("")} variant="ghost" size="sm" className="px-2">
+                <Icon name="x" size={12} />
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button onClick={load} variant="outline" className="flex-1 sm:flex-none"><Icon name="search" size={14} /> Search</Button>
+            <Button onClick={load} variant="secondary" className="flex-1 sm:flex-none"><Icon name="refresh" size={14} /> Refresh</Button>
+          </div>
         </div>
       </ScrollReveal>
 
       {/* Table */}
       <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
         <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-base">Employees ({users.filter((u) => !filterEmployeeId || (u.employeeId && u.employeeId.includes(filterEmployeeId))).length})</CardTitle></CardHeader>
-          <CardContent>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Employees ({users.filter((u) => !filterEmployeeId || (u.employeeId && u.employeeId.includes(filterEmployeeId))).length})</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="px-0 sm:px-6">
             {loading ? (
               <p className="py-8 text-center text-muted-foreground">Loading…</p>
             ) : !users.length ? (
               <p className="py-8 text-center text-muted-foreground">No employees found.</p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Employee ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Position</TableHead>
-                    <TableHead>Salary</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Leave Balance</TableHead>
-                    <TableHead className="w-[130px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.filter((u) => {
-                    if (!filterEmployeeId) return true;
-                    return u.employeeId && u.employeeId.includes(filterEmployeeId);
-                  }).sort((a, b) => {
-                    const idA = a.employeeId || "";
-                    const idB = b.employeeId || "";
-                    return idA.localeCompare(idB);
-                  }).map((u) => {
-                    const isAdmin = (u.roles || []).some((r) => r.name === "ROLE_HR_ADMIN");
-                    const saving = editUserId === u.id;
-                    return (
-                      <TableRow key={u.id} style={saving ? { background: "rgba(59,130,246,0.04)" } : undefined}>
-                        <TableCell><span className="font-mono text-xs font-semibold text-primary">{u.employeeId || "—"}</span></TableCell>
-                        <TableCell className="font-medium">{u.firstName} {u.lastName}</TableCell>
-                        <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                        <TableCell>
-                          {u.department ? <Badge variant="outline">{u.department}</Badge> : <span className="text-muted-foreground">—</span>}
-                        </TableCell>
-                        <TableCell>
-                          {u.position ? <Badge variant="outline" style={{ background: "#eff6ff", color: "#3b82f6", borderColor: "#bfdbfe" }}>{u.position}</Badge> : <span className="text-muted-foreground">—</span>}
-                        </TableCell>
-                        <TableCell className="font-semibold">{u.baseSalary ? `$${u.baseSalary}` : "—"}</TableCell>
-                        <TableCell><Badge variant={isAdmin ? "default" : "outline"}>{isAdmin ? "Admin" : "Employee"}</Badge></TableCell>
-                        <TableCell><Badge variant={u.active ? "success" : "destructive"}>{u.active ? "Active" : "Inactive"}</Badge></TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-0.5 text-[10px] leading-tight">
-                            <span className="inline-flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" /> IL: {u.ilLeaveEntitlement != null ? `${u.ilLeaveEntitlement - (u.ilLeaveUsed || 0)}/${u.ilLeaveEntitlement}` : "—"}</span>
-                            <span className="inline-flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" /> Sick: {u.sickLeaveEntitlement != null ? `${u.sickLeaveEntitlement - (u.sickLeaveUsed || 0)}/${u.sickLeaveEntitlement}` : "—"}</span>
-                            <span className="inline-flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-purple-500" /> Special: {u.specialLeaveEntitlement != null ? `${u.specialLeaveEntitlement - (u.specialLeaveUsed || 0)}/${u.specialLeaveEntitlement}` : "—"}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <button title="View Profile" onClick={() => setViewUserDetail(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"><Icon name="eye" size={14} /></button>
-                            <button title="Edit" onClick={() => startEdit(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
-                            {!u.active ? <button title="Activate" onClick={() => activate(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"><Icon name="check" size={14} /></button> : <button title="Deactivate" onClick={() => requestDeactivate(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors cursor-pointer"><Icon name="x" size={14} /></button>}
-                            <button title="Reset Pwd" onClick={() => requestReset(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer"><Icon name="refresh" size={14} /></button>
-                            <button title="Delete" onClick={() => requestDeactivate(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto">
+                <Table className="min-w-[1000px] lg:min-w-full">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Employee ID</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Salary</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Leave Balance</TableHead>
+                      <TableHead className="w-[130px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.filter((u) => {
+                      if (!filterEmployeeId) return true;
+                      return u.employeeId && u.employeeId.includes(filterEmployeeId);
+                    }).sort((a, b) => {
+                      const idA = a.employeeId || "";
+                      const idB = b.employeeId || "";
+                      return idA.localeCompare(idB);
+                    }).map((u) => {
+                      const isAdmin = (u.roles || []).some((r) => r.name === "ROLE_HR_ADMIN");
+                      const saving = editUserId === u.id;
+                      return (
+                        <TableRow key={u.id} style={saving ? { background: "rgba(59,130,246,0.04)" } : undefined}>
+                          <TableCell><span className="font-mono text-xs font-semibold text-primary">{u.employeeId || "—"}</span></TableCell>
+                          <TableCell className="font-medium whitespace-nowrap">{u.firstName} {u.lastName}</TableCell>
+                          <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                          <TableCell>
+                            {u.department ? <Badge variant="outline">{u.department}</Badge> : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell>
+                            {u.position ? <Badge variant="outline" style={{ background: "#eff6ff", color: "#3b82f6", borderColor: "#bfdbfe" }}>{u.position}</Badge> : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className="font-semibold">{u.baseSalary ? `$${u.baseSalary}` : "—"}</TableCell>
+                          <TableCell><Badge variant={isAdmin ? "default" : "outline"}>{isAdmin ? "Admin" : "Employee"}</Badge></TableCell>
+                          <TableCell><Badge variant={u.active ? "success" : "destructive"}>{u.active ? "Active" : "Inactive"}</Badge></TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-0.5 text-[10px] leading-tight min-w-[120px]">
+                              <span className="inline-flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" /> IL: {u.ilLeaveEntitlement != null ? `${u.ilLeaveEntitlement - (u.ilLeaveUsed || 0)}/${u.ilLeaveEntitlement}` : "—"}</span>
+                              <span className="inline-flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" /> Sick: {u.sickLeaveEntitlement != null ? `${u.sickLeaveEntitlement - (u.sickLeaveUsed || 0)}/${u.sickLeaveEntitlement}` : "—"}</span>
+                              <span className="inline-flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-purple-500" /> Special: {u.specialLeaveEntitlement != null ? `${u.specialLeaveEntitlement - (u.specialLeaveUsed || 0)}/${u.specialLeaveEntitlement}` : "—"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <button title="View Profile" onClick={() => setViewUserDetail(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"><Icon name="eye" size={14} /></button>
+                              <button title="Edit" onClick={() => startEdit(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
+                              {!u.active ? <button title="Activate" onClick={() => activate(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"><Icon name="check" size={14} /></button> : <button title="Deactivate" onClick={() => requestDeactivate(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors cursor-pointer"><Icon name="x" size={14} /></button>}
+                              <button title="Reset Pwd" onClick={() => requestReset(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer"><Icon name="refresh" size={14} /></button>
+                              <button title="Delete" onClick={() => requestDeactivate(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

@@ -9,3 +9,4 @@ backend/.mvn/
 .claude/
 .vscode/
 *.class
+CLAUDE.md
