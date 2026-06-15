@@ -392,12 +392,12 @@ function CategoryView() {
 
   return (
     <div className="space-y-7">
-      <ScrollReveal variant="fadeUp" stagger={0}>
+      <StaggeredReveal variant="fadeUp" stagger={0}>
         <div>
           <h2 className="text-2xl font-bold">Department & Position</h2>
           <p className="text-sm text-muted-foreground">Manage departments and job positions across the organization.</p>
         </div>
-      </ScrollReveal>
+      </StaggeredReveal>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:gap-5">
@@ -956,7 +956,7 @@ function DashboardView({ user }) {
             </div>
           </CardContent>
         </Card>
-      </ScrollReveal>
+      </StaggeredReveal>
 
       {/* ── Recent Activity ── */}
       <StaggeredReveal variant="fadeUp" stagger={0.1}>
@@ -981,7 +981,7 @@ function DashboardView({ user }) {
             </div>
           </CardContent>
         </Card>
-      </ScrollReveal>
+      </StaggeredReveal>
 
       <Modal open={viewAllOpen} onClose={() => setViewAllOpen(false)} title="All Activity History" maxWidthClass="max-w-3xl">
         <div className="space-y-4 pr-2">
@@ -1170,12 +1170,12 @@ function UserManagementView({ showToast }) {
 
   return (
     <div className="space-y-7">
-      <ScrollReveal variant="fadeUp" stagger={0} amount={0.1}>
+      <StaggeredReveal variant="fadeUp" stagger={0} amount={0.1}>
         <div>
           <h2 className="text-2xl font-bold">User Management</h2>
           <p className="text-sm text-muted-foreground">Manage employees, assign departments & positions.</p>
         </div>
-      </ScrollReveal>
+      </StaggeredReveal>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
@@ -1297,7 +1297,7 @@ function UserManagementView({ showToast }) {
       </StaggeredReveal>
 
       {/* Search + Filter */}
-      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
+      <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
         <div className="flex flex-col sm:flex-row flex-wrap gap-3">
           <Input placeholder="Search name, email, dept…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:max-w-sm" />
           <div className="flex gap-2 w-full sm:w-auto">
@@ -1313,10 +1313,10 @@ function UserManagementView({ showToast }) {
             <Button onClick={load} variant="secondary" className="flex-1 sm:flex-none"><Icon name="refresh" size={14} /> Refresh</Button>
           </div>
         </div>
-      </ScrollReveal>
+      </StaggeredReveal>
 
       {/* Table */}
-      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
+      <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -1395,7 +1395,7 @@ function UserManagementView({ showToast }) {
             )}
           </CardContent>
         </Card>
-      </ScrollReveal>
+      </StaggeredReveal>
 
       {/* VIEW USER PROFILE MODAL */}
       <Modal
@@ -1789,12 +1789,12 @@ function LeaveApprovalsView({ showToast }) {
 
   return (
     <div className="space-y-7">
-      <ScrollReveal variant="fadeUp" stagger={0} delay={0}>
+      <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Leave Management</h2>
           <Button onClick={() => { loadPending(); loadHistory(); }} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
         </div>
-      </ScrollReveal>
+      </StaggeredReveal>
 
       {/* Tabs */}
       <div className="relative flex gap-1 rounded-xl bg-gray-100 p-1">
@@ -1827,7 +1827,7 @@ function LeaveApprovalsView({ showToast }) {
       {/* ═══ PENDING TAB ═══ */}
       {activeTab === "pending" && (
         <div className="space-y-6 tab-card-stagger animate-tab-slide-left" key="pending-tab">
-          <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
+          <StaggeredReveal variant="fadeUp" stagger={0.06} delay={0.15}>
             <Card>
               <CardHeader className="pb-3"><CardTitle className="text-base">Pending Requests ({leaves.length})</CardTitle></CardHeader>
               <CardContent>
@@ -1865,14 +1865,14 @@ function LeaveApprovalsView({ showToast }) {
                 )}
               </CardContent>
             </Card>
-          </ScrollReveal>
+          </StaggeredReveal>
         </div>
       )}
 
       {/* ═══ HISTORY TAB ═══ */}
       {activeTab === "history" && (
         <div className="space-y-6 tab-card-stagger animate-tab-slide-right" key="history-tab">
-          <ScrollReveal variant="fadeUp" stagger={0.06} delay={0.15}>
+          <StaggeredReveal variant="fadeUp" stagger={0.06} delay={0.15}>
             <Card>
               <CardHeader className="pb-3"><CardTitle className="text-base">Leave History ({historyLeaves.length})</CardTitle></CardHeader>
               <CardContent>
@@ -1912,7 +1912,7 @@ function LeaveApprovalsView({ showToast }) {
                 )}
               </CardContent>
             </Card>
-          </ScrollReveal>
+          </StaggeredReveal>
         </div>
       )}
 
@@ -2843,7 +2843,7 @@ function PerformanceView({ showToast }) {
           <Button onClick={() => { setPerfOpen(true); setPerfResult(null); setPerfError(""); setPerfEmployeeId(""); }} variant="outline" size="sm"><Icon name="users" size={14} /> Employee Performance</Button>
           <Button onClick={() => { setBulkOpen(true); setBulkResult(null); }} variant="outline" size="sm" disabled={bulkLoading}><Icon name="clock" size={14} /> Bulk Process</Button>
         </div>
-      </ScrollReveal>
+      </StaggeredReveal>
       <StaggeredReveal variant="fadeUp" stagger={0.06} delay={0.45}>
         <Card>
           <CardHeader className="pb-3">
@@ -2894,7 +2894,7 @@ function PerformanceView({ showToast }) {
             )}
           </CardContent>
         </Card>
-      </ScrollReveal>
+      </StaggeredReveal>
 
       {/* Employee Performance Modal */}
       <Modal
