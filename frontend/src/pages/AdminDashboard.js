@@ -13,7 +13,7 @@ import {
   AttendancePageSkeleton,
   PageTransition, Modal,
 } from "../components/ui";
-import { ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
+import { StaggeredReveal, ScrollReveal, StaggerItem } from "../components/ui/staggered-reveal";
 import { useToast } from "../hooks/useToast";
 import ToastContainer from "../components/common/ToastContainer";
 
@@ -729,6 +729,24 @@ function DashboardView({ user }) {
   };
 
   if (loading) return <AdminDashboardSkeleton />;
+
+  if (!stats) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-2xl border border-dashed border-gray-300">
+        <div className="h-16 w-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+          <Icon name="alert" size={32} />
+        </div>
+        <h3 className="text-lg font-bold text-gray-900">Failed to load statistics</h3>
+        <p className="text-sm text-gray-500 max-w-xs text-center mt-1 mb-6">
+          There was an error connecting to the server. Please try refreshing the page.
+        </p>
+        <Button onClick={() => window.location.reload()} className="bg-[#9a0002] hover:bg-[#7a0002] text-white">
+          <Icon name="refresh" size={16} className="mr-2" />
+          Retry Now
+        </Button>
+      </div>
+    );
+  }
 
   const maxCardVal = stats
     ? Math.max(stats.totalEmployees, stats.pendingLeaves, stats.totalPayroll / 1000, parseFloat(stats.attendanceRate) / 10)
