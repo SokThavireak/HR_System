@@ -133,7 +133,7 @@ export default function AdminDashboard({ user }) {
       {/* ══════════════════════════════════════════
           SIDEBAR — Cherry Cola #9a0002
           ══════════════════════════════════════════ */}
-      <aside className="z-50 flex h-screen w-[260px] flex-col" style={{ position: "fixed", left: 0, top: 0, background: "#9a0002" }}>
+      <aside className="z-50 flex h-screen w-[260px] flex-col dashboard-sidebar" style={{ position: "fixed", left: 0, top: 0, background: "#9a0002" }}>
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="px-3 pb-8 pt-8 animate-nav-item-fade" style={{ animationDelay: '0.1s' }}>
@@ -225,7 +225,7 @@ export default function AdminDashboard({ user }) {
       {/* ══════════════════════════════════════════
           MAIN — transparent, shows body #efe6dd
           ══════════════════════════════════════════ */}
-      <div className="relative z-10 flex h-screen flex-col" style={{ marginLeft: 260, background: "transparent" }}>
+      <div className="relative z-10 flex h-screen flex-col dashboard-main" style={{ marginLeft: 260, background: "transparent" }}>
 
         {/* Top Bar */}
         <header className="sticky top-0 z-50 flex h-32 shrink-0 items-center justify-between px-8 border-b border-gray-200/50 backdrop-blur-md transition-transform duration-300 ease-in-out" style={{ background: "transparent", transform: navVisible ? "translateY(0)" : "translateY(-100%)" }}>

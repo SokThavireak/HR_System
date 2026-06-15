@@ -704,3 +704,105 @@
   align-items: center !important;
 }
 
+/* ═══════════════════════════════════════════
+   Responsiveness for Horizontal & Small Heights
+   ═══════════════════════════════════════════ */
+
+/* Scrollbar-none utility to cleanly hide scrollbars */
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+}
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* 1. Height-based media query for short screens (e.g. height < 750px or mobile landscape) */
+@media (max-height: 750px) {
+  /* Login Page Tweaks */
+  .testimonial-section {
+    display: none !important; /* Hide testimonials to fit logo and text */
+  }
+  
+  .login-left-pane {
+    padding: 2.5rem !important; /* Decrease padding */
+  }
+  
+  /* Sidebar / Navigation Tweaks */
+  .dashboard-sidebar {
+    height: 100vh !important;
+    height: 100dvh !important;
+  }
+  
+  .dashboard-sidebar > div {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Shrink sidebar padding to fit more elements */
+  .dashboard-sidebar nav button {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    min-height: 38px !important;
+  }
+  
+  .dashboard-sidebar div[class*="pt-8"] {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+}
+
+/* 2. Extra short screens (e.g., height < 600px) */
+@media (max-height: 600px) {
+  /* Hide the login left hero panel entirely on very short heights (like mobile landscape) */
+  .login-left-pane {
+    display: none !important;
+  }
+  
+  .login-right-pane {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+  
+  /* Ensure form margins are tight */
+  .login-right-pane form {
+    margin-top: 1rem !important;
+  }
+  
+  .login-right-pane div[class*="mb-8"] {
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Dashboard layout main content scrolling */
+  .dashboard-main {
+    height: 100vh !important;
+    height: 100dvh !important;
+  }
+}
+
+/* 3. Standard mobile landscape (width > height, width: 640px-950px, height: 320px-500px) */
+@media (max-width: 950px) and (orientation: landscape) {
+  .login-left-pane {
+    display: none !important;
+  }
+  
+  .login-right-pane {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Adjust dashboard layout for narrow landscape */
+  .dashboard-sidebar {
+    width: 200px !important;
+  }
+  
+  .dashboard-main {
+    margin-left: 200px !important;
+    style-margin-left: 200px !important;
+  }
+}
+
+

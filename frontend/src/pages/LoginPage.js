@@ -98,9 +98,9 @@ export default function LoginPage({ onLogin }) {
   const t = TESTIMONIALS[currentTestimonial];
 
   return (
-    <div className="flex h-[100dvh] w-[100dvw] overflow-hidden">
+    <div className="flex h-[100dvh] w-[100dvw] overflow-hidden login-page-container">
       {/* ═══════════ LEFT: Hero / Shader Background ═══════════ */}
-      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden md:flex">
+      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden md:flex login-left-pane">
         <ShaderAnimation theme="dark" />
         <div className="absolute inset-0 bg-[#9a0002]/80 pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-br from-red-900/30 via-transparent to-red-950/50 pointer-events-none" />
@@ -158,7 +158,7 @@ export default function LoginPage({ onLogin }) {
           </div>
 
           {/* Testimonial Card */}
-          <div className="relative z-10">
+          <div className="relative z-10 testimonial-section">
             <StaggerItem>
               <div key={t.id} className="max-w-md rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm animate-testimonial">
                 <div className="mb-3 flex items-center gap-1">
@@ -203,8 +203,8 @@ export default function LoginPage({ onLogin }) {
       </div>
 
       {/* ═══════════ RIGHT: Sign-In Form ═══════════ */}
-      <div className="flex flex-1 flex-col items-center justify-center p-6 lg:p-10" style={{ background: "#efe6dd" }}>
-        <ScrollReveal variant="fadeUp" stagger={0.1} delay={0.05} className="w-full max-w-[400px]">
+      <div className="flex flex-1 flex-col items-center justify-center p-6 lg:p-10 login-right-pane" style={{ background: "#efe6dd" }}>
+        <ScrollReveal variant="fadeUp" stagger={0.1} delay={0.05} className="w-full max-w-[400px] my-auto py-8">
           {/* Mobile Logo */}
           <StaggerItem>
             <div className="mb-8 flex items-center justify-center gap-2 md:hidden">
