@@ -811,16 +811,6 @@
     min-height: 100dvh !important;
     overflow-y: auto !important;
   }
-  
-  /* Adjust dashboard layout for narrow landscape */
-  .dashboard-sidebar {
-    width: 200px !important;
-  }
-  
-  .dashboard-main {
-    margin-left: 200px !important;
-    style-margin-left: 200px !important;
-  }
 }
 
 
