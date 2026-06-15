@@ -1148,8 +1148,6 @@ function UserManagementView({ showToast }) {
     { k: "hireDate", l: "Hire Date", type: "date", required: false },
   ];
 
-  if (loading) return <AdminTableSkeleton />;
-
   return (
     <div className="space-y-7">
       <ScrollReveal variant="fadeUp" stagger={0}>
