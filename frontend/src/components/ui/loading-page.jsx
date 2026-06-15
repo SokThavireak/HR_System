@@ -40,9 +40,9 @@ export default function LoadingPage() {
         {/* Typing text */}
         <div className="flex flex-col items-center gap-2">
           <h1
+            className="welcome-title text-center whitespace-nowrap"
             style={{
               fontFamily: "'Dancing Script', 'Brush Script MT', cursive",
-              fontSize: "8rem",
               fontWeight: 700,
               letterSpacing: "0.06em",
               background: "linear-gradient(135deg, #efe6dd 0%, #ffffff 40%, #efe6dd 80%)",
@@ -62,9 +62,9 @@ export default function LoadingPage() {
           </h1>
 
           <h2
+            className="system-title text-center whitespace-nowrap"
             style={{
               fontFamily: "'Dancing Script', 'Brush Script MT', cursive",
-              fontSize: "6.4rem",
               fontWeight: 600,
               letterSpacing: "0.06em",
               background: "linear-gradient(135deg, #efe6dd 0%, #ffffff 40%, #efe6dd 80%)",
@@ -101,6 +101,36 @@ export default function LoadingPage() {
 
       <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
       <style>{`
+        .welcome-title {
+          font-size: 8rem;
+        }
+        .system-title {
+          font-size: 6.4rem;
+        }
+        @media (max-width: 1024px) {
+          .welcome-title {
+            font-size: 5.5rem;
+          }
+          .system-title {
+            font-size: 4.4rem;
+          }
+        }
+        @media (max-width: 768px) {
+          .welcome-title {
+            font-size: 4.5rem;
+          }
+          .system-title {
+            font-size: 3.6rem;
+          }
+        }
+        @media (max-width: 480px) {
+          .welcome-title {
+            font-size: 3.2rem;
+          }
+          .system-title {
+            font-size: 2.5rem;
+          }
+        }
         @keyframes shimmerText {
           0%   { background-position: -200% center; }
           100% { background-position: 200% center; }

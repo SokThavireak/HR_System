@@ -49,6 +49,7 @@ const Icon = ({ name, size = 18 }) => {
     folder: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" /></svg>,
     briefcase: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" /></svg>,
     alert: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
+    menu: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>,
   };
   return icons[name] || null;
 };
@@ -86,6 +87,7 @@ export default function AdminDashboard({ user }) {
   const navItemRefs = React.useRef([]);
   const navRef = React.useRef(null);
   const { toasts, showToast, removeToast } = useToast();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Calculate sliding indicator position & height to match active nav item exactly
   const updateActiveNavY = React.useCallback(() => {
@@ -133,8 +135,16 @@ export default function AdminDashboard({ user }) {
       {/* ══════════════════════════════════════════
           SIDEBAR — Cherry Cola #9a0002
           ══════════════════════════════════════════ */}
-      <aside className="z-50 flex h-screen w-[260px] flex-col dashboard-sidebar" style={{ position: "fixed", left: 0, top: 0, background: "#9a0002" }}>
-        <div className="flex h-full flex-col">
+      <aside className={`z-50 flex h-screen w-[260px] flex-col dashboard-sidebar fixed top-0 bottom-0 transition-all duration-300 lg:left-0 ${sidebarOpen ? "left-0" : "-left-[260px]"}`} style={{ background: "#9a0002" }}>
+        <div className="flex h-full flex-col relative">
+          {/* Close button on mobile */}
+          <button 
+            onClick={() => setSidebarOpen(false)} 
+            className="lg:hidden absolute top-4 right-4 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer z-50"
+            title="Close sidebar"
+          >
+            <Icon name="x" size={16} />
+          </button>
           {/* Logo */}
           <div className="px-3 pb-8 pt-8 animate-nav-item-fade" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center gap-3 rounded-xl px-3 py-3">
@@ -176,7 +186,7 @@ export default function AdminDashboard({ user }) {
                 <button
                   key={item.key}
                   ref={el => { navItemRefs.current[idx] = el; }}
-                  onClick={() => { updateActiveNavY(); setSection(item.key); }}
+                  onClick={() => { updateActiveNavY(); setSection(item.key); setSidebarOpen(false); }}
                   className={`animate-sidebar-item relative z-10 flex w-full items-center gap-3 rounded-xl px-3 text-sm font-medium cursor-pointer transition-all duration-300 ${isActive
                     ? "text-white font-bold"
                     : "text-white/60 hover:text-white"
@@ -222,22 +232,38 @@ export default function AdminDashboard({ user }) {
         </div>
       </aside>
 
+      {/* Sidebar mobile backdrop overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden" 
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* ══════════════════════════════════════════
           MAIN — transparent, shows body #efe6dd
           ══════════════════════════════════════════ */}
-      <div className="relative z-10 flex h-screen flex-col dashboard-main" style={{ marginLeft: 260, background: "transparent" }}>
+      <div className="relative z-10 flex h-screen flex-col dashboard-main ml-0 lg:ml-[260px]" style={{ background: "transparent" }}>
 
         {/* Top Bar */}
-        <header className="sticky top-0 z-50 flex h-32 shrink-0 items-center justify-between px-8 border-b border-gray-200/50 backdrop-blur-md transition-transform duration-300 ease-in-out" style={{ background: "transparent", transform: navVisible ? "translateY(0)" : "translateY(-100%)" }}>
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "rgba(154, 0, 2, 0.1)" }}>
-              <Icon name={SIDEBAR_ITEMS.find((s) => s.key === section)?.icon || "home"} size={24} />
+        <header className="sticky top-0 z-50 flex min-h-24 h-auto py-4 flex-wrap gap-4 shrink-0 items-center justify-between px-6 lg:px-8 border-b border-gray-200/50 backdrop-blur-md transition-transform duration-300 ease-in-out" style={{ background: "transparent", transform: navVisible ? "translateY(0)" : "translateY(-100%)" }}>
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+            {/* Hamburger menu button on mobile/tablet */}
+            <button 
+              onClick={() => setSidebarOpen(true)} 
+              className="lg:hidden p-2 rounded-lg bg-gray-200/50 hover:bg-gray-200 text-foreground cursor-pointer shrink-0"
+              title="Open sidebar"
+            >
+              <Icon name="menu" size={20} />
+            </button>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: "rgba(154, 0, 2, 0.1)" }}>
+              <Icon name={SIDEBAR_ITEMS.find((s) => s.key === section)?.icon || "home"} size={22} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground animate-header-title">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground animate-header-title">
                 {SIDEBAR_ITEMS.find((s) => s.key === section)?.label || "Dashboard"}
               </h1>
-              <p className="text-sm text-muted-foreground">Admin Portal</p>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-none">Admin Portal</p>
             </div>
           </div>
           <div className="flex items-center gap-3 animate-header-right">

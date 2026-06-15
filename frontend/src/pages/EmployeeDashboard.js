@@ -37,6 +37,8 @@ const Icon = ({ name, size = 18 }) => {
     chart: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
     refresh: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>,
     phone: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>,
+    menu: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>,
+    x: <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
   };
   return icons[name] || null;
 };
@@ -85,6 +87,7 @@ const EmployeeDashboard = ({ user }) => {
   const [profileForm, setProfileForm] = useState({});
   const [profileLoading, setProfileLoading] = useState(false);
   const { toasts, showToast, removeToast } = useToast();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
 
@@ -247,8 +250,16 @@ const EmployeeDashboard = ({ user }) => {
       {/* ══════════════════════════════════════════
           SIDEBAR — Cherry Cola #9a0002
           ══════════════════════════════════════════ */}
-      <aside className="z-50 flex h-screen w-[260px] flex-col dashboard-sidebar" style={{ position: "fixed", left: 0, top: 0, background: "#9a0002" }}>
-        <div className="flex h-full flex-col">
+      <aside className={`z-50 flex h-screen w-[260px] flex-col dashboard-sidebar fixed top-0 bottom-0 transition-all duration-300 lg:left-0 ${sidebarOpen ? "left-0" : "-left-[260px]"}`} style={{ background: "#9a0002" }}>
+        <div className="flex h-full flex-col relative">
+          {/* Close button on mobile */}
+          <button 
+            onClick={() => setSidebarOpen(false)} 
+            className="lg:hidden absolute top-4 right-4 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer z-50"
+            title="Close sidebar"
+          >
+            <Icon name="x" size={16} />
+          </button>
           {/* Logo */}
           <div className="px-3 pb-8 pt-8 animate-nav-item-fade" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center gap-3 rounded-xl px-3 py-3">
@@ -281,7 +292,7 @@ const EmployeeDashboard = ({ user }) => {
                 <button
                   key={item.key}
                   ref={el => { navItemRefs.current[idx] = el; }}
-                  onClick={() => { updateActiveNavY(); setSection(item.key); }}
+                  onClick={() => { updateActiveNavY(); setSection(item.key); setSidebarOpen(false); }}
                   className={`animate-sidebar-item relative z-10 flex w-full items-center gap-3 rounded-xl px-3 text-sm font-medium cursor-pointer transition-all duration-300 ${isActive ? "text-white font-bold" : "text-white/60 hover:text-white"}`}
                   style={{ paddingTop: "10px", paddingBottom: "10px", minHeight: "44px", animationDelay: `${0.15 + idx * 0.06}s` }}
                   onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
@@ -313,22 +324,38 @@ const EmployeeDashboard = ({ user }) => {
         </div>
       </aside>
 
+      {/* Sidebar mobile backdrop overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden" 
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* ══════════════════════════════════════════
           MAIN — transparent, shows body #efe6dd
           ══════════════════════════════════════════ */}
-      <div className="relative z-10 ml-[260px] flex flex-1 flex-col dashboard-main" style={{ background: "transparent" }}>
+      <div className="relative z-10 ml-0 lg:ml-[260px] flex flex-1 flex-col dashboard-main" style={{ background: "transparent" }}>
 
         {/* Top Bar */}
-        <header className="sticky top-0 z-50 flex h-32 items-center justify-between px-8 border-b border-gray-200/50 backdrop-blur-md transition-transform duration-300 ease-in-out" style={{ background: "transparent", transform: navVisible ? "translateY(0)" : "translateY(-100%)" }}>
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "rgba(154, 0, 2, 0.1)" }}>
-              <Icon name={SIDEBAR_ITEMS.find((s) => s.key === section)?.icon || "home"} size={24} />
+        <header className="sticky top-0 z-50 flex min-h-24 h-auto py-4 flex-wrap gap-4 shrink-0 items-center justify-between px-6 lg:px-8 border-b border-gray-200/50 backdrop-blur-md transition-transform duration-300 ease-in-out" style={{ background: "transparent", transform: navVisible ? "translateY(0)" : "translateY(-100%)" }}>
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+            {/* Hamburger menu button on mobile/tablet */}
+            <button 
+              onClick={() => setSidebarOpen(true)} 
+              className="lg:hidden p-2 rounded-lg bg-gray-200/50 hover:bg-gray-200 text-foreground cursor-pointer shrink-0"
+              title="Open sidebar"
+            >
+              <Icon name="menu" size={20} />
+            </button>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: "rgba(154, 0, 2, 0.1)" }}>
+              <Icon name={SIDEBAR_ITEMS.find((s) => s.key === section)?.icon || "home"} size={22} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground animate-header-title">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground animate-header-title">
                 {SIDEBAR_ITEMS.find((s) => s.key === section)?.label || "Dashboard"}
               </h1>
-              <p className="text-sm text-muted-foreground">Employee Portal</p>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-none">Employee Portal</p>
             </div>
           </div>
           <div className="flex items-center gap-3 animate-header-right">
