@@ -9,6 +9,7 @@
     "install-all": "npm install --prefix frontend",
     "backend": "cd backend && mvn spring-boot:run",
     "frontend": "cd frontend && npm start",
+    "build": "npm run build --prefix frontend",
     "start": "concurrently \"npm run backend\" \"npm run frontend\""
   },
   "devDependencies": {

@@ -124,6 +124,15 @@ export default function AdminDashboard({ user }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, [lastScrollY]);
 
+  // Scroll to top when section changes (prevent retaining scroll position between pages)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const mainEl = document.querySelector("main");
+    if (mainEl) {
+      mainEl.scrollTo(0, 0);
+    }
+  }, [section]);
+
   return (
     <div className="min-h-screen" style={{ background: "#efe6dd" }}>
 
