@@ -902,7 +902,7 @@ function DashboardView({ user }) {
             </div>
           </CardContent>
         </Card>
-      </ScrollReveal>
+      </StaggeredReveal>
 
       {/* ── Weekly Attendance Trend ── */}
       <StaggeredReveal variant="fadeUp" stagger={0.08}>
