@@ -10,3 +10,4 @@ backend/.mvn/
 .vscode/
 *.class
 CLAUDE.md
+**/GEMINI.md
