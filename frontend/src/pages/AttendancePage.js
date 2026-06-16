@@ -116,7 +116,7 @@ function buildSeedData() {
 /* ═══════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════ */
-const AttendancePage = ({ showSidebar = true, standalone = false, admin = false, user = null }) => {
+const AttendancePage = ({ showSidebar = true, standalone = false, admin = false, user = null, isReadOnly = false }) => {
   const { toasts, showToast, removeToast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -823,7 +823,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
                       <TableHead style={{ minWidth: "120px" }}>Clock Out</TableHead>
                       <TableHead>Worked (hrs)</TableHead>
                       <TableHead>Status</TableHead>
-                      {!isEmployee && <TableHead className="w-[120px]">Actions</TableHead>}
+                      {!isEmployee && !isReadOnly && <TableHead className="w-[120px]">Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -842,7 +842,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
                         </TableCell>
                         <TableCell className="font-semibold">{r.hoursWorked != null ? r.hoursWorked : "—"}</TableCell>
                         <TableCell><StatusBadge status={r.status} /></TableCell>
-                        {!isEmployee && (
+                        {!isEmployee && !isReadOnly && (
                           <TableCell>
                             <div className="flex gap-1">
                               <button title="Edit" onClick={() => startEdit(r)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>

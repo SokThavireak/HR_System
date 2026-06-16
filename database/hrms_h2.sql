@@ -24,7 +24,8 @@
 /* ── ROLES ───────────────────────────────────────────────────── */
 INSERT INTO roles (name, description) VALUES
     ('ROLE_HR_ADMIN', 'HR Administrator'),
-    ('ROLE_EMPLOYEE', 'Employee');
+    ('ROLE_EMPLOYEE', 'Employee'),
+    ('ROLE_HR_VIEWER', 'HR Viewer');
 
 /* ── USERS ───────────────────────────────────────────────────── */
 -- Passwords are BCrypt-encoded 'admin123', 'john123', 'jane123'

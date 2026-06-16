@@ -34,11 +34,18 @@ public class DataSeeder {
     private final LeaveRequestRepository leaveRepo;
     private final PayrollRepository payrollRepo;
     private final PerformanceReviewRepository reviewRepo;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Bean
     @Order(1)
     CommandLineRunner seedDatabase() {
         return args -> {
+            try {
+                jdbcTemplate.execute("ALTER TABLE roles DROP CONSTRAINT IF EXISTS roles_name_check");
+            } catch (Exception e) {
+                System.out.println("[DataSeeder] Error dropping roles_name_check: " + e.getMessage());
+            }
+
             // Init employeeId counter from existing data
             String maxId = userRepo.findMaxEmployeeId();
             long maxVal = 0;
@@ -69,6 +76,10 @@ public class DataSeeder {
                 Role r = new Role(RoleName.ROLE_HR_ADMIN, "HR Administrator with full access");
                 return roleRepo.save(r);
             });
+            Role viewerRole = roleRepo.findByName(RoleName.ROLE_HR_VIEWER).orElseGet(() -> {
+                Role r = new Role(RoleName.ROLE_HR_VIEWER, "HR Viewer with read-only access");
+                return roleRepo.save(r);
+            });
             System.out.println("[DataSeeder] Roles: " + roleRepo.count());
 
             // ── 0.5. Seed Admin User (idempotent) ──
@@ -94,6 +105,30 @@ public class DataSeeder {
                     .updatedAt(java.time.LocalDateTime.now())
                     .build();
                 return userRepo.save(admin);
+            });
+
+            // ── 0.6. Seed Viewer User (idempotent) ──
+            userRepo.findByEmail("viewer@hrms.local").orElseGet(() -> {
+                User viewer = User.builder()
+                    .employeeId("999999")
+                    .email("viewer@hrms.local")
+                    .password(hash)
+                    .firstName("Viewer")
+                    .lastName("User")
+                    .phone("+1-555-0101")
+                    .department("Human Resources")
+                    .position("HR Viewer")
+                    .baseSalary(java.math.BigDecimal.valueOf(50000))
+                    .hireDate(java.time.LocalDate.of(2023, 1, 1))
+                    .active(true)
+                    .ilLeaveEntitlement(18)
+                    .sickLeaveEntitlement(7)
+                    .specialLeaveEntitlement(0)
+                    .roles(new java.util.HashSet<>(java.util.Set.of(viewerRole)))
+                    .createdAt(java.time.LocalDateTime.now())
+                    .updatedAt(java.time.LocalDateTime.now())
+                    .build();
+                return userRepo.save(viewer);
             });
 
             // ── 1. Seed Departments (idempotent) ──

@@ -22,7 +22,7 @@ const ProtectedRoute = ({ user, allowedRoles, children }) => {
   const hasAccess = allowedRoles.some((role) => userRoles.includes(role));
 
   if (!hasAccess) {
-    const isAdmin = userRoles.includes("ROLE_HR_ADMIN");
+    const isAdmin = userRoles.includes("ROLE_HR_ADMIN") || userRoles.includes("ROLE_HR_VIEWER");
     return (
       <div className="flex h-screen items-center justify-center" style={{ background: "#efe6dd" }}>
         <div className="text-center max-w-md">

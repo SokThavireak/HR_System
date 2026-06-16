@@ -19,7 +19,8 @@ public class Role {
 
     public enum RoleName {
         ROLE_HR_ADMIN,
-        ROLE_EMPLOYEE
+        ROLE_EMPLOYEE,
+        ROLE_HR_VIEWER
     }
 
     public Role(RoleName name, String description) {

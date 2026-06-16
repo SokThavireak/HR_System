@@ -79,17 +79,17 @@ export default function App() {
     try {
       localStorage.setItem('hrms_user', JSON.stringify(data));
       localStorage.setItem('hrms_login_time', String(Date.now()));
-      const isAdmin = data.roles?.includes('ROLE_HR_ADMIN');
+      const isAdmin = data.roles?.includes('ROLE_HR_ADMIN') || data.roles?.includes('ROLE_HR_VIEWER');
       localStorage.setItem('hrms_role', isAdmin ? 'admin' : 'employee');
     } catch(e) {}
     setTimeout(() => { setUser(data); setLoadingPage(false); }, 2000);
   }} />;
 
-  const isAdmin = user.roles?.some(r => r === 'ROLE_HR_ADMIN' || r?.name === 'ROLE_HR_ADMIN');
+  const isAdmin = user.roles?.some(r => r === 'ROLE_HR_ADMIN' || r?.name === 'ROLE_HR_ADMIN' || r === 'ROLE_HR_VIEWER' || r?.name === 'ROLE_HR_VIEWER');
 
   if (isAdmin) {
     return (
-      <ProtectedRoute user={user} allowedRoles={['ROLE_HR_ADMIN']}>
+      <ProtectedRoute user={user} allowedRoles={['ROLE_HR_ADMIN', 'ROLE_HR_VIEWER']}>
         <AdminDashboard user={user} />
       </ProtectedRoute>
     );

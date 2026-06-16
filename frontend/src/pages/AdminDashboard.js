@@ -73,12 +73,13 @@ function StatCard({ bg, value, label, iconName }) {
 export default function AdminDashboard({ user }) {
   // Role guard — if a non-admin somehow lands here, force redirect
   const userRoles = (user?.roles || []).map((r) => (typeof r === "object" ? r.name : r));
-  if (!userRoles.includes("ROLE_HR_ADMIN")) {
+  if (!userRoles.includes("ROLE_HR_ADMIN") && !userRoles.includes("ROLE_HR_VIEWER")) {
     localStorage.clear();
     window.location.reload();
     return null;
   }
 
+  const isReadOnly = userRoles.includes("ROLE_HR_VIEWER");
   const [section, setSection] = useState("dashboard");
   const [navVisible, setNavVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -292,12 +293,12 @@ export default function AdminDashboard({ user }) {
         <main className="relative flex-1 overflow-y-auto p-8" style={{ background: "transparent" }}>
           <PageTransition variant="fadeUp" keyProp={section}>
             {section === "dashboard" && <DashboardView user={user} />}
-            {section === "users" && <UserManagementView showToast={showToast} />}
-            {section === "categories" && <CategoryView />}
-            {section === "attendance" && <AttendancePage showSidebar={false} admin />}
-            {section === "leaves" && <LeaveApprovalsView showToast={showToast} />}
-            {section === "payroll" && <PayrollView showToast={showToast} />}
-            {section === "performance" && <PerformanceView showToast={showToast} />}
+            {section === "users" && <UserManagementView showToast={showToast} isReadOnly={isReadOnly} />}
+            {section === "categories" && <CategoryView isReadOnly={isReadOnly} />}
+            {section === "attendance" && <AttendancePage showSidebar={false} admin isReadOnly={isReadOnly} user={user} />}
+            {section === "leaves" && <LeaveApprovalsView showToast={showToast} isReadOnly={isReadOnly} />}
+            {section === "payroll" && <PayrollView showToast={showToast} isReadOnly={isReadOnly} />}
+            {section === "performance" && <PerformanceView showToast={showToast} isReadOnly={isReadOnly} />}
           </PageTransition>
         </main>
       </div>
@@ -311,7 +312,7 @@ export default function AdminDashboard({ user }) {
 /* ═══════════════════════════════════════════
    DEPARTMENT & POSITION MANAGEMENT
    ═══════════════════════════════════════════ */
-function CategoryView() {
+function CategoryView({ isReadOnly }) {
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
   const [activeTab, setActiveTab] = useState("departments");
@@ -468,34 +469,36 @@ function CategoryView() {
       {/* ═══ DEPARTMENTS TAB ═══ */}
       {activeTab === "departments" && (
         <div className="space-y-6 tab-card-stagger animate-tab-slide-left" key="dept-tab">
-          <Card className="card-stagger-item">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Icon name="plus" size={16} className="text-primary" />
-                {editDeptId !== null ? "Edit Department" : "Add New Department"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={saveDept} className="space-y-5">
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Department Name</label>
-                    <Input value={deptForm.name} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} placeholder="e.g. Engineering" required />
+          {!isReadOnly && (
+            <Card className="card-stagger-item">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Icon name="plus" size={16} className="text-primary" />
+                  {editDeptId !== null ? "Edit Department" : "Add New Department"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={saveDept} className="space-y-5">
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Department Name</label>
+                      <Input value={deptForm.name} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} placeholder="e.g. Engineering" required />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Description</label>
+                      <Input value={deptForm.description} onChange={(e) => setDeptForm({ ...deptForm, description: e.target.value })} placeholder="Brief description..." />
+                    </div>
                   </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Description</label>
-                    <Input value={deptForm.description} onChange={(e) => setDeptForm({ ...deptForm, description: e.target.value })} placeholder="Brief description..." />
+                  <div className="flex gap-2">
+                    <Button type="submit">{editDeptId !== null ? "Update Department" : "Add Department"}</Button>
+                    {editDeptId !== null && (
+                      <Button type="button" variant="outline" onClick={() => { setEditDeptId(null); setDeptForm({ name: "", description: "" }); }}>Cancel</Button>
+                    )}
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button type="submit">{editDeptId !== null ? "Update Department" : "Add Department"}</Button>
-                  {editDeptId !== null && (
-                    <Button type="button" variant="outline" onClick={() => { setEditDeptId(null); setDeptForm({ name: "", description: "" }); }}>Cancel</Button>
-                  )}
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+                </form>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="card-stagger-item">
             <CardHeader className="pb-3"><CardTitle className="text-base">All Departments ({departments.length})</CardTitle></CardHeader>
@@ -508,7 +511,7 @@ function CategoryView() {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
+                      {!isReadOnly && <TableHead className="w-[100px]">Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -516,12 +519,14 @@ function CategoryView() {
                       <TableRow key={dept.id}>
                         <TableCell className="font-medium">{dept.name}</TableCell>
                         <TableCell className="text-muted-foreground">{dept.description || "—"}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <button onClick={() => startEditDept(dept)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
-                            <button onClick={() => deleteDept(dept.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
-                          </div>
-                        </TableCell>
+                        {!isReadOnly && (
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <button onClick={() => startEditDept(dept)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
+                              <button onClick={() => deleteDept(dept.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -535,41 +540,43 @@ function CategoryView() {
       {/* ═══ POSITIONS TAB ═══ */}
       {activeTab === "positions" && (
         <div className="space-y-6 tab-card-stagger animate-tab-slide-right" key="pos-tab">
-          <Card className="card-stagger-item">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Icon name="plus" size={16} className="text-primary" />
-                {editPosId !== null ? "Edit Position" : "Add New Position"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={savePos} className="space-y-5">
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Position Title</label>
-                    <Input value={posForm.title} onChange={(e) => setPosForm({ ...posForm, title: e.target.value })} placeholder="e.g. Software Engineer" required />
+          {!isReadOnly && (
+            <Card className="card-stagger-item">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Icon name="plus" size={16} className="text-primary" />
+                  {editPosId !== null ? "Edit Position" : "Add New Position"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={savePos} className="space-y-5">
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Position Title</label>
+                      <Input value={posForm.title} onChange={(e) => setPosForm({ ...posForm, title: e.target.value })} placeholder="e.g. Software Engineer" required />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Department</label>
+                      <Select value={posForm.departmentId} onChange={(e) => setPosForm({ ...posForm, departmentId: e.target.value })} required>
+                        <option value="">Select department...</option>
+                        {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Description</label>
+                      <Input value={posForm.description} onChange={(e) => setPosForm({ ...posForm, description: e.target.value })} placeholder="Brief description..." />
+                    </div>
                   </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Department</label>
-                    <Select value={posForm.departmentId} onChange={(e) => setPosForm({ ...posForm, departmentId: e.target.value })} required>
-                      <option value="">Select department...</option>
-                      {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </Select>
+                  <div className="flex gap-2">
+                    <Button type="submit">{editPosId !== null ? "Update Position" : "Add Position"}</Button>
+                    {editPosId !== null && (
+                      <Button type="button" variant="outline" onClick={() => { setEditPosId(null); setPosForm({ title: "", description: "", departmentId: "" }); }}>Cancel</Button>
+                    )}
                   </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Description</label>
-                    <Input value={posForm.description} onChange={(e) => setPosForm({ ...posForm, description: e.target.value })} placeholder="Brief description..." />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button type="submit">{editPosId !== null ? "Update Position" : "Add Position"}</Button>
-                  {editPosId !== null && (
-                    <Button type="button" variant="outline" onClick={() => { setEditPosId(null); setPosForm({ title: "", description: "", departmentId: "" }); }}>Cancel</Button>
-                  )}
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+                </form>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="card-stagger-item">
             <CardHeader className="pb-3"><CardTitle className="text-base">All Positions ({positions.length})</CardTitle></CardHeader>
@@ -583,7 +590,7 @@ function CategoryView() {
                       <TableHead>Title</TableHead>
                       <TableHead>Department</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
+                      {!isReadOnly && <TableHead className="w-[100px]">Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -599,12 +606,14 @@ function CategoryView() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">{pos.description || "—"}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <button onClick={() => startEditPos(pos)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
-                            <button onClick={() => deletePos(pos.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
-                          </div>
-                        </TableCell>
+                        {!isReadOnly && (
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <button onClick={() => startEditPos(pos)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
+                              <button onClick={() => deletePos(pos.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1016,7 +1025,7 @@ function DashboardView({ user }) {
 /* ═══════════════════════════════════════════
    USER MANAGEMENT
    ═══════════════════════════════════════════ */
-function UserManagementView({ showToast }) {
+function UserManagementView({ showToast, isReadOnly }) {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [filterEmployeeId, setFilterEmployeeId] = useState("");
@@ -1089,7 +1098,11 @@ function UserManagementView({ showToast }) {
       workingDaysPerMonth: u.workingDaysPerMonth || "",
       workStartTime: u.workStartTime || "",
       hireDate: u.hireDate || "",
-      role: (u.roles || []).some((r) => r.name === "ROLE_HR_ADMIN") ? "ROLE_HR_ADMIN" : "ROLE_EMPLOYEE",
+      role: (u.roles || []).some((r) => r.name === "ROLE_HR_ADMIN")
+        ? "ROLE_HR_ADMIN"
+        : (u.roles || []).some((r) => r.name === "ROLE_HR_VIEWER")
+        ? "ROLE_HR_VIEWER"
+        : "ROLE_EMPLOYEE",
       password: "",
     });
     document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" });
@@ -1215,95 +1228,98 @@ function UserManagementView({ showToast }) {
       </div>
 
       {/* Add / Edit Form */}
-      <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name={editUserId ? "edit" : "plus"} size={16} className="text-primary" />
-              {editUserId !== null ? "Edit Employee" : "Add New Employee"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {departments.length === 0 && (
-              <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                <Icon name="alert" size={16} />
-                No departments or positions found. Please add them in <strong>Department & Position</strong> first.
-              </div>
-            )}
-            <form onSubmit={editUserId !== null ? saveEdit : create} className="space-y-5">
-              <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {TEXT_FIELDS.map(({ k, l, type = "text", required = false }) => (
-                  <div key={k}>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">{l}</label>
-                    <Input type={type} value={form[k] || ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} required={required} />
-                  </div>
-                ))}
-                {/* Department Select */}
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Department</label>
-                  <Select
-                    value={form.department || ""}
-                    onChange={(e) => setForm({ ...form, department: e.target.value, position: "" })}
-                    required={form.role !== "ROLE_HR_ADMIN"}
-                  >
-                    <option value="">Select department...</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.name}>{d.name}</option>
-                    ))}
-                  </Select>
+      {!isReadOnly && (
+        <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Icon name={editUserId ? "edit" : "plus"} size={16} className="text-primary" />
+                {editUserId !== null ? "Edit Employee" : "Add New Employee"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {departments.length === 0 && (
+                <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                  <Icon name="alert" size={16} />
+                  No departments or positions found. Please add them in <strong>Department & Position</strong> first.
                 </div>
-                {/* Position Select */}
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Position</label>
-                  <Select
-                    value={form.position || ""}
-                    onChange={(e) => setForm({ ...form, position: e.target.value })}
-                    required={form.role !== "ROLE_HR_ADMIN"}
-                    disabled={!form.department && form.role !== "ROLE_HR_ADMIN"}
-                  >
-                    <option value="">Select position...</option>
-                    {filteredPositions.map((p) => (
-                      <option key={p.id} value={p.title}>{p.title}</option>
-                    ))}
-                  </Select>
-                  {form.department && filteredPositions.length === 0 && (
-                    <p className="mt-1 text-xs text-amber-600">No positions for this department.</p>
-                  )}
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Employee ID</label>
-                  {editUserId !== null ? (
-                    <div className="flex h-10 items-center rounded-lg border border-gray-200 bg-gray-50 px-3">
-                      <span className="font-mono text-sm font-semibold text-primary">{form.employeeId || "—"}</span>
+              )}
+              <form onSubmit={editUserId !== null ? saveEdit : create} className="space-y-5">
+                <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {TEXT_FIELDS.map(({ k, l, type = "text", required = false }) => (
+                    <div key={k}>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">{l}</label>
+                      <Input type={type} value={form[k] || ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} required={required} />
                     </div>
-                  ) : (
-                    <Input value={form.employeeId || ""} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} placeholder="Auto-generated if left blank" />
-                  )}
+                  ))}
+                  {/* Department Select */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Department</label>
+                    <Select
+                      value={form.department || ""}
+                      onChange={(e) => setForm({ ...form, department: e.target.value, position: "" })}
+                      required={form.role !== "ROLE_HR_ADMIN" && form.role !== "ROLE_HR_VIEWER"}
+                    >
+                      <option value="">Select department...</option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.name}>{d.name}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  {/* Position Select */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Position</label>
+                    <Select
+                      value={form.position || ""}
+                      onChange={(e) => setForm({ ...form, position: e.target.value })}
+                      required={form.role !== "ROLE_HR_ADMIN" && form.role !== "ROLE_HR_VIEWER"}
+                      disabled={!form.department && form.role !== "ROLE_HR_ADMIN" && form.role !== "ROLE_HR_VIEWER"}
+                    >
+                      <option value="">Select position...</option>
+                      {filteredPositions.map((p) => (
+                        <option key={p.id} value={p.title}>{p.title}</option>
+                      ))}
+                    </Select>
+                    {form.department && filteredPositions.length === 0 && (
+                      <p className="mt-1 text-xs text-amber-600">No positions for this department.</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Employee ID</label>
+                    {editUserId !== null ? (
+                      <div className="flex h-10 items-center rounded-lg border border-gray-200 bg-gray-50 px-3">
+                        <span className="font-mono text-sm font-semibold text-primary">{form.employeeId || "—"}</span>
+                      </div>
+                    ) : (
+                      <Input value={form.employeeId || ""} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} placeholder="Auto-generated if left blank" />
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Role</label>
+                    <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+                      <option value="ROLE_EMPLOYEE">Employee</option>
+                      <option value="ROLE_HR_ADMIN">HR Admin</option>
+                      <option value="ROLE_HR_VIEWER">HR Viewer (Read-Only)</option>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">{editUserId ? "New Password (optional)" : "Temp Password"}</label>
+                    <Input type="password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={editUserId ? "Leave blank to keep current" : ""} />
+                  </div>
+                  <div className="flex items-end gap-2 pt-2 sm:pt-0">
+                    <Button type="submit" disabled={(form.role !== "ROLE_HR_ADMIN" && form.role !== "ROLE_HR_VIEWER") && departments.length === 0} className="flex-1 sm:flex-none">
+                      {editUserId !== null ? <><Icon name="check" size={14} /> Save</> : <><Icon name="plus" size={14} /> Create</>}
+                    </Button>
+                    {editUserId !== null && (
+                      <Button type="button" variant="outline" onClick={resetForm} className="flex-1 sm:flex-none">Cancel</Button>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Role</label>
-                  <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                    <option value="ROLE_EMPLOYEE">Employee</option>
-                    <option value="ROLE_HR_ADMIN">HR Admin</option>
-                  </Select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{editUserId ? "New Password (optional)" : "Temp Password"}</label>
-                  <Input type="password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={editUserId ? "Leave blank to keep current" : ""} />
-                </div>
-                <div className="flex items-end gap-2 pt-2 sm:pt-0">
-                  <Button type="submit" disabled={form.role !== "ROLE_HR_ADMIN" && departments.length === 0} className="flex-1 sm:flex-none">
-                    {editUserId !== null ? <><Icon name="check" size={14} /> Save</> : <><Icon name="plus" size={14} /> Create</>}
-                  </Button>
-                  {editUserId !== null && (
-                    <Button type="button" variant="outline" onClick={resetForm} className="flex-1 sm:flex-none">Cancel</Button>
-                  )}
-                </div>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </StaggeredReveal>
+              </form>
+            </CardContent>
+          </Card>
+        </StaggeredReveal>
+      )}
 
       {/* Search + Filter */}
       <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
@@ -1351,7 +1367,7 @@ function UserManagementView({ showToast }) {
                       <TableHead>Role</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Leave Balance</TableHead>
-                      <TableHead className="w-[130px]">Actions</TableHead>
+                      <TableHead className={isReadOnly ? "w-[60px]" : "w-[130px]"}>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1363,7 +1379,11 @@ function UserManagementView({ showToast }) {
                       const idB = b.employeeId || "";
                       return idA.localeCompare(idB);
                     }).map((u) => {
-                      const isAdmin = (u.roles || []).some((r) => r.name === "ROLE_HR_ADMIN");
+                      const rolesList = (u.roles || []).map((r) => typeof r === "object" ? r.name : r);
+                      const isUserAdmin = rolesList.includes("ROLE_HR_ADMIN");
+                      const isUserViewer = rolesList.includes("ROLE_HR_VIEWER");
+                      const roleLabel = isUserAdmin ? "Admin" : isUserViewer ? "Viewer" : "Employee";
+                      const roleBadgeVariant = isUserAdmin ? "default" : isUserViewer ? "info" : "outline";
                       const saving = editUserId === u.id;
                       return (
                         <TableRow key={u.id} style={saving ? { background: "rgba(59,130,246,0.04)" } : undefined}>
@@ -1377,7 +1397,7 @@ function UserManagementView({ showToast }) {
                             {u.position ? <Badge variant="outline" style={{ background: "#eff6ff", color: "#3b82f6", borderColor: "#bfdbfe" }}>{u.position}</Badge> : <span className="text-muted-foreground">—</span>}
                           </TableCell>
                           <TableCell className="font-semibold">{u.baseSalary ? `$${u.baseSalary}` : "—"}</TableCell>
-                          <TableCell><Badge variant={isAdmin ? "default" : "outline"}>{isAdmin ? "Admin" : "Employee"}</Badge></TableCell>
+                          <TableCell><Badge variant={roleBadgeVariant}>{roleLabel}</Badge></TableCell>
                           <TableCell><Badge variant={u.active ? "success" : "destructive"}>{u.active ? "Active" : "Inactive"}</Badge></TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-0.5 text-[10px] leading-tight min-w-[120px]">
@@ -1389,10 +1409,14 @@ function UserManagementView({ showToast }) {
                           <TableCell>
                             <div className="flex gap-1">
                               <button title="View Profile" onClick={() => setViewUserDetail(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"><Icon name="eye" size={14} /></button>
-                              <button title="Edit" onClick={() => startEdit(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
-                              {!u.active ? <button title="Activate" onClick={() => activate(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"><Icon name="check" size={14} /></button> : <button title="Deactivate" onClick={() => requestDeactivate(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors cursor-pointer"><Icon name="x" size={14} /></button>}
-                              <button title="Reset Pwd" onClick={() => requestReset(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer"><Icon name="refresh" size={14} /></button>
-                              <button title="Delete" onClick={() => requestDeactivate(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
+                              {!isReadOnly && (
+                                <>
+                                  <button title="Edit" onClick={() => startEdit(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
+                                  {!u.active ? <button title="Activate" onClick={() => activate(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"><Icon name="check" size={14} /></button> : <button title="Deactivate" onClick={() => requestDeactivate(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors cursor-pointer"><Icon name="x" size={14} /></button>}
+                                  <button title="Reset Pwd" onClick={() => requestReset(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer"><Icon name="refresh" size={14} /></button>
+                                  <button title="Delete" onClick={() => requestDeactivate(u)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1663,7 +1687,7 @@ function UserManagementView({ showToast }) {
 /* ═══════════════════════════════════════════
    LEAVE APPROVALS
    ═══════════════════════════════════════════ */
-function LeaveApprovalsView({ showToast }) {
+function LeaveApprovalsView({ showToast, isReadOnly }) {
   const [leaves, setLeaves] = useState([]);
   const [historyLeaves, setHistoryLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1862,8 +1886,12 @@ function LeaveApprovalsView({ showToast }) {
                           <TableCell className="max-w-[200px] truncate">{lv.reason}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
-                              <button onClick={() => approve(lv.id)} title="Approve" className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer"><Icon name="check" size={14} /></button>
-                              <button onClick={() => { setRejectTarget(lv.id); setRejectReason(""); }} title="Reject" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="x" size={14} /></button>
+                              {!isReadOnly && (
+                                <>
+                                  <button onClick={() => approve(lv.id)} title="Approve" className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer"><Icon name="check" size={14} /></button>
+                                  <button onClick={() => { setRejectTarget(lv.id); setRejectReason(""); }} title="Reject" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="x" size={14} /></button>
+                                </>
+                              )}
                               <button onClick={() => openDetail(lv.id)} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
                             </div>
                           </TableCell>
@@ -1911,7 +1939,7 @@ function LeaveApprovalsView({ showToast }) {
                           <TableCell>
                             <div className="flex gap-1">
                               <button onClick={() => openDetail(lv.id)} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
-                              <button onClick={() => openEdit(lv)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 cursor-pointer"><Icon name="edit" size={14} /></button>
+                              {!isReadOnly && <button onClick={() => openEdit(lv)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 cursor-pointer"><Icon name="edit" size={14} /></button>}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -2038,7 +2066,7 @@ function LeaveApprovalsView({ showToast }) {
 /* ═══════════════════════════════════════════
    PAYROLL
    ═══════════════════════════════════════════ */
-function PayrollView({ showToast }) {
+function PayrollView({ showToast, isReadOnly }) {
   const [payrolls, setPayrolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -2264,13 +2292,17 @@ function PayrollView({ showToast }) {
         <h2 className="text-2xl font-bold">Payroll System</h2>
         <div className="flex flex-wrap gap-2">
           <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
-          <Button onClick={() => setCalcOpen(true)} size="sm"><Icon name="plus" size={14} /> Calculate</Button>
-          <Button onClick={handleBulkProcess} variant="outline" size="sm" disabled={bulkLoading}>
-            <Icon name="clock" size={14} /> {bulkLoading ? "Processing…" : "Bulk Process"}
-          </Button>
-          <Button onClick={handleBulkPay} variant="outline" size="sm" disabled={bulkLoading} className="text-emerald-600 border-emerald-200 hover:bg-emerald-50">
-            <Icon name="check" size={14} /> {bulkLoading ? "Processing…" : "Bulk Pay"}
-          </Button>
+          {!isReadOnly && (
+            <>
+              <Button onClick={() => setCalcOpen(true)} size="sm"><Icon name="plus" size={14} /> Calculate</Button>
+              <Button onClick={handleBulkProcess} variant="outline" size="sm" disabled={bulkLoading}>
+                <Icon name="clock" size={14} /> {bulkLoading ? "Processing…" : "Bulk Process"}
+              </Button>
+              <Button onClick={handleBulkPay} variant="outline" size="sm" disabled={bulkLoading} className="text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+                <Icon name="check" size={14} /> {bulkLoading ? "Processing…" : "Bulk Pay"}
+              </Button>
+            </>
+          )}
         </div>
       </div>
       <Card>
@@ -2369,11 +2401,11 @@ function PayrollView({ showToast }) {
                       <td className="px-4 py-3 whitespace-nowrap"><Badge variant={pr.status === "PAID" ? "success" : pr.status === "PROCESSED" ? "warning" : "default"}>{pr.status}</Badge></td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex gap-1">
-                          {pr.status === "DRAFT" && <button onClick={() => processRec(pr.id)} title="Process" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="clock" size={14} /></button>}
-                          {pr.status === "PROCESSED" && <button onClick={() => payRec(pr.id)} title="Mark Paid" className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer"><Icon name="check" size={14} /></button>}
-                          <button onClick={() => openEdit(pr)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 cursor-pointer"><Icon name="edit" size={14} /></button>
+                          {!isReadOnly && pr.status === "DRAFT" && <button onClick={() => processRec(pr.id)} title="Process" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="clock" size={14} /></button>}
+                          {!isReadOnly && pr.status === "PROCESSED" && <button onClick={() => payRec(pr.id)} title="Mark Paid" className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer"><Icon name="check" size={14} /></button>}
+                          {!isReadOnly && <button onClick={() => openEdit(pr)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 cursor-pointer"><Icon name="edit" size={14} /></button>}
                           <button onClick={() => openDetail(pr.id)} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
-                          <button onClick={() => setDeleteConfirm(pr.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="trash" size={14} /></button>
+                          {!isReadOnly && <button onClick={() => setDeleteConfirm(pr.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="trash" size={14} /></button>}
                         </div>
                       </td>
                     </tr>
@@ -2606,7 +2638,7 @@ function PayrollView({ showToast }) {
 /* ═══════════════════════════════════════════
    PERFORMANCE REVIEWS
    ═══════════════════════════════════════════ */
-function PerformanceView({ showToast }) {
+function PerformanceView({ showToast, isReadOnly }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterUser, setFilterUser] = useState("");
@@ -2797,65 +2829,67 @@ function PerformanceView({ showToast }) {
       <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
         <h2 className="text-2xl font-bold">Performance Reviews</h2>
       </StaggeredReveal>
-      <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
-        <Card>
-          <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Icon name="plus" size={16} className="text-primary" /> Submit Review</CardTitle></CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="rounded-xl border border-primary/10 bg-primary/[0.03] p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Icon name="users" size={14} /> Employee(s)</p>
-                  {empIds.length < 5 && (
-                    <button type="button" onClick={() => { setEmpIds([...empIds, { id: nextIdRef.current, value: "" }]); nextIdRef.current += 1; }} className="flex h-7 items-center gap-1 rounded-lg bg-primary px-2.5 text-[11px] font-semibold text-white hover:bg-primary/90 transition-colors cursor-pointer">
-                      <Icon name="plus" size={12} /> Add
-                    </button>
-                  )}
-                </div>
-                <div className="space-y-3">
-                  {empIds.map((emp, idx) => (
-                    <div key={emp.id} className="flex items-start gap-2">
-                      <span className="w-5 text-center text-[10px] font-bold text-muted-foreground mt-2.5">{idx + 1}</span>
-                      <div className="flex-1 flex flex-col">
-                        <Input type="text" value={emp.value} onChange={(e) => { const updated = [...empIds]; updated[idx].value = e.target.value; setEmpIds(updated); }} placeholder={`Employee ID ${idx + 1} (e.g. 000002)`} required={idx === 0} />
-                        {emp.value && (() => {
-                          const u = users.find(u => String(u.id) === emp.value || String(u.employeeId) === emp.value);
-                          return <span className={`text-[11px] font-semibold mt-1 pl-1 ${u ? 'text-emerald-600' : 'text-red-500'}`}>{u ? `✓ ${u.firstName} ${u.lastName}` : "✗ Employee not found"}</span>;
-                        })()}
+      {!isReadOnly && (
+        <StaggeredReveal variant="fadeUp" stagger={0} delay={0}>
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Icon name="plus" size={16} className="text-primary" /> Submit Review</CardTitle></CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="rounded-xl border border-primary/10 bg-primary/[0.03] p-4 sm:p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Icon name="users" size={14} /> Employee(s)</p>
+                    {empIds.length < 5 && (
+                      <button type="button" onClick={() => { setEmpIds([...empIds, { id: nextIdRef.current, value: "" }]); nextIdRef.current += 1; }} className="flex h-7 items-center gap-1 rounded-lg bg-primary px-2.5 text-[11px] font-semibold text-white hover:bg-primary/90 transition-colors cursor-pointer">
+                        <Icon name="plus" size={12} /> Add
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-3">
+                    {empIds.map((emp, idx) => (
+                      <div key={emp.id} className="flex items-start gap-2">
+                        <span className="w-5 text-center text-[10px] font-bold text-muted-foreground mt-2.5">{idx + 1}</span>
+                        <div className="flex-1 flex flex-col">
+                          <Input type="text" value={emp.value} onChange={(e) => { const updated = [...empIds]; updated[idx].value = e.target.value; setEmpIds(updated); }} placeholder={`Employee ID ${idx + 1} (e.g. 000002)`} required={idx === 0} />
+                          {emp.value && (() => {
+                            const u = users.find(u => String(u.id) === emp.value || String(u.employeeId) === emp.value);
+                            return <span className={`text-[11px] font-semibold mt-1 pl-1 ${u ? 'text-emerald-600' : 'text-red-500'}`}>{u ? `✓ ${u.firstName} ${u.lastName}` : "✗ Employee not found"}</span>;
+                          })()}
+                        </div>
+                        {empIds.length > 1 && (
+                          <button type="button" onClick={() => setEmpIds(empIds.filter((e) => e.id !== emp.id))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer mt-1">
+                            <Icon name="x" size={14} />
+                          </button>
+                        )}
                       </div>
-                      {empIds.length > 1 && (
-                        <button type="button" onClick={() => setEmpIds(empIds.filter((e) => e.id !== emp.id))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer mt-1">
-                          <Icon name="x" size={14} />
-                        </button>
-                      )}
-                    </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {[
+                    { n: "periodStart", l: "Period Start", type: "date" }, { n: "periodEnd", l: "Period End", type: "date" },
+                    { n: "quality", l: "Quality (1-5)", type: "number" }, { n: "productivity", l: "Productivity (1-5)", type: "number" }, { n: "communication", l: "Communication (1-5)", type: "number" },
+                    { n: "teamwork", l: "Teamwork (1-5)", type: "number" }, { n: "punctuality", l: "Punctuality (1-5)", type: "number" },
+                  ].map(({ n, l, type = "text" }) => (
+                    <div key={n}><label className="mb-1 block text-xs font-medium text-muted-foreground">{l}</label><Input name={n} type={type} min={type === "number" ? 1 : null} max={type === "number" ? 5 : null} required /></div>
                   ))}
                 </div>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {[
-                  { n: "periodStart", l: "Period Start", type: "date" }, { n: "periodEnd", l: "Period End", type: "date" },
-                  { n: "quality", l: "Quality (1-5)", type: "number" }, { n: "productivity", l: "Productivity (1-5)", type: "number" }, { n: "communication", l: "Communication (1-5)", type: "number" },
-                  { n: "teamwork", l: "Teamwork (1-5)", type: "number" }, { n: "punctuality", l: "Punctuality (1-5)", type: "number" },
-                ].map(({ n, l, type = "text" }) => (
-                  <div key={n}><label className="mb-1 block text-xs font-medium text-muted-foreground">{l}</label><Input name={n} type={type} min={type === "number" ? 1 : null} max={type === "number" ? 5 : null} required /></div>
-                ))}
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Feedback</label><Textarea name="feedback" rows="3" required /></div>
-                <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Goals / Areas of Improvement</label><Textarea name="goals" rows="3" /></div>
-              </div>
-              <div className="flex justify-end pt-2">
-                <Button type="submit" className="w-full sm:w-auto" disabled={submitLoading}><Icon name="check" size={14} className="mr-2" /> {submitLoading ? "Submitting…" : "Submit Review"}</Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </StaggeredReveal>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Feedback</label><Textarea name="feedback" rows="3" required /></div>
+                  <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Goals / Areas of Improvement</label><Textarea name="goals" rows="3" /></div>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <Button type="submit" className="w-full sm:w-auto" disabled={submitLoading}><Icon name="check" size={14} className="mr-2" /> {submitLoading ? "Submitting…" : "Submit Review"}</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </StaggeredReveal>
+      )}
       <StaggeredReveal variant="fadeUp" stagger={0.08} delay={0.3}>
         <div className="flex gap-2">
           <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
           <Button onClick={() => { setPerfOpen(true); setPerfResult(null); setPerfError(""); setPerfEmployeeId(""); }} variant="outline" size="sm"><Icon name="users" size={14} /> Employee Performance</Button>
-          <Button onClick={() => { setBulkOpen(true); setBulkResult(null); }} variant="outline" size="sm" disabled={bulkLoading}><Icon name="clock" size={14} /> Bulk Process</Button>
+          {!isReadOnly && <Button onClick={() => { setBulkOpen(true); setBulkResult(null); }} variant="outline" size="sm" disabled={bulkLoading}><Icon name="clock" size={14} /> Bulk Process</Button>}
         </div>
       </StaggeredReveal>
       <StaggeredReveal variant="fadeUp" stagger={0.06} delay={0.45}>
@@ -2897,8 +2931,8 @@ function PerformanceView({ showToast }) {
                       <TableCell>
                         <div className="flex gap-1">
                           <button onClick={() => openDetail(rw.id)} title="Details" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="eye" size={14} /></button>
-                          <button onClick={() => openEdit(rw)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 cursor-pointer"><Icon name="edit" size={14} /></button>
-                          <button onClick={() => setDeleteConfirm(rw.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="trash" size={14} /></button>
+                          {!isReadOnly && <button onClick={() => openEdit(rw)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 cursor-pointer"><Icon name="edit" size={14} /></button>}
+                          {!isReadOnly && <button onClick={() => setDeleteConfirm(rw.id)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 cursor-pointer"><Icon name="trash" size={14} /></button>}
                         </div>
                       </TableCell>
                     </TableRow>

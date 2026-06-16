@@ -22,7 +22,8 @@
 -- Roles
 INSERT INTO roles (name, description) VALUES
     ('ROLE_EMPLOYEE',  'Standard employee'),
-    ('ROLE_HR_ADMIN',  'HR administrator with full access')
+    ('ROLE_HR_ADMIN',  'HR administrator with full access'),
+    ('ROLE_HR_VIEWER',  'HR Viewer with read-only access')
 ON CONFLICT (name) DO NOTHING;
 
 -- Users (password = 'changeme' bcrypt hash for all)
