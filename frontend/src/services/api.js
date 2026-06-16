@@ -20,8 +20,17 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
+      const hasToken = !!localStorage.getItem('hrms_token');
+      const isLoginRequest = err.config?.url?.includes('/auth/login');
+
       localStorage.removeItem('hrms_token');
-      window.location.reload();
+      localStorage.removeItem('hrms_user');
+      localStorage.removeItem('hrms_login_time');
+      localStorage.removeItem('hrms_role');
+
+      if (hasToken && !isLoginRequest) {
+        window.location.reload();
+      }
     }
     // Wrap response data in an Error so .message always works
     const data = err.response?.data;
