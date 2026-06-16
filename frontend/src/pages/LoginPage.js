@@ -229,6 +229,23 @@ export default function LoginPage({ onLogin }) {
               <p className="mt-1.5 text-sm text-muted-foreground">
                 Sign in to access your dashboard
               </p>
+              <div className="mt-4 rounded-xl border border-primary/10 bg-primary/[0.03] p-3 text-left text-[11px] leading-relaxed">
+                <p className="font-semibold text-primary flex items-center gap-1.5 mb-2">
+                  🔑 Demo Accounts
+                </p>
+                <div className="space-y-2 text-muted-foreground">
+                  <div>
+                    <span className="font-semibold text-foreground">HR Viewer (Read-Only):</span>
+                    <p className="mt-0.5">Email: <code className="font-mono font-semibold text-foreground bg-white/60 px-1 py-0.5 rounded">viewer@hrms.local</code></p>
+                    <p>Password: <code className="font-mono font-semibold text-foreground bg-white/60 px-1 py-0.5 rounded">123456789</code></p>
+                  </div>
+                  <div className="border-t border-primary/5 pt-2">
+                    <span className="font-semibold text-foreground">Employee (Full Access):</span>
+                    <p className="mt-0.5">Email: <code className="font-mono font-semibold text-foreground bg-white/60 px-1 py-0.5 rounded">employee@hrms.local</code></p>
+                    <p>Password: <code className="font-mono font-semibold text-foreground bg-white/60 px-1 py-0.5 rounded">123456789</code></p>
+                  </div>
+                </div>
+              </div>
             </div>
           </StaggerItem>
 

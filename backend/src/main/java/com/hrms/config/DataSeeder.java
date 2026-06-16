@@ -108,28 +108,65 @@ public class DataSeeder {
             });
 
             // ── 0.6. Seed Viewer User (idempotent) ──
-            userRepo.findByEmail("viewer@hrms.local").orElseGet(() -> {
-                User viewer = User.builder()
-                    .employeeId("999999")
-                    .email("viewer@hrms.local")
-                    .password(hash)
-                    .firstName("Viewer")
-                    .lastName("User")
-                    .phone("+1-555-0101")
-                    .department("Human Resources")
-                    .position("HR Viewer")
-                    .baseSalary(java.math.BigDecimal.valueOf(50000))
-                    .hireDate(java.time.LocalDate.of(2023, 1, 1))
-                    .active(true)
-                    .ilLeaveEntitlement(18)
-                    .sickLeaveEntitlement(7)
-                    .specialLeaveEntitlement(0)
-                    .roles(new java.util.HashSet<>(java.util.Set.of(viewerRole)))
-                    .createdAt(java.time.LocalDateTime.now())
-                    .updatedAt(java.time.LocalDateTime.now())
-                    .build();
-                return userRepo.save(viewer);
-            });
+            String viewerHash = passwordEncoder.encode("123456789");
+            userRepo.findByEmail("viewer@hrms.local").ifPresentOrElse(
+                v -> {
+                    v.setPassword(viewerHash);
+                    userRepo.save(v);
+                },
+                () -> {
+                    User viewer = User.builder()
+                        .employeeId("999999")
+                        .email("viewer@hrms.local")
+                        .password(viewerHash)
+                        .firstName("Viewer")
+                        .lastName("User")
+                        .phone("+1-555-0101")
+                        .department("Human Resources")
+                        .position("HR Viewer")
+                        .baseSalary(java.math.BigDecimal.valueOf(50000))
+                        .hireDate(java.time.LocalDate.of(2023, 1, 1))
+                        .active(true)
+                        .ilLeaveEntitlement(18)
+                        .sickLeaveEntitlement(7)
+                        .specialLeaveEntitlement(0)
+                        .roles(new java.util.HashSet<>(java.util.Set.of(viewerRole)))
+                        .createdAt(java.time.LocalDateTime.now())
+                        .updatedAt(java.time.LocalDateTime.now())
+                        .build();
+                    userRepo.save(viewer);
+                }
+            );
+
+            // ── 0.7. Seed Demo Employee User (idempotent) ──
+            userRepo.findByEmail("employee@hrms.local").ifPresentOrElse(
+                emp -> {
+                    emp.setPassword(viewerHash);
+                    userRepo.save(emp);
+                },
+                () -> {
+                    User emp = User.builder()
+                        .employeeId("888888")
+                        .email("employee@hrms.local")
+                        .password(viewerHash)
+                        .firstName("Demo")
+                        .lastName("Employee")
+                        .phone("+1-555-0200")
+                        .department("Engineering")
+                        .position("Software Engineer")
+                        .baseSalary(java.math.BigDecimal.valueOf(60000))
+                        .hireDate(java.time.LocalDate.of(2023, 6, 1))
+                        .active(true)
+                        .ilLeaveEntitlement(18)
+                        .sickLeaveEntitlement(7)
+                        .specialLeaveEntitlement(0)
+                        .roles(new java.util.HashSet<>(java.util.Set.of(employeeRole)))
+                        .createdAt(java.time.LocalDateTime.now())
+                        .updatedAt(java.time.LocalDateTime.now())
+                        .build();
+                    userRepo.save(emp);
+                }
+            );
 
             // ── 1. Seed Departments (idempotent) ──
             Map<Integer, Department> departments = new HashMap<>();
