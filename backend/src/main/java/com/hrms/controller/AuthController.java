@@ -6,6 +6,7 @@ import com.hrms.repository.UserRepository;
 import com.hrms.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,8 +21,13 @@ public class AuthController {
     private final UserRepository userRepo;
 
     @GetMapping("/me")
-    public ResponseEntity<User> getCurrentUser(@AuthenticationPrincipal UserDetails ud) {
-        return ResponseEntity.ok(userRepo.findByEmail(ud.getUsername()).orElseThrow());
+    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserDetails ud) {
+        if (ud == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return userRepo.findByEmail(ud.getUsername())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 
     @PostMapping("/login")
