@@ -810,50 +810,54 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
               </div>
             ) : (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Employee</TableHead>
-                      <TableHead className="cursor-pointer select-none hover:text-foreground" onClick={() => setSortDirection(s => s === "desc" ? "asc" : "desc")}>
-                        <div className="flex items-center gap-1">
-                          Date {sortDirection === "desc" ? "↓" : "↑"}
-                        </div>
-                      </TableHead>
-                      <TableHead style={{ minWidth: "120px" }}>Clock In</TableHead>
-                      <TableHead style={{ minWidth: "120px" }}>Clock Out</TableHead>
-                      <TableHead>Worked (hrs)</TableHead>
-                      <TableHead>Status</TableHead>
-                      {!isEmployee && !isReadOnly && <TableHead className="w-[120px]">Actions</TableHead>}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.slice(page * 20, (page + 1) * 20).map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell>
-                          <p className="font-medium">{r.user?.firstName} {r.user?.lastName}</p>
-                          <p className="text-xs text-muted-foreground">ID: {r.user?.employeeId || "—"} {r.user?.department ? `· ${r.user?.department}` : ""}</p>
-                        </TableCell>
-                        <TableCell className="font-medium">{r.date}</TableCell>
-                        <TableCell className="font-medium" style={{ color: "#10b981" }}>
-                          {r.clockInTime ? r.clockInTime.slice(11, 16) : "—"}
-                        </TableCell>
-                        <TableCell className="font-medium" style={{ color: "#ef4444" }}>
-                          {r.clockOutTime ? r.clockOutTime.slice(11, 16) : "—"}
-                        </TableCell>
-                        <TableCell className="font-semibold">{r.hoursWorked != null ? r.hoursWorked : "—"}</TableCell>
-                        <TableCell><StatusBadge status={r.status} /></TableCell>
-                        {!isEmployee && !isReadOnly && (
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <button title="Edit" onClick={() => startEdit(r)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
-                              <button title="Delete" onClick={() => setDeleteConfirm(r.id)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
-                            </div>
-                          </TableCell>
-                        )}
+                <div className="overflow-x-auto rounded-xl border border-[#e8ddd0]">
+                  <Table className={isEmployee ? "min-w-[550px]" : "min-w-[850px]"}>
+                    <TableHeader>
+                      <TableRow>
+                        {!isEmployee && <TableHead>Employee</TableHead>}
+                        <TableHead className="cursor-pointer select-none hover:text-foreground" onClick={() => setSortDirection(s => s === "desc" ? "asc" : "desc")}>
+                          <div className="flex items-center gap-1">
+                            Date {sortDirection === "desc" ? "↓" : "↑"}
+                          </div>
+                        </TableHead>
+                        <TableHead style={{ minWidth: "100px" }}>Clock In</TableHead>
+                        <TableHead style={{ minWidth: "100px" }}>Clock Out</TableHead>
+                        <TableHead>Worked (hrs)</TableHead>
+                        <TableHead>Status</TableHead>
+                        {!isEmployee && !isReadOnly && <TableHead className="w-[120px]">Actions</TableHead>}
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.slice(page * 20, (page + 1) * 20).map((r) => (
+                        <TableRow key={r.id}>
+                          {!isEmployee && (
+                            <TableCell>
+                              <p className="font-medium">{r.user?.firstName} {r.user?.lastName}</p>
+                              <p className="text-xs text-muted-foreground">ID: {r.user?.employeeId || "—"} {r.user?.department ? `· ${r.user?.department}` : ""}</p>
+                            </TableCell>
+                          )}
+                          <TableCell className="font-medium">{r.date}</TableCell>
+                          <TableCell className="font-medium" style={{ color: "#10b981" }}>
+                            {r.clockInTime ? r.clockInTime.slice(11, 16) : "—"}
+                          </TableCell>
+                          <TableCell className="font-medium" style={{ color: "#ef4444" }}>
+                            {r.clockOutTime ? r.clockOutTime.slice(11, 16) : "—"}
+                          </TableCell>
+                          <TableCell className="font-semibold">{r.hoursWorked != null ? r.hoursWorked : "—"}</TableCell>
+                          <TableCell><StatusBadge status={r.status} /></TableCell>
+                          {!isEmployee && !isReadOnly && (
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <button title="Edit" onClick={() => startEdit(r)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Icon name="edit" size={14} /></button>
+                                <button title="Delete" onClick={() => setDeleteConfirm(r.id)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"><Icon name="trash" size={14} /></button>
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
                 <div className="mt-4 flex flex-col items-center gap-3">
                   <p className="text-xs text-muted-foreground">
                     Showing {Math.min((page + 1) * 20, filtered.length)} of {filtered.length} records
