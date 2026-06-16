@@ -46,6 +46,16 @@ public class DataSeeder {
                 System.out.println("[DataSeeder] Error dropping roles_name_check: " + e.getMessage());
             }
 
+            try {
+                List<Map<String, Object>> rows = jdbcTemplate.queryForList("SELECT id, employee_id, email FROM users ORDER BY employee_id");
+                System.out.println("[DataSeeder] Existing users in DB:");
+                for (Map<String, Object> r : rows) {
+                    System.out.println("  email: " + r.get("email") + ", employee_id: '" + r.get("employee_id") + "' (id: " + r.get("id") + ")");
+                }
+            } catch (Exception e) {
+                System.out.println("[DataSeeder] Error querying users: " + e.getMessage());
+            }
+
             // Init employeeId counter from existing data
             String maxId = userRepo.findMaxEmployeeId();
             long maxVal = 0;
@@ -115,8 +125,12 @@ public class DataSeeder {
                     userRepo.save(v);
                 },
                 () -> {
+                    String desiredId = "999999";
+                    if (userRepo.existsByEmployeeId(desiredId)) {
+                        desiredId = null;
+                    }
                     User viewer = User.builder()
-                        .employeeId("999999")
+                        .employeeId(desiredId)
                         .email("viewer@hrms.local")
                         .password(viewerHash)
                         .firstName("Viewer")
@@ -145,8 +159,12 @@ public class DataSeeder {
                     userRepo.save(emp);
                 },
                 () -> {
+                    String desiredId = "888888";
+                    if (userRepo.existsByEmployeeId(desiredId)) {
+                        desiredId = null;
+                    }
                     User emp = User.builder()
-                        .employeeId("888888")
+                        .employeeId(desiredId)
                         .email("employee@hrms.local")
                         .password(viewerHash)
                         .firstName("Demo")
@@ -280,8 +298,12 @@ public class DataSeeder {
                 final int deptIdx = (int) e[4];
                 final int posIdx = (int) e[5];
                 User user = userRepo.findByEmail((String) e[0]).orElseGet(() -> {
+                    String desiredEmpId = String.format("%06d", empIdx + 1);
+                    if (userRepo.existsByEmployeeId(desiredEmpId)) {
+                        desiredEmpId = null;
+                    }
                     User u = User.builder()
-                        .employeeId(String.format("%06d", empIdx + 1))
+                        .employeeId(desiredEmpId)
                         .email((String) e[0])
                         .password(hash)
                         .firstName((String) e[1])
