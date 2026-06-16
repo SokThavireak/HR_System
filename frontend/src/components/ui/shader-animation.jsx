@@ -34,13 +34,13 @@ export function ShaderAnimation({ theme = "light" }) {
         vec3 ringColor = ${ringColor};
 
         vec3 ring = vec3(0.0);
-        float common = -length(uv) + mod(uv.x + uv.y, 0.2);
+        float commonVal = -length(uv) + mod(uv.x + uv.y, 0.2);
         for(int i = 0; i < 5; i++){
           float fi = float(i);
           float fii = float(i*i);
-          float rVal = lineWidth * fii / abs(fract(t + fi*0.01) * 5.0 + common);
-          float gVal = lineWidth * fii / abs(fract(t - 0.01 + fi*0.01) * 5.0 + common);
-          float bVal = lineWidth * fii / abs(fract(t - 0.02 + fi*0.01) * 5.0 + common);
+          float rVal = lineWidth * fii / abs(fract(t + fi*0.01) * 5.0 + commonVal);
+          float gVal = lineWidth * fii / abs(fract(t - 0.01 + fi*0.01) * 5.0 + commonVal);
+          float bVal = lineWidth * fii / abs(fract(t - 0.02 + fi*0.01) * 5.0 + commonVal);
           ring += vec3(rVal, gVal, bVal);
         }
 
