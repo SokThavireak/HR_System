@@ -38,9 +38,10 @@ export function ShaderAnimation({ theme = "light" }) {
         for(int i = 0; i < 5; i++){
           float fi = float(i);
           float fii = float(i*i);
-          ring.r += lineWidth * fii / abs(fract(t + fi*0.01) * 5.0 + common);
-          ring.g += lineWidth * fii / abs(fract(t - 0.01 + fi*0.01) * 5.0 + common);
-          ring.b += lineWidth * fii / abs(fract(t - 0.02 + fi*0.01) * 5.0 + common);
+          float rVal = lineWidth * fii / abs(fract(t + fi*0.01) * 5.0 + common);
+          float gVal = lineWidth * fii / abs(fract(t - 0.01 + fi*0.01) * 5.0 + common);
+          float bVal = lineWidth * fii / abs(fract(t - 0.02 + fi*0.01) * 5.0 + common);
+          ring += vec3(rVal, gVal, bVal);
         }
 
         ring = clamp(ring * 1.5, 0.0, 1.0);
