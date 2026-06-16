@@ -291,12 +291,6 @@ export default function LoginPage({ onLogin }) {
                   />
                   <span className="text-sm text-muted-foreground">Remember me</span>
                 </label>
-                <button
-                  type="button"
-                  className="text-sm font-medium text-primary hover:underline"
-                >
-                  Forgot password?
-                </button>
               </div>
             </StaggerItem>
 
