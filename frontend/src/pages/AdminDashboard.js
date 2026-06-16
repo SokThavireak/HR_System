@@ -2260,9 +2260,9 @@ function PayrollView({ showToast }) {
 
   return (
     <div className="space-y-7">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-2xl font-bold">Payroll System</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button onClick={load} variant="secondary" size="sm"><Icon name="refresh" size={14} /> Refresh</Button>
           <Button onClick={() => setCalcOpen(true)} size="sm"><Icon name="plus" size={14} /> Calculate</Button>
           <Button onClick={handleBulkProcess} variant="outline" size="sm" disabled={bulkLoading}>
@@ -2275,15 +2275,15 @@ function PayrollView({ showToast }) {
       </div>
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <CardTitle className="text-base">Payroll Records ({filterUser || filterDate !== "all" ? filteredPayrolls.length : totalElements})</CardTitle>
-            <div className="flex items-center gap-2">
-              <Select value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="h-8 w-32 text-xs">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+              <Select value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="h-8 w-full sm:w-32 text-xs">
                 <option value="all">All Dates</option>
                 <option value="month">This Month</option>
                 <option value="year">This Year</option>
               </Select>
-              <div className="relative w-96">
+              <div className="relative w-full md:w-80 lg:w-96">
                 <span className="pointer-events-none absolute left-0 top-0 flex h-8 w-8 items-center justify-center text-muted-foreground">
                   <Icon name="search" size={13} />
                 </span>
@@ -2309,23 +2309,23 @@ function PayrollView({ showToast }) {
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <th
-                      className="px-4 py-3 text-left font-semibold cursor-pointer hover:bg-gray-100"
+                      className="px-4 py-3 text-left font-semibold cursor-pointer hover:bg-gray-100 whitespace-nowrap"
                       onClick={() => setSortConfig({ key: "id", asc: sortConfig.key === "id" ? !sortConfig.asc : true, cycle: 0 })}
                     >
                       <div className="flex items-center gap-1">No. {sortConfig.key === "id" && <Icon name={sortConfig.asc ? "chevron-up" : "chevron-down"} size={12} />}</div>
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold">Employee</th>
-                    <th className="px-4 py-3 text-left font-semibold">Emp ID</th>
-                    <th className="px-4 py-3 text-left font-semibold">Period</th>
-                    <th className="px-4 py-3 text-left font-semibold">Base</th>
-                    <th className="px-4 py-3 text-left font-semibold">OT</th>
-                    <th className="px-4 py-3 text-left font-semibold">Extra</th>
-                    <th className="px-4 py-3 text-left font-semibold">IL Payout</th>
-                    <th className="px-4 py-3 text-left font-semibold">Deductions</th>
-                    <th className="px-4 py-3 text-left font-semibold">Gross</th>
-                    <th className="px-4 py-3 text-left font-semibold">Net</th>
+                    <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Employee</th>
+                    <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Emp ID</th>
+                    <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Period</th>
+                    <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Base</th>
+                    <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">OT</th>
+                    <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Extra</th>
+                    <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">IL Payout</th>
+                    <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Deductions</th>
+                    <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Gross</th>
+                    <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Net</th>
                     <th
-                      className="px-4 py-3 text-left font-semibold cursor-pointer hover:bg-gray-100"
+                      className="px-4 py-3 text-left font-semibold cursor-pointer hover:bg-gray-100 whitespace-nowrap"
                       onClick={() => {
                         if (sortConfig.key === "status") {
                           if (sortConfig.cycle === 2) setSortConfig({ key: "id", asc: true, cycle: 0 });
@@ -2337,7 +2337,7 @@ function PayrollView({ showToast }) {
                     >
                       <div className="flex items-center gap-1">Status {sortConfig.key === "status" && <Icon name={sortConfig.cycle === 0 ? "chevron-up" : sortConfig.cycle === 1 ? "minus" : "chevron-down"} size={12} />}</div>
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold">Actions</th>
+                    <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2355,14 +2355,19 @@ function PayrollView({ showToast }) {
                     return 0;
                   }).map((pr, index) => (
                     <tr key={pr.id} className="border-b border-gray-100 hover:bg-gray-50" style={actionLoading === pr.id ? { opacity: 0.6 } : undefined}>
-                      <td className="font-mono text-xs text-muted-foreground">{page * 20 + index + 1}</td>
-                      <td className="font-medium">{(pr.user || {}).firstName} {(pr.user || {}).lastName}</td>
-                      <td className="text-xs text-muted-foreground">{(pr.user || {}).employeeId || pr.userId || "—"}</td>
-                      <td className="px-4 py-3">{pr.payPeriodStart} — {pr.payPeriodEnd}</td>
-                      <td className="px-4 py-3">${pr.baseSalary}</td><td className="px-4 py-3">${pr.overtimePay || 0}</td><td className="px-4 py-3">${pr.extraSalary || 0}</td><td className="px-4 py-3">{pr.ilPayout ? <span className="text-purple-600 font-semibold">${pr.ilPayout}</span> : "—"}</td><td className="px-4 py-3">${pr.totalDeductions}</td>
-                      <td className="font-semibold">${pr.grossSalary}</td><td className="font-semibold text-emerald-600">${pr.netSalary}</td>
-                      <td className="px-4 py-3"><Badge variant={pr.status === "PAID" ? "success" : pr.status === "PROCESSED" ? "warning" : "default"}>{pr.status}</Badge></td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">{page * 20 + index + 1}</td>
+                      <td className="px-4 py-3 font-medium whitespace-nowrap">{(pr.user || {}).firstName} {(pr.user || {}).lastName}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{(pr.user || {}).employeeId || pr.userId || "—"}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{pr.payPeriodStart} — {pr.payPeriodEnd}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">${pr.baseSalary}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">${pr.overtimePay || 0}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">${pr.extraSalary || 0}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{pr.ilPayout ? <span className="text-purple-600 font-semibold">${pr.ilPayout}</span> : "—"}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">${pr.totalDeductions}</td>
+                      <td className="px-4 py-3 font-semibold whitespace-nowrap">${pr.grossSalary}</td>
+                      <td className="px-4 py-3 font-semibold text-emerald-600 whitespace-nowrap">${pr.netSalary}</td>
+                      <td className="px-4 py-3 whitespace-nowrap"><Badge variant={pr.status === "PAID" ? "success" : pr.status === "PROCESSED" ? "warning" : "default"}>{pr.status}</Badge></td>
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex gap-1">
                           {pr.status === "DRAFT" && <button onClick={() => processRec(pr.id)} title="Process" className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"><Icon name="clock" size={14} /></button>}
                           {pr.status === "PROCESSED" && <button onClick={() => payRec(pr.id)} title="Mark Paid" className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 cursor-pointer"><Icon name="check" size={14} /></button>}
