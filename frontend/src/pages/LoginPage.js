@@ -84,6 +84,11 @@ export default function LoginPage({ onLogin }) {
     }
   };
 
+  // Wake up the backend on mount (Render cold-start optimization)
+  React.useEffect(() => {
+    authService.getCurrentUser().catch(() => {});
+  }, []);
+
   // Auto-cycle testimonials every 5 seconds
   React.useEffect(() => {
     const timer = setInterval(() => {

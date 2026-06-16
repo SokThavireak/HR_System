@@ -13,16 +13,37 @@ const CubeFaces = () => (
   </>
 );
 
-export const LoginLoader = () => (
-  <div className="loader-container">
-    <div className="boxes boxes-large">
-      <div className="box box-1"><CubeFaces /></div>
-      <div className="box box-2"><CubeFaces /></div>
-      <div className="box box-3"><CubeFaces /></div>
-      <div className="box box-4"><CubeFaces /></div>
+export const LoginLoader = () => {
+  const [showWakeupText, setShowWakeupText] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowWakeupText(true);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="loader-container" style={{ flexDirection: "column", gap: "24px" }}>
+      <div className="boxes boxes-large">
+        <div className="box box-1"><CubeFaces /></div>
+        <div className="box box-2"><CubeFaces /></div>
+        <div className="box box-3"><CubeFaces /></div>
+        <div className="box box-4"><CubeFaces /></div>
+      </div>
+      {showWakeupText && (
+        <div className="text-center px-4 max-w-sm animate-element">
+          <p className="text-sm font-semibold text-[#9a0002] animate-pulse">
+            Waking up server...
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            This can take up to a minute on the first load as our free-tier hosting spins up. Thank you for your patience!
+          </p>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 /* ═══════════════════════════════════════════
    SHARED SKELETON PRIMITIVES

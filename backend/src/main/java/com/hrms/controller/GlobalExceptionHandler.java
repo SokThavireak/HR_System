@@ -2,6 +2,7 @@ package com.hrms.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -44,6 +45,13 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", msg));
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", msg));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, String>> handleAuthenticationException(AuthenticationException ex) {
+        String msg = ex.getMessage();
+        if (msg == null) msg = "Authentication failed";
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", msg));
     }
 
     @ExceptionHandler(Exception.class)
