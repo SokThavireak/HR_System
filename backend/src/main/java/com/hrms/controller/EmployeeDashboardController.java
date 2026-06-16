@@ -1,6 +1,7 @@
 package com.hrms.controller;
 
 import com.hrms.entity.User;
+import com.hrms.entity.Attendance.AttendanceStatus;
 import com.hrms.repository.AttendanceRepository;
 import com.hrms.repository.PayrollRepository;
 import com.hrms.repository.PerformanceReviewRepository;
@@ -34,9 +35,9 @@ public class EmployeeDashboardController {
         User user = currentUser(ud);
         var now = LocalDate.now();
         var startOfMonth = now.withDayOfMonth(1);
-        long presentDays = attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), "PRESENT", startOfMonth, now) != null ? attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), "PRESENT", startOfMonth, now) : 0;
-        long lateDays = attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), "LATE", startOfMonth, now) != null ? attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), "LATE", startOfMonth, now) : 0;
-        long absentDays = attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), "ABSENT", startOfMonth, now) != null ? attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), "ABSENT", startOfMonth, now) : 0;
+        long presentDays = attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), AttendanceStatus.PRESENT, startOfMonth, now) != null ? attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), AttendanceStatus.PRESENT, startOfMonth, now) : 0;
+        long lateDays = attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), AttendanceStatus.LATE, startOfMonth, now) != null ? attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), AttendanceStatus.LATE, startOfMonth, now) : 0;
+        long absentDays = attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), AttendanceStatus.ABSENT, startOfMonth, now) != null ? attendanceRepo.countByUserIdAndStatusAndDateBetween(user.getId(), AttendanceStatus.ABSENT, startOfMonth, now) : 0;
         Double totalHours = attendanceRepo.sumHoursWorked(user.getId(), startOfMonth, now);
 
         long totalDays = presentDays + lateDays + absentDays;

@@ -38,5 +38,5 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     @Query("SELECT COUNT(a) FROM Attendance a WHERE a.date BETWEEN :from AND :to AND a.status IN ('PRESENT', 'LATE')")
     long countByStatus(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
-    Long countByUserIdAndStatusAndDateBetween(Long userId, String status, LocalDate from, LocalDate to);
+    Long countByUserIdAndStatusAndDateBetween(Long userId, Attendance.AttendanceStatus status, LocalDate from, LocalDate to);
 }

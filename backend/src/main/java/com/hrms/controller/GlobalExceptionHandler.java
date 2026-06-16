@@ -27,6 +27,7 @@ public class GlobalExceptionHandler {
         if (msg.contains("no base salary") || msg.contains("must be greater than 0")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", msg));
         }
+        ex.printStackTrace();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", msg));
     }
 
@@ -56,6 +57,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleException(Exception ex) {
+        ex.printStackTrace();
         String msg = ex.getMessage();
         if (msg == null) msg = "Internal server error";
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", msg));

@@ -41,7 +41,15 @@ public class EmployeeAttendanceController {
     public ResponseEntity<?> getToday(@AuthenticationPrincipal UserDetails ud) {
         User user = currentUser(ud);
         Attendance a = attendanceService.findByUserAndDate(user.getId(), LocalDate.now());
-        return a != null ? ResponseEntity.ok(a) : ResponseEntity.ok(Map.of("clockInTime", null, "clockOutTime", null, "message", "Not clocked in today"));
+        if (a != null) {
+            return ResponseEntity.ok(a);
+        } else {
+            Map<String, Object> response = new java.util.HashMap<>();
+            response.put("clockInTime", null);
+            response.put("clockOutTime", null);
+            response.put("message", "Not clocked in today");
+            return ResponseEntity.ok(response);
+        }
     }
 
     @GetMapping
