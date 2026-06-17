@@ -9,5 +9,5 @@ backend/.mvn/
 .claude/
 .vscode/
 *.class
-CLAUDE.md
-**/GEMINI.md
+# Ignore all markdown files
+*.md
