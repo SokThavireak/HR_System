@@ -47,23 +47,28 @@ public class DataSeeder {
                     System.out.println("[DataSeeder] Error dropping roles_name_check: " + e.getMessage());
                 }
 
-            try {
-                List<Map<String, Object>> rows = jdbcTemplate.queryForList("SELECT id, employee_id, email FROM users ORDER BY employee_id");
-                System.out.println("[DataSeeder] Existing users in DB:");
-                for (Map<String, Object> r : rows) {
-                    System.out.println("  email: " + r.get("email") + ", employee_id: '" + r.get("employee_id") + "' (id: " + r.get("id") + ")");
+                boolean shouldReset = Boolean.parseBoolean(System.getProperty("RESET_DB", System.getenv().getOrDefault("RESET_DB", "true")));
+                if (shouldReset) {
+                    System.out.println("[DataSeeder] 🧹 Clearing all database tables to reset to 50 employees...");
+                    try {
+                        jdbcTemplate.execute("TRUNCATE TABLE attendances, performance_reviews, payrolls, leave_requests, user_roles, users CASCADE");
+                        System.out.println("[DataSeeder] ✅ Tables cleared successfully.");
+                    } catch (Exception te) {
+                        try {
+                            attendanceRepo.deleteAll();
+                            reviewRepo.deleteAll();
+                            payrollRepo.deleteAll();
+                            leaveRepo.deleteAll();
+                            userRepo.deleteAll();
+                            System.out.println("[DataSeeder] Repositories cleared.");
+                        } catch (Exception re) {
+                            System.out.println("[DataSeeder] Notice clearing tables: " + re.getMessage());
+                        }
+                    }
                 }
-            } catch (Exception e) {
-                System.out.println("[DataSeeder] Error querying users: " + e.getMessage());
-            }
 
-            // Init employeeId counter from existing data
-            String maxId = userRepo.findMaxEmployeeId();
-            long maxVal = 0;
-            if (maxId != null) {
-                try { maxVal = Long.parseLong(maxId); } catch (NumberFormatException ignored) {}
-            }
-            com.hrms.entity.User.initCounter(maxVal);
+                // Init employeeId counter
+                com.hrms.entity.User.initCounter(0);
 
             // Backfill employeeId for existing users that have null
             List<User> usersWithoutId = userRepo.findAll().stream()
@@ -258,7 +263,7 @@ public class DataSeeder {
             }
             System.out.println("[DataSeeder] Positions: " + posData.length);
 
-            // ── 3. Seed Users (idempotent) ──
+            // ── 3. Seed Exactly 50 Employees (idempotent) ──
             Object[][] empData = {
                 {"sophia.chen@hrms.local",    "Sophia",   "Chen",     "+1-555-0201", 1, 1, 95000, "2023-01-09"},
                 {"marcus.johnson@hrms.local", "Marcus",   "Johnson",  "+1-555-0202", 1, 2, 75000, "2023-04-17"},
@@ -290,6 +295,26 @@ public class DataSeeder {
                 {"claire.dubois@hrms.local",  "Claire",   "Dubois",   "+1-555-0228", 8, 28, 65000, "2023-09-01"},
                 {"alex.morgan@hrms.local",    "Alex",     "Morgan",   "+1-555-0229", 9, 29, 72000, "2022-10-15"},
                 {"jenny.adams@hrms.local",    "Jenny",    "Adams",    "+1-555-0230", 9, 30, 48000, "2023-12-01"},
+                {"lucas.mora@hrms.local",     "Lucas",    "Mora",     "+1-555-0231", 1, 2, 76000, "2023-05-15"},
+                {"elena.rostova@hrms.local",  "Elena",    "Rostova",  "+1-555-0232", 1, 4, 71000, "2024-01-20"},
+                {"benjamin.tate@hrms.local",  "Benjamin", "Tate",     "+1-555-0233", 1, 5, 74000, "2023-11-05"},
+                {"chloe.bennett@hrms.local",  "Chloe",    "Bennett",  "+1-555-0234", 2, 8, 62000, "2024-02-12"},
+                {"tarik.mansour@hrms.local",  "Tarik",    "Mansour",  "+1-555-0235", 2, 10, 59000, "2024-06-01"},
+                {"hannah.schmidt@hrms.local", "Hannah",   "Schmidt",  "+1-555-0236", 3, 12, 69000, "2023-03-10"},
+                {"samuel.okoro@hrms.local",   "Samuel",   "Okoro",    "+1-555-0237", 3, 13, 63000, "2024-01-18"},
+                {"grace.nakamura@hrms.local", "Grace",    "Nakamura", "+1-555-0238", 4, 15, 56000, "2023-09-25"},
+                {"victor.gomez@hrms.local",   "Victor",   "Gomez",    "+1-555-0239", 4, 16, 51000, "2024-03-05"},
+                {"leila.yadav@hrms.local",    "Leila",    "Yadav",    "+1-555-0240", 5, 18, 66000, "2023-08-11"},
+                {"ethan.ward@hrms.local",     "Ethan",    "Ward",     "+1-555-0241", 5, 19, 53000, "2024-04-02"},
+                {"zoe.fischer@hrms.local",    "Zoe",      "Fischer",  "+1-555-0242", 6, 22, 59000, "2023-06-20"},
+                {"mateo.silva@hrms.local",    "Mateo",    "Silva",    "+1-555-0243", 6, 23, 62000, "2023-12-15"},
+                {"amelia.clark@hrms.local",   "Amelia",   "Clark",    "+1-555-0244", 7, 25, 68000, "2023-08-01"},
+                {"noah.jensen@hrms.local",    "Noah",     "Jensen",   "+1-555-0245", 7, 26, 55000, "2024-05-10"},
+                {"maya.lin@hrms.local",       "Maya",     "Lin",      "+1-555-0246", 8, 28, 66000, "2023-10-18"},
+                {"ryan.o_connor@hrms.local",  "Ryan",     "O'Connor", "+1-555-0247", 9, 30, 49000, "2024-01-08"},
+                {"simon.bauer@hrms.local",    "Simon",    "Bauer",    "+1-555-0248", 1, 3, 83000, "2023-09-12"},
+                {"alyssa.vance@hrms.local",   "Alyssa",   "Vance",    "+1-555-0249", 2, 7, 81000, "2022-12-05"},
+                {"nathan.drake@hrms.local",   "Nathan",   "Drake",    "+1-555-0250", 5, 17, 93000, "2022-05-19"},
             };
 
             List<User> users = new ArrayList<>();
@@ -389,26 +414,26 @@ public class DataSeeder {
                 User u = users.get(i);
                 if (payrollRepo.findByUserIdAndPayPeriodStartAndPayPeriodEnd(u.getId(), monthStart, monthEnd).isPresent()) continue;
                 BigDecimal base = u.getBaseSalary().divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
-                BigDecimal extra = BigDecimal.valueOf(extras[i]);
+                BigDecimal extra = BigDecimal.valueOf(extras[i % extras.length]);
                 BigDecimal hourlyRate = base.divide(BigDecimal.valueOf(160), 2, RoundingMode.HALF_UP);
-                BigDecimal otPay = hourlyRate.multiply(BigDecimal.valueOf(1.5)).multiply(BigDecimal.valueOf(otHoursArr[i])).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal otPay = hourlyRate.multiply(BigDecimal.valueOf(1.5)).multiply(BigDecimal.valueOf(otHoursArr[i % otHoursArr.length])).setScale(2, RoundingMode.HALF_UP);
                 BigDecimal gross = base.add(extra).add(otPay);
                 BigDecimal tax = gross.multiply(BigDecimal.valueOf(0.15)).setScale(2, RoundingMode.HALF_UP);
                 BigDecimal insurance = gross.multiply(BigDecimal.valueOf(0.04)).setScale(2, RoundingMode.HALF_UP);
-                BigDecimal otherDed = BigDecimal.valueOf(others[i]);
+                BigDecimal otherDed = BigDecimal.valueOf(others[i % others.length]);
                 BigDecimal totalDed = tax.add(insurance).add(otherDed);
                 BigDecimal net = gross.subtract(totalDed);
                 BigDecimal lateDed = (i % 4 == 0) ? BigDecimal.valueOf(25) : BigDecimal.ZERO;
                 payrollRepo.save(Payroll.builder()
                     .user(u).payPeriodStart(monthStart).payPeriodEnd(monthEnd)
                     .baseSalary(base).fullTimeWorkHours(160.0)
-                    .actualWorkHours(160.0 + otHoursArr[i] - (i % 3 == 0 ? 2 : 0))
-                    .overtimeHours((double) otHoursArr[i]).overtimePay(otPay).extraSalary(extra)
+                    .actualWorkHours(160.0 + otHoursArr[i % otHoursArr.length] - (i % 3 == 0 ? 2 : 0))
+                    .overtimeHours((double) otHoursArr[i % otHoursArr.length]).overtimePay(otPay).extraSalary(extra)
                     .lateDeduction(lateDed).lateMinutes(i % 4 == 0 ? 15 : 0)
                     .taxDeduction(tax).insuranceDeduction(insurance).otherDeductions(otherDed)
                     .grossSalary(gross).totalDeductions(totalDed).netSalary(net)
-                    .status(payrollStatuses[i])
-                    .paymentDate(payrollStatuses[i] == PayrollStatus.PAID ? LocalDate.of(2025, 7, 5) : null)
+                    .status(payrollStatuses[i % payrollStatuses.length])
+                    .paymentDate(payrollStatuses[i % payrollStatuses.length] == PayrollStatus.PAID ? LocalDate.of(2025, 7, 5) : null)
                     .build());
                 payrollCount++;
             }
@@ -496,8 +521,8 @@ public class DataSeeder {
                     .employee(u).reviewer(adminUser)
                     .reviewPeriodStart(reviewStart).reviewPeriodEnd(reviewEnd)
                     .qualityScore(q).productivityScore(p).communicationScore(c)
-                    .teamworkScore(t).punctualityScore(pu).overallScore(overallScores[i])
-                    .feedback(feedbacks[i]).goals(goals[i])
+                    .teamworkScore(t).punctualityScore(pu).overallScore(overallScores[i % overallScores.length])
+                    .feedback(feedbacks[i % feedbacks.length]).goals(goals[i % goals.length])
                     .createdAt(LocalDateTime.now().minusDays(60)).build());
                 reviewCount++;
             }
