@@ -2,10 +2,25 @@
 frontend/node_modules/
 frontend/build/
 frontend/.env.local
+node_modules/
+
+# Environment files, secrets and credentials (CRITICAL: NEVER COMMIT SECRETS)
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+.env
+.env.*
+*.env
+*.env.local
+*.env.*.local
+*.secret
+secrets/
 
 # Ignore Java build files and IDE settings
 backend/target/
 backend/.mvn/
+backend/tools/
 .claude/
 .vscode/
 *.class

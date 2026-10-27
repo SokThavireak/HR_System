@@ -78,6 +78,28 @@ export default function LoginPage({ onLogin }) {
         onLogin(data);
       }
     } catch (err) {
+      // Offline fallback for demo accounts so user can preview and screenshot all pages
+      if (email === "admin@hrms.local" || email === "viewer@hrms.local" || email === "employee@hrms.local") {
+        const isAdmin = email === "admin@hrms.local";
+        const isViewer = email === "viewer@hrms.local";
+        const demoUser = {
+          id: isAdmin ? 1 : (isViewer ? 999 : 2),
+          employeeId: isAdmin ? "000001" : (isViewer ? "999999" : "000002"),
+          email: email,
+          firstName: isAdmin ? "Admin" : (isViewer ? "Viewer" : "Demo"),
+          lastName: "User",
+          department: "Human Resources",
+          position: isAdmin ? "HR Administrator" : (isViewer ? "HR Viewer" : "Software Engineer"),
+          roles: isAdmin ? ["ROLE_HR_ADMIN"] : (isViewer ? ["ROLE_HR_VIEWER"] : ["ROLE_EMPLOYEE"]),
+          token: "demo-portfolio-token",
+        };
+        localStorage.setItem("hrms_token", demoUser.token);
+        localStorage.setItem("hrms_user", JSON.stringify(demoUser));
+        localStorage.setItem("hrms_role", isAdmin || isViewer ? "admin" : "employee");
+        localStorage.setItem("hrms_login_time", String(Date.now()));
+        onLogin(demoUser);
+        return;
+      }
       setError(err.message || "Invalid credentials. Please try again.");
     } finally {
       setLoading(false);

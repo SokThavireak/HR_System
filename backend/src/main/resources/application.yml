@@ -4,10 +4,10 @@ server:
 spring:
   datasource:
 
-    url: jdbc:postgresql://dpg-d8ml14rbc2fs73e3t420-a.singapore-postgres.render.com:5432/hrms_6dhs?sslmode=require
+    url: ${SPRING_DATASOURCE_URL:${NEON_DATABASE_URL:jdbc:postgresql://${NEON_DB_HOST:localhost}:${NEON_DB_PORT:5432}/${NEON_DB_NAME:hr_system}${NEON_DB_PARAMS:}}}
     driver-class-name: org.postgresql.Driver
-    username: hrms
-    password: "m2dSZ1DuhFHZsnqw4rhemsw7ZdjoaIsy"
+    username: ${SPRING_DATASOURCE_USERNAME:${NEON_DB_USER:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${NEON_DB_PASSWORD:051126}}
   jpa:
     hibernate:
       ddl-auto: update

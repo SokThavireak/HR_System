@@ -41,10 +41,11 @@ public class DataSeeder {
     CommandLineRunner seedDatabase() {
         return args -> {
             try {
-                jdbcTemplate.execute("ALTER TABLE roles DROP CONSTRAINT IF EXISTS roles_name_check");
-            } catch (Exception e) {
-                System.out.println("[DataSeeder] Error dropping roles_name_check: " + e.getMessage());
-            }
+                try {
+                    jdbcTemplate.execute("ALTER TABLE roles DROP CONSTRAINT IF EXISTS roles_name_check");
+                } catch (Exception e) {
+                    System.out.println("[DataSeeder] Error dropping roles_name_check: " + e.getMessage());
+                }
 
             try {
                 List<Map<String, Object>> rows = jdbcTemplate.queryForList("SELECT id, employee_id, email FROM users ORDER BY employee_id");
@@ -298,9 +299,9 @@ public class DataSeeder {
                 final int deptIdx = (int) e[4];
                 final int posIdx = (int) e[5];
                 User user = userRepo.findByEmail((String) e[0]).orElseGet(() -> {
-                    String desiredEmpId = String.format("%06d", empIdx + 1);
+                    String desiredEmpId = String.format("%06d", empIdx + 2);
                     if (userRepo.existsByEmployeeId(desiredEmpId)) {
-                        desiredEmpId = null;
+                        desiredEmpId = String.format("%06d", com.hrms.entity.User.getNextId());
                     }
                     User u = User.builder()
                         .employeeId(desiredEmpId)
@@ -503,6 +504,10 @@ public class DataSeeder {
             System.out.println("[DataSeeder] Performance reviews: " + reviewCount);
 
             System.out.println("[DataSeeder] ✅ Seed data check complete!");
+            } catch (Exception e) {
+                System.out.println("[DataSeeder] Notice during seedDatabase: " + e.getMessage());
+                e.printStackTrace();
+            }
         };
     }
 
@@ -514,85 +519,89 @@ public class DataSeeder {
     @Order(2)
     CommandLineRunner seedAttendance() {
         return args -> {
-            if (userRepo.count() <= 1) return;
+            try {
+                if (userRepo.count() <= 1) return;
 
-            LocalDate today = LocalDate.now();
-            LocalDate monthStart = today.withDayOfMonth(1);
-            LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
+                LocalDate today = LocalDate.now();
+                LocalDate monthStart = today.withDayOfMonth(1);
+                LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
 
-            // Build work days for current month
-            List<LocalDate> workDayList = new ArrayList<>();
-            for (LocalDate d = monthStart; d.isBefore(today); d = d.plusDays(1)) {
-                int dow = d.getDayOfWeek().getValue();
-                if (dow <= 5) workDayList.add(d);
-            }
-
-            List<User> users = userRepo.findAll().stream()
-                .filter(u -> u.getRoles().stream()
-                    .noneMatch(r -> r.getName() == com.hrms.entity.Role.RoleName.ROLE_HR_ADMIN))
-                .collect(java.util.stream.Collectors.toList());
-
-            Random rng = new Random(42);
-            List<Attendance> newRecords = new ArrayList<>();
-
-            for (User u : users) {
-                for (LocalDate date : workDayList) {
-                    // Skip if already clocked in for today (real entry)
-                    boolean exists = attendanceRepo.existsByUserIdAndDate(u.getId(), date);
-                    if (exists) continue;
-
-                    int roll = rng.nextInt(100);
-                    AttendanceStatus status;
-                    double hours;
-                    int lateMin;
-                    LocalDateTime clockIn;
-                    LocalDateTime clockOut;
-
-                    if (roll < 5) {
-                        status = AttendanceStatus.ABSENT;
-                        hours = 0;
-                        lateMin = 0;
-                        clockIn = null;
-                        clockOut = null;
-                    } else if (roll < 15) {
-                        status = AttendanceStatus.LATE;
-                        lateMin = 10 + rng.nextInt(35);
-                        clockIn = LocalDateTime.of(date, LocalTime.of(9, lateMin));
-                        clockOut = LocalDateTime.of(date, LocalTime.of(17, 10 + rng.nextInt(20)));
-                        hours = Math.max(0, 8.0 - (lateMin / 60.0));
-                    } else if (roll < 20) {
-                        status = AttendanceStatus.HALF_DAY;
-                        hours = 4.0;
-                        lateMin = 0;
-                        clockIn = LocalDateTime.of(date, LocalTime.of(9, 0));
-                        clockOut = LocalDateTime.of(date, LocalTime.of(13, 0));
-                    } else {
-                        status = AttendanceStatus.PRESENT;
-                        hours = 8.0 + rng.nextDouble() * 0.5;
-                        lateMin = 0;
-                        clockIn = LocalDateTime.of(date, LocalTime.of(8, 45 + rng.nextInt(15)));
-                        clockOut = LocalDateTime.of(date, LocalTime.of(17, 5 + rng.nextInt(25)));
-                    }
-
-                    double ot = Math.max(0, hours - 8.0);
-                    newRecords.add(Attendance.builder()
-                        .user(u)
-                        .date(date)
-                        .clockInTime(clockIn)
-                        .clockOutTime(clockOut)
-                        .status(status)
-                        .hoursWorked(Math.round(hours * 100.0) / 100.0)
-                        .overtimeHours(Math.round(ot * 100.0) / 100.0)
-                        .lateMinutes(lateMin)
-                        .build());
+                // Build work days for current month
+                List<LocalDate> workDayList = new ArrayList<>();
+                for (LocalDate d = monthStart; d.isBefore(today); d = d.plusDays(1)) {
+                    int dow = d.getDayOfWeek().getValue();
+                    if (dow <= 5) workDayList.add(d);
                 }
-            }
 
-            if (!newRecords.isEmpty()) {
-                attendanceRepo.saveAll(newRecords);
-                System.out.println("[DataSeeder] Seeded " + newRecords.size() + " attendance records for " + today.getMonth() + " " + today.getYear());
-            } else {
-                System.out.println("[DataSeeder] Attendance already complete for " + today.getMonth() + " " + today.getYear());
+                List<User> users = userRepo.findAll().stream()
+                    .filter(u -> u.getRoles().stream()
+                        .noneMatch(r -> r.getName() == com.hrms.entity.Role.RoleName.ROLE_HR_ADMIN))
+                    .collect(java.util.stream.Collectors.toList());
+
+                Random rng = new Random(42);
+                List<Attendance> newRecords = new ArrayList<>();
+
+                for (User u : users) {
+                    for (LocalDate date : workDayList) {
+                        // Skip if already clocked in for today (real entry)
+                        boolean exists = attendanceRepo.existsByUserIdAndDate(u.getId(), date);
+                        if (exists) continue;
+
+                        int roll = rng.nextInt(100);
+                        AttendanceStatus status;
+                        double hours;
+                        int lateMin;
+                        LocalDateTime clockIn;
+                        LocalDateTime clockOut;
+
+                        if (roll < 5) {
+                            status = AttendanceStatus.ABSENT;
+                            hours = 0;
+                            lateMin = 0;
+                            clockIn = null;
+                            clockOut = null;
+                        } else if (roll < 15) {
+                            status = AttendanceStatus.LATE;
+                            lateMin = 10 + rng.nextInt(35);
+                            clockIn = LocalDateTime.of(date, LocalTime.of(9, lateMin));
+                            clockOut = LocalDateTime.of(date, LocalTime.of(17, 10 + rng.nextInt(20)));
+                            hours = Math.max(0, 8.0 - (lateMin / 60.0));
+                        } else if (roll < 20) {
+                            status = AttendanceStatus.HALF_DAY;
+                            hours = 4.0;
+                            lateMin = 0;
+                            clockIn = LocalDateTime.of(date, LocalTime.of(9, 0));
+                            clockOut = LocalDateTime.of(date, LocalTime.of(13, 0));
+                        } else {
+                            status = AttendanceStatus.PRESENT;
+                            hours = 8.0 + rng.nextDouble() * 0.5;
+                            lateMin = 0;
+                            clockIn = LocalDateTime.of(date, LocalTime.of(8, 45 + rng.nextInt(15)));
+                            clockOut = LocalDateTime.of(date, LocalTime.of(17, 5 + rng.nextInt(25)));
+                        }
+
+                        double ot = Math.max(0, hours - 8.0);
+                        newRecords.add(Attendance.builder()
+                            .user(u)
+                            .date(date)
+                            .clockInTime(clockIn)
+                            .clockOutTime(clockOut)
+                            .status(status)
+                            .hoursWorked(Math.round(hours * 100.0) / 100.0)
+                            .overtimeHours(Math.round(ot * 100.0) / 100.0)
+                            .lateMinutes(lateMin)
+                            .build());
+                    }
+                }
+
+                if (!newRecords.isEmpty()) {
+                    attendanceRepo.saveAll(newRecords);
+                    System.out.println("[DataSeeder] Seeded " + newRecords.size() + " attendance records for " + today.getMonth() + " " + today.getYear());
+                } else {
+                    System.out.println("[DataSeeder] Attendance already complete for " + today.getMonth() + " " + today.getYear());
+                }
+            } catch (Exception e) {
+                System.out.println("[DataSeeder] Notice during seedAttendance: " + e.getMessage());
             }
         };
     }
@@ -605,94 +614,98 @@ public class DataSeeder {
     @Order(3)
     CommandLineRunner seedLeaves() {
         return args -> {
-            if (userRepo.count() <= 1) return;
+            try {
+                if (userRepo.count() <= 1) return;
 
-            User adminUser = userRepo.findByEmail("admin@hrms.local").orElse(null);
-            // Get only non-admin employees (skip admin at index 0)
-            List<User> users = userRepo.findAll().stream()
-                .filter(u -> !u.getId().equals(adminUser != null ? adminUser.getId() : -1L))
-                .collect(java.util.stream.Collectors.toList());
-            LocalDate today = LocalDate.now();
+                User adminUser = userRepo.findByEmail("admin@hrms.local").orElse(null);
+                // Get only non-admin employees (skip admin at index 0)
+                List<User> users = userRepo.findAll().stream()
+                    .filter(u -> !u.getId().equals(adminUser != null ? adminUser.getId() : -1L))
+                    .collect(java.util.stream.Collectors.toList());
+                LocalDate today = LocalDate.now();
 
-            // Reset leave used counts and IL payout flag for all users
-            for (User u : users) {
-                u.setIlLeaveUsed(0);
-                u.setSickLeaveUsed(0);
-                u.setSpecialLeaveUsed(0);
-                u.setUnusedIlPaid(false);
-                userRepo.save(u);
-            }
-
-            // Always delete old leaves and re-seed with current month dates
-            leaveRepo.deleteAll();
-
-            // Build current-month leave dates
-            LocalDate lm1 = today.withDayOfMonth(Math.min(3, today.lengthOfMonth()));
-            LocalDate lm2 = today.withDayOfMonth(Math.min(7, today.lengthOfMonth()));
-            LocalDate lm3 = today.withDayOfMonth(Math.min(10, today.lengthOfMonth()));
-            LocalDate lm4 = today.withDayOfMonth(Math.min(14, today.lengthOfMonth()));
-            LocalDate lm5 = today.withDayOfMonth(Math.min(17, today.lengthOfMonth()));
-            LocalDate lm6 = today.withDayOfMonth(Math.min(21, today.lengthOfMonth()));
-            LocalDate lm7 = today.withDayOfMonth(Math.min(24, today.lengthOfMonth()));
-
-            Object[][] leaveData = {
-                {0,  LeaveType.IL,         lm1,       lm2,       5,  "Family vacation",           LeaveStatus.APPROVED},
-                {5,  LeaveType.SICK,       lm3,       lm3.plusDays(1), 2, "Medical appointment",  LeaveStatus.APPROVED},
-                {9,  LeaveType.IL,         lm4,       lm5,       5,  "Summer break",               LeaveStatus.APPROVED},
-                {15, LeaveType.EMERGENCY,  lm1,       lm1,       1,  "Family emergency",           LeaveStatus.APPROVED},
-                {25, LeaveType.IL,         lm5,       lm6,       5,  "Trip to Japan",              LeaveStatus.APPROVED},
-                {28, LeaveType.SICK,       lm6,       lm7,       2,  "Dental surgery recovery",    LeaveStatus.APPROVED},
-                {1,  LeaveType.IL,         lm2,       lm3,       5,  "Visiting relatives",         LeaveStatus.PENDING},
-                {10, LeaveType.SICK,       lm4,       lm4.plusDays(1), 2, "Scheduled surgery",    LeaveStatus.PENDING},
-                {17, LeaveType.SPECIAL,    lm5,       lm7,       10, "Maternity leave",            LeaveStatus.PENDING},
-                {22, LeaveType.IL,         lm6,       lm7,       5,  "Wedding anniversary trip",   LeaveStatus.PENDING},
-                {26, LeaveType.EMERGENCY,  lm3,       lm3,       1,  "Home repair emergency",      LeaveStatus.PENDING},
-                {6,  LeaveType.IL,         lm1,       lm2,       5,  "Personal travel",            LeaveStatus.REJECTED},
-                {13, LeaveType.UNPAID,     lm4,       lm6,       10, "Extended personal project",  LeaveStatus.REJECTED},
-                {23, LeaveType.IL,         lm5,       lm7,       10, "Too many on leave",          LeaveStatus.REJECTED},
-            };
-
-            List<LeaveRequest> leaves = new ArrayList<>();
-            for (Object[] l : leaveData) {
-                User u = users.get((int) l[0]);
-                LeaveStatus ls = (LeaveStatus) l[6];
-                LocalDate start = (LocalDate) l[2];
-                LocalDate end = (LocalDate) l[3];
-                int calculatedDays = (int) java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
-                LeaveRequest lr = LeaveRequest.builder()
-                    .user(u)
-                    .leaveType((LeaveType) l[1])
-                    .startDate(start)
-                    .endDate(end)
-                    .totalDays(calculatedDays)
-                    .reason((String) l[5])
-                    .createdAt(LocalDateTime.now().minusDays(30))
-                    .build();
-                lr.setStatus(ls);
-                if (ls == LeaveStatus.APPROVED) {
-                    lr.setApprovedBy(adminUser);
-                    lr.setApprovedAt(LocalDateTime.now().minusDays(15));
-                } else if (ls == LeaveStatus.REJECTED) {
-                    lr.setApprovedBy(adminUser);
-                    lr.setApprovedAt(LocalDateTime.now().minusDays(10));
-                    lr.setRejectionReason("Insufficient coverage");
+                // Reset leave used counts and IL payout flag for all users
+                for (User u : users) {
+                    u.setIlLeaveUsed(0);
+                    u.setSickLeaveUsed(0);
+                    u.setSpecialLeaveUsed(0);
+                    u.setUnusedIlPaid(false);
+                    userRepo.save(u);
                 }
-                leaves.add(lr);
-            }
-            leaveRepo.saveAll(leaves);
 
-            // Update leave used counts
-            for (User u : users) {
-                long ilUsed = leaveRepo.countByUserAndTypeAndDateRange(u.getId(), LeaveType.IL, today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()));
-                long sickUsed = leaveRepo.countByUserAndTypeAndDateRange(u.getId(), LeaveType.SICK, today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()));
-                long specialUsed = leaveRepo.countByUserAndTypeAndDateRange(u.getId(), LeaveType.SPECIAL, today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()));
-                u.setIlLeaveUsed((int) ilUsed);
-                u.setSickLeaveUsed((int) sickUsed);
-                u.setSpecialLeaveUsed((int) specialUsed);
-                userRepo.save(u);
-            }
+                // Always delete old leaves and re-seed with current month dates
+                leaveRepo.deleteAll();
 
-            System.out.println("[DataSeeder] Re-seeded " + leaves.size() + " leave requests (current month)");
+                // Build current-month leave dates
+                LocalDate lm1 = today.withDayOfMonth(Math.min(3, today.lengthOfMonth()));
+                LocalDate lm2 = today.withDayOfMonth(Math.min(7, today.lengthOfMonth()));
+                LocalDate lm3 = today.withDayOfMonth(Math.min(10, today.lengthOfMonth()));
+                LocalDate lm4 = today.withDayOfMonth(Math.min(14, today.lengthOfMonth()));
+                LocalDate lm5 = today.withDayOfMonth(Math.min(17, today.lengthOfMonth()));
+                LocalDate lm6 = today.withDayOfMonth(Math.min(21, today.lengthOfMonth()));
+                LocalDate lm7 = today.withDayOfMonth(Math.min(24, today.lengthOfMonth()));
+
+                Object[][] leaveData = {
+                    {0,  LeaveType.IL,         lm1,       lm2,       5,  "Family vacation",           LeaveStatus.APPROVED},
+                    {5,  LeaveType.SICK,       lm3,       lm3.plusDays(1), 2, "Medical appointment",  LeaveStatus.APPROVED},
+                    {9,  LeaveType.IL,         lm4,       lm5,       5,  "Summer break",               LeaveStatus.APPROVED},
+                    {15, LeaveType.EMERGENCY,  lm1,       lm1,       1,  "Family emergency",           LeaveStatus.APPROVED},
+                    {25, LeaveType.IL,         lm5,       lm6,       5,  "Trip to Japan",              LeaveStatus.APPROVED},
+                    {28, LeaveType.SICK,       lm6,       lm7,       2,  "Dental surgery recovery",    LeaveStatus.APPROVED},
+                    {1,  LeaveType.IL,         lm2,       lm3,       5,  "Visiting relatives",         LeaveStatus.PENDING},
+                    {10, LeaveType.SICK,       lm4,       lm4.plusDays(1), 2, "Scheduled surgery",    LeaveStatus.PENDING},
+                    {17, LeaveType.SPECIAL,    lm5,       lm7,       10, "Maternity leave",            LeaveStatus.PENDING},
+                    {22, LeaveType.IL,         lm6,       lm7,       5,  "Wedding anniversary trip",   LeaveStatus.PENDING},
+                    {26, LeaveType.EMERGENCY,  lm3,       lm3,       1,  "Home repair emergency",      LeaveStatus.PENDING},
+                    {6,  LeaveType.IL,         lm1,       lm2,       5,  "Personal travel",            LeaveStatus.REJECTED},
+                    {13, LeaveType.UNPAID,     lm4,       lm6,       10, "Extended personal project",  LeaveStatus.REJECTED},
+                    {23, LeaveType.IL,         lm5,       lm7,       10, "Too many on leave",          LeaveStatus.REJECTED},
+                };
+
+                List<LeaveRequest> leaves = new ArrayList<>();
+                for (Object[] l : leaveData) {
+                    User u = users.get((int) l[0]);
+                    LeaveStatus ls = (LeaveStatus) l[6];
+                    LocalDate start = (LocalDate) l[2];
+                    LocalDate end = (LocalDate) l[3];
+                    int calculatedDays = (int) java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
+                    LeaveRequest lr = LeaveRequest.builder()
+                        .user(u)
+                        .leaveType((LeaveType) l[1])
+                        .startDate(start)
+                        .endDate(end)
+                        .totalDays(calculatedDays)
+                        .reason((String) l[5])
+                        .createdAt(LocalDateTime.now().minusDays(30))
+                        .build();
+                    lr.setStatus(ls);
+                    if (ls == LeaveStatus.APPROVED) {
+                        lr.setApprovedBy(adminUser);
+                        lr.setApprovedAt(LocalDateTime.now().minusDays(15));
+                    } else if (ls == LeaveStatus.REJECTED) {
+                        lr.setApprovedBy(adminUser);
+                        lr.setApprovedAt(LocalDateTime.now().minusDays(10));
+                        lr.setRejectionReason("Insufficient coverage");
+                    }
+                    leaves.add(lr);
+                }
+                leaveRepo.saveAll(leaves);
+
+                // Update leave used counts
+                for (User u : users) {
+                    long ilUsed = leaveRepo.countByUserAndTypeAndDateRange(u.getId(), LeaveType.IL, today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()));
+                    long sickUsed = leaveRepo.countByUserAndTypeAndDateRange(u.getId(), LeaveType.SICK, today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()));
+                    long specialUsed = leaveRepo.countByUserAndTypeAndDateRange(u.getId(), LeaveType.SPECIAL, today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()));
+                    u.setIlLeaveUsed((int) ilUsed);
+                    u.setSickLeaveUsed((int) sickUsed);
+                    u.setSpecialLeaveUsed((int) specialUsed);
+                    userRepo.save(u);
+                }
+
+                System.out.println("[DataSeeder] Re-seeded " + leaves.size() + " leave requests (current month)");
+            } catch (Exception e) {
+                System.out.println("[DataSeeder] Notice during seedLeaves: " + e.getMessage());
+            }
         };
     }
 }

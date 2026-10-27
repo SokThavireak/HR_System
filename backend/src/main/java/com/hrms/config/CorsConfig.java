@@ -14,6 +14,7 @@ public class CorsConfig {
         origins.add("http://localhost:3000");
         origins.add("http://localhost:5173");
         origins.add("https://*.onrender.com");
+        origins.add("https://*.vercel.app");
         if (envOrigins != null && !envOrigins.isEmpty()) {
             for (String origin : envOrigins.split(",")) {
                 if (!origin.trim().isEmpty()) {
