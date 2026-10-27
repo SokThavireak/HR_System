@@ -251,53 +251,6 @@ export default function LoginPage({ onLogin }) {
               <p className="mt-1.5 text-sm text-muted-foreground">
                 Sign in to access your dashboard
               </p>
-              {/* Demo Accounts Card with 1-Click Fill */}
-              <div className="mt-4 rounded-xl border border-primary/20 bg-white/70 backdrop-blur-sm p-3.5 text-left text-xs shadow-sm">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="font-bold text-primary flex items-center gap-1.5 text-xs">
-                    ✨ Quick Demo Logins
-                  </span>
-                  <span className="text-[10px] text-muted-foreground bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">Click to fill</span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail("admin@hrms.local");
-                      setPassword("changeme");
-                    }}
-                    className="flex flex-col items-start p-2 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/15 transition-all text-left cursor-pointer"
-                  >
-                    <span className="font-bold text-foreground text-[11px]">👑 Admin</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5">Full HR</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail("viewer@hrms.local");
-                      setPassword("123456789");
-                    }}
-                    className="flex flex-col items-start p-2 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/15 transition-all text-left cursor-pointer"
-                  >
-                    <span className="font-bold text-foreground text-[11px]">👀 Viewer</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5">Read-Only</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail("employee@hrms.local");
-                      setPassword("123456789");
-                    }}
-                    className="flex flex-col items-start p-2 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/15 transition-all text-left cursor-pointer"
-                  >
-                    <span className="font-bold text-foreground text-[11px]">💼 Employee</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5">Self-Service</span>
-                  </button>
-                </div>
-              </div>
             </div>
           </StaggerItem>
 
