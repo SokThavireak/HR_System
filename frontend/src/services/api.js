@@ -1,8 +1,10 @@
 import axios from 'axios';
 
-/* Dev: use "proxy" from package.json → localhost:8080.
-   Prod: override with REACT_APP_API_URL or fall back to relative /api/v1. */
-const API_BASE = process.env.REACT_APP_API_URL || '/api/v1';
+/* Configure API Base URL:
+   Supports REACT_APP_API_URL or VITE_API_URL with automatic /api/v1 normalization */
+const rawUrl = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || '';
+const cleanUrl = rawUrl.replace(/\/+$/, '');
+const API_BASE = cleanUrl ? (cleanUrl.endsWith('/api/v1') ? cleanUrl : `${cleanUrl}/api/v1`) : '/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE,
