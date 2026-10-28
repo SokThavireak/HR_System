@@ -11,7 +11,7 @@ export const attendanceService = {
     api.get('/employee/attendance/monthly', { params: { month, year } }),
 
   /* ---------- Admin endpoints ---------- */
-  getAllAttendance: (from, to, userId, page = 0, size = 20, id = null, employeeId = null) =>
+  getAllAttendance: (from, to, userId, page = 0, size = 10, id = null, employeeId = null) =>
     api.get('/admin/attendance', { params: { from, to, userId, page, size, id, employeeId } }),
   getUserAttendance: (userId, from, to) =>
     api.get(`/admin/attendance/employee/${userId}`, {

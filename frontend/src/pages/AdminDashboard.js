@@ -2094,7 +2094,7 @@ function PayrollView({ showToast, isReadOnly }) {
 
   const load = useCallback(() => {
     setLoading(true);
-    adminService.getPayrolls(page, 20)
+    adminService.getPayrolls(page, 10)
       .then((r) => {
         const raw = r.data;
         let data = [];
@@ -2387,7 +2387,7 @@ function PayrollView({ showToast, isReadOnly }) {
                     return 0;
                   }).map((pr, index) => (
                     <tr key={pr.id} className="border-b border-gray-100 hover:bg-gray-50" style={actionLoading === pr.id ? { opacity: 0.6 } : undefined}>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">{page * 20 + index + 1}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">{page * 10 + index + 1}</td>
                       <td className="px-4 py-3 font-medium whitespace-nowrap">{(pr.user || {}).firstName} {(pr.user || {}).lastName}</td>
                       <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{(pr.user || {}).employeeId || pr.userId || "—"}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{pr.payPeriodStart} — {pr.payPeriodEnd}</td>

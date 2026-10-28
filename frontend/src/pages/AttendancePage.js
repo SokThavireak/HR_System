@@ -290,7 +290,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
 
   // ─── Loading + pagination ───
   useEffect(() => {
-    setTotalPages(Math.ceil(filtered.length / 20));
+    setTotalPages(Math.ceil(filtered.length / 10));
     setPage(0);
     // Safety: always stop loading after filters produce a result
     if (loading) setLoading(false);
@@ -828,7 +828,7 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filtered.slice(page * 20, (page + 1) * 20).map((r) => (
+                      {filtered.slice(page * 10, (page + 1) * 10).map((r) => (
                         <TableRow key={r.id}>
                           {!isEmployee && (
                             <TableCell>
@@ -860,17 +860,17 @@ const AttendancePage = ({ showSidebar = true, standalone = false, admin = false,
                 </div>
                 <div className="mt-4 flex flex-col items-center gap-3">
                   <p className="text-xs text-muted-foreground">
-                    Showing {Math.min((page + 1) * 20, filtered.length)} of {filtered.length} records
+                    Showing {Math.min((page + 1) * 10, filtered.length)} of {filtered.length} records
                   </p>
                   <div className="flex items-center gap-2">
                     {page > 0 && (
                       <Button variant="outline" size="sm" onClick={() => setPage((p) => p - 1)}>
-                        ← Previous 20
+                        ← Previous 10
                       </Button>
                     )}
-                    {(page + 1) * 20 < filtered.length && (
+                    {(page + 1) * 10 < filtered.length && (
                       <Button size="sm" onClick={() => setPage((p) => p + 1)}>
-                        Next 20 →
+                        Next 10 →
                       </Button>
                     )}
                   </div>
